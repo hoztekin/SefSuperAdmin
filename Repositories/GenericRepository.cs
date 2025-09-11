@@ -3,7 +3,7 @@ using System.Linq.Expressions;
 
 namespace App.Repositories
 {
-    public class GenericRepository<T, TId>(AppDbContext context) : IGenericRepository<T, TId> where T : BaseEntity<TId>
+    public class GenericRepository<T, TId>(AppDbContext context) : IGenericRepository<T, TId> where T : BaseEntity
     {
         protected AppDbContext Context = context;
 

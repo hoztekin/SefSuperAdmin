@@ -1,12 +1,12 @@
-﻿using App.Repositories.UserApps;
+﻿using App.Repositories.Machines;
+using App.Repositories.UserApps;
 using App.Repositories.UserRoles;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
-namespace App.Repositories.Machines
+namespace App.Repositories.SeedDatas
 {
-    public class MachineSeed(UserManager<UserApp> userManager, RoleManager<UserRole> roleManager, AppDbContext context)
+    public class DatabaseSeeder(UserManager<UserApp> userManager, RoleManager<UserRole> roleManager, AppDbContext context)
     {
         public async Task SeedAsync()
         {

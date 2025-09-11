@@ -1,6 +1,6 @@
 ﻿using App.Repositories;
 using App.Repositories.Extensions;
-using App.Repositories.Machines;
+using App.Repositories.SeedDatas;
 using App.Services.Extensions;
 using App.Services.Filters;
 using App.Shared;
@@ -16,7 +16,7 @@ namespace App.Api
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -29,7 +29,7 @@ namespace App.Api
 
             // Redis Cache'i ekle
             builder.Services.AddRedisCache(cacheSettingsSection["ConnectionString"]!).AddElastic(builder.Configuration);
-
+            builder.Services.AddScoped<DatabaseSeeder>();
             builder.Services.AddOpenApi();
             builder.Services.AddRepositories(builder.Configuration).AddServices(builder.Configuration);
 
@@ -65,16 +65,30 @@ namespace App.Api
             using (var scope = app.Services.CreateScope())
             {
                 var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                var seeder = scope.ServiceProvider.GetRequiredService<MachineSeed>();
+                var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
 
                 try
                 {
-                    // Migration'ları çalıştır
-                    context.Database.Migrate();
+                    // Database'i sil ve yeniden oluştur (sadece development için)
+                    if (app.Environment.IsDevelopment())
+                    {
+                        // Migration'lar varsa uygula, yoksa oluştur
+                        if (context.Database.GetPendingMigrations().Any())
+                        {
+                            await context.Database.MigrateAsync();
+                        }
+                        else if (!await context.Database.CanConnectAsync())
+                        {
+                            await context.Database.EnsureCreatedAsync();
+                        }
+                    }
+                    else
+                    {
+                        await context.Database.MigrateAsync();
+                    }
                     Log.Information("Database migration tamamlandı");
 
-                    // Seed data'yı çalıştır
-                    seeder.SeedAsync();
+                    await seeder.SeedAsync();
                     Log.Information("Database seed tamamlandı");
                 }
                 catch (Exception ex)
@@ -83,7 +97,8 @@ namespace App.Api
                     throw;
                 }
             }
-            app.RunAsync();
+
+            await app.RunAsync();
         }
     }
 }

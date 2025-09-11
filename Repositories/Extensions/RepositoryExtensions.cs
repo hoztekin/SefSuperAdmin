@@ -25,7 +25,6 @@ namespace App.Repositories.Extensions
                                    errorNumbersToAdd: null);
                 });
 
-                options.AddInterceptors(new AuditDbContextInterceptor());
             });
 
             services.AddScoped(typeof(IGenericRepository<,>), typeof(GenericRepository<,>));

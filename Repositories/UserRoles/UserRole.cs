@@ -2,7 +2,7 @@
 
 namespace App.Repositories.UserRoles
 {
-    public class UserRole : IdentityRole, IAuditEntity
+    public class UserRole : IdentityRole
     {
         public string? Description { get; set; }
         public DateTime Created { get; set; }

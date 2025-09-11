@@ -1,47 +1,73 @@
-﻿	
-
-@model LoginDto
+﻿@model LoginDto
 
 @{
-	ViewData["Title"] = "Üye Girişi";
-
+	ViewData["Title"] = "Admin Girişi";
+	Layout = "_Layout";
 }
 
-<div class="row">
-	<div class="col-sm-4 mx-auto mt-4 my-4">
-		<h1 class="display-4 border-bottom text-center pb-2">@ViewData["Title"]</h1>
-	</div>
-</div>
+
 
 <div class="container">
-	<div class="row">
-		<div class="col-sm-4 mx-auto mt-4">
-			<div asp-validation-summary="ModelOnly" class="text-danger small"></div>
-			<form asp-action="Login" method="post">
-				<div class="form-group mb-3 mt-4">
-					<label asp-for="Email" class="form-label">Mail Adresi</label>
-					<input asp-for="Email" class="form-control" placeholder="Mail Adresi" />
-					<span asp-validation-for="Email" class="text-danger small"></span>
+	<section class="body-sign">
+		<div class="center-sign">
+			<a href="/" class="logo float-start">
+				<img src="~/img/logo.png" height="80" alt="Şefim Plus" />
+			</a>
+
+			<div class="panel card-sign">
+				<div class="card-title-sign mt-3 text-end">
+					<h2 class="title text-capitalize font-weight m-0"><i class="bx bx-user-circle me-1 text-6 position-relative top-5"></i> Üye Girişi</h2>
 				</div>
-				<div class="form-group mb-3 mt-4">
-					<label asp-for="Password" class="form-label">Şifre</label>
-					<input asp-for="Password" class="form-control" placeholder="Şifre" />
-					<span asp-validation-for="Password" class="text-danger small"></span>
+				<div class="card-body" style="height:500px;">
+					<form asp-action="Login" asp-controller="Authentication" method="post">
+						<div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+						<div class="form-group mb-3">
+							<label asp-for="UserName" class="control-label">Kullanıcı Adı *</label>
+							<div class="input-group">
+								<input asp-for="UserName" class="form-control form-control-lg" required>
+								<span class="input-group-text">
+									<i class="bx bx-user text-4"></i>
+								</span>
+
+							</div>
+							<span asp-validation-for="UserName" class="text-danger"></span>
+						</div>
+						<div class="form-group mb-3">
+							<div class="clearfix">
+								<label asp-for="Password" class="control-label">Parolanız *</label>
+								<a asp-action="ForgetPassword" asp-controller="User" class="float-end"> Parolamı Unuttum</a>
+							</div>
+							<div class="input-group">
+								<input asp-for="Password" class="form-control form-control-lg" required />
+								<span class="input-group-text">
+									<i class="bx bx-lock text-4"></i>
+								</span>
+
+							</div>
+							<span asp-validation-for="Password" class="text-danger"></span>
+						</div>
+						<div class="row">
+							<div class="col-sm-8">
+								<div class="checkbox-custom checkbox-default">
+									<input asp-for="RememberMe" type="checkbox" name="rememberme" class="custom-control-input" id="rememberme">
+									<label asp-for="RememberMe" class="custom-control-label text-2" for="rememberme"><b>Beni Hatırla</b></label>
+								</div>
+							</div>
+						</div>
+						<div class="mt-4 text-center">
+							<button type="submit" class="btn btn-twitter mb-3 ms-1 me-1"><i class="fa-regular fa-paper-plane me-2"></i>Gönder</button>
+						</div>
+						<p class="text-center">Henüz bir hesabınız yok mu? <a href="https://www.kvyyazilim.com" target="_blank">Bilgi Al</a></p>
+					</form>
 				</div>
-				<div class="" style="display:flex; justify-content:space-between">
-					@* <div class="form-wrapper">
-						<input type="checkbox" asp-for="RememberMe" /> Beni Hatırla
-					</div> *@
-					@* <div>
-						<a href="/SifremiUnuttum" style="text-decoration:none">Şifremi Unuttum</a>
-					</div> *@
-				</div>
-				
-				<div class="form-group d-grid gap-2 col-6 mx-auto mt-4">
-					<button type="submit" class="btn btn-primary btn-lg"><i class="fa-solid fa-right-to-bracket me-2"></i> Giriş</button>
-				</div>
-			</form>
+			</div>
+			<p class="text-center text-muted mt-3 mb-3">&copy; Copyright @DateTime.Now.Year. Tüm Hakkı Saklıdır.</p>
 		</div>
-	</div>
+	</section>
 </div>
+
+
+
+
+
 

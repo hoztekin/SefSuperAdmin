@@ -16,7 +16,6 @@ public class HomeController : Controller
 
     public IActionResult Index()
     {
-        this.SetSuccessMessage("Hoşgeldiniz");
         return View();
     }
 

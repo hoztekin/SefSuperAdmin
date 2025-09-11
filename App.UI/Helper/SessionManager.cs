@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using App.UI.DTOS;
+using System.Text.Json;
 
 namespace App.UI.Helper
 {
@@ -19,7 +20,9 @@ namespace App.UI.Helper
             public string RefreshToken { get; set; }
             public string UserId { get; set; }
             public DateTime AccessTokenExpiration { get; set; }
+            public UserInfoDto UserInfo { get; set; }
             public List<string> Roles { get; set; }
+            public List<string> Permissions { get; set; }
         }
 
         public static void SaveSession(string accessToken, string userId, DateTime accessTokenExpiration, List<string> roles, string refreshToken = null)

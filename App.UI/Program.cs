@@ -46,14 +46,11 @@ namespace App.UI
             app.UseAuthentication();
             app.UseMiddleware<TokenRefreshMiddleware>();
             app.UseAuthorization();
-            app.MapStaticAssets();
-            app.MapControllerRoute(
-                   name: "areas",
-                   pattern: "{area:exists}/{controller=Admin}/{action=Index}/{id?}");
+            app.MapStaticAssets();    
 
             app.MapControllerRoute(
                 name: "default",
-                pattern: "{controller=Home}/{action=Index}/{id?}")
+                pattern: "{controller=Authentication}/{action=Login}/{id?}")
                 .WithStaticAssets();
 
             app.Run();

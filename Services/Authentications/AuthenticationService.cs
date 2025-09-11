@@ -18,7 +18,7 @@ namespace App.Services.Authentications
         {
             if (loginDto == null) throw new ArgumentException(nameof(loginDto));
 
-            var user = await userManager.FindByEmailAsync(loginDto.Email);
+            var user = await userManager.FindByNameAsync(loginDto.UserName);
 
             if (user == null) return ServiceResult<TokenDto>.Fail("EMail or Password is wrong", HttpStatusCode.NotFound);
 

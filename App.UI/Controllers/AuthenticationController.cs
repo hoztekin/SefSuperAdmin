@@ -58,7 +58,7 @@ namespace App.UI.Controllers
             {
                 var tokenService = HttpContext.RequestServices.GetRequiredService<ITokenService>();
 
-                if (await tokenService.LoginAsync(model.Email, model.Password))
+                if (await tokenService.LoginAsync(model.UserName, model.Password))
                 {
                     var session = SessionManager.GetSession();
                     if (session != null)

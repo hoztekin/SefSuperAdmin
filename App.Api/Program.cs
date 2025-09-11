@@ -64,30 +64,10 @@ namespace App.Api
 
             using (var scope = app.Services.CreateScope())
             {
-                var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
                 var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
 
                 try
                 {
-                    // Database'i sil ve yeniden oluştur (sadece development için)
-                    if (app.Environment.IsDevelopment())
-                    {
-                        // Migration'lar varsa uygula, yoksa oluştur
-                        if (context.Database.GetPendingMigrations().Any())
-                        {
-                            await context.Database.MigrateAsync();
-                        }
-                        else if (!await context.Database.CanConnectAsync())
-                        {
-                            await context.Database.EnsureCreatedAsync();
-                        }
-                    }
-                    else
-                    {
-                        await context.Database.MigrateAsync();
-                    }
-                    Log.Information("Database migration tamamlandı");
-
                     await seeder.SeedAsync();
                     Log.Information("Database seed tamamlandı");
                 }

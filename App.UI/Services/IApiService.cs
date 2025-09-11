@@ -21,11 +21,13 @@ namespace App.UI.Services
         private readonly HttpClient _httpClient;
         private readonly ITokenService _tokenService;
         private readonly JsonSerializerOptions _jsonOptions;
+        private readonly ILogger<ApiService> _logger;
 
-        public ApiService(HttpClient httpClient, ITokenService tokenService)
+        public ApiService(HttpClient httpClient, ITokenService tokenService, ILogger<ApiService> logger)
         {
             _httpClient = httpClient;
             _tokenService = tokenService;
+            _logger = logger;
             _jsonOptions = new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,
@@ -39,33 +41,41 @@ namespace App.UI.Services
 
             if (requiresAuth)
             {
-                var token = await _tokenService.GetTokenAsync();
-                string cleanedToken;
-                if (!string.IsNullOrEmpty(token))
+                var session = SessionManager.GetSession();
+                if (session != null && !string.IsNullOrEmpty(session.AccessToken))
                 {
-                    cleanedToken = JwtTokenParser.CleanToken(token);
-                    _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", cleanedToken);
-
-                }
-                else
-                {
-                    var session = SessionManager.GetSession();
-
-                    if (session != null && !string.IsNullOrEmpty(session.RefreshToken))
+                    // Token geçerliliği kontrolü
+                    if (SessionManager.IsTokenValid())
                     {
+                        var cleanedToken = JwtTokenParser.CleanToken(session.AccessToken);
+                        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", cleanedToken);
+                        _logger.LogDebug("Authorization header eklendi");
+                    }
+                    else
+                    {
+                        // Token süresi dolmuş, yenilemeyi dene
+                        _logger.LogInformation("Token süresi dolmuş, yenileme deneniyor...");
                         var refreshed = await _tokenService.RefreshTokenAsync();
                         if (refreshed)
                         {
                             // Yenileme başarılıysa tekrar token al
-                            token = await _tokenService.GetTokenAsync();
-                            if (!string.IsNullOrEmpty(token))
+                            var newSession = SessionManager.GetSession();
+                            if (newSession != null && !string.IsNullOrEmpty(newSession.AccessToken))
                             {
-                                cleanedToken = JwtTokenParser.CleanToken(token);
+                                var cleanedToken = JwtTokenParser.CleanToken(newSession.AccessToken);
                                 _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", cleanedToken);
-                                Log.Information($"Token yenilendi ve Authorization header eklendi");
+                                _logger.LogInformation("Token yenilendi ve Authorization header eklendi");
                             }
                         }
+                        else
+                        {
+                            _logger.LogWarning("Token yenilenemedi");
+                        }
                     }
+                }
+                else
+                {
+                    _logger.LogWarning("Session veya AccessToken bulunamadı");
                 }
             }
         }
@@ -76,42 +86,14 @@ namespace App.UI.Services
             {
                 await SetAuthorizationHeader(requiresAuth);
                 var response = await _httpClient.GetAsync(endpoint);
-                var content = await response.Content.ReadAsStringAsync();
 
-                if (!response.IsSuccessStatusCode)
-                {
-                    Log.Error($"API isteği başarısız: {response.StatusCode}, Content: {content}");
-                }
-
-                try
-                {
-                    var serviceResult = JsonSerializer.Deserialize<ServiceResult<T>>(content, _jsonOptions);
-                    return serviceResult.Data;
-                }
-                catch (JsonException jex)
-                {
-                    Log.Error($"JSON Deserialize hatası: {jex.Message}, Content: {content.Substring(0, Math.Min(content.Length, 500))}");
-
-                }
-            }
-            catch (JsonException ex)
-            {
-                Log.Error($"JSON Deserialize hatası: {ex.Message}");
-
-
-            }
-            catch (HttpRequestException ex)
-            {
-                Log.Error($"HTTP isteği hatası: {ex.Message}");
-
+                return await ProcessResponse<T>(response, endpoint, "GET");
             }
             catch (Exception ex)
             {
-                Log.Error($"API isteği sırasında beklenmeyen hata: {ex.Message}");
-
-
+                _logger.LogError(ex, "GET isteği sırasında hata oluştu: {Endpoint}", endpoint);
+                return default(T);
             }
-            return default(T);
         }
 
         public async Task<T> PostAsync<T>(string endpoint, object data, bool requiresAuth = true)
@@ -122,83 +104,32 @@ namespace App.UI.Services
                 var json = JsonSerializer.Serialize(data, _jsonOptions);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
                 var response = await _httpClient.PostAsync(endpoint, content);
-                var responseContent = await response.Content.ReadAsStringAsync();
 
-                if (!response.IsSuccessStatusCode)
-                {
-                    Log.Error($"API isteği başarısız: {response.StatusCode}, Content: {responseContent}");
-                }
-
-                var serviceResult = JsonSerializer.Deserialize<ServiceResult<T>>(responseContent, _jsonOptions);
-
-                if (serviceResult != null && !serviceResult.Success)
-                {
-                    Log.Warning($"API başarısız sonuç döndürdü: {serviceResult.Message}");
-                }
-
-                return serviceResult.Data;
-            }
-            catch (JsonException ex)
-            {
-                Log.Error($"JSON Deserialize hatası: {ex.Message}");
-
-            }
-            catch (HttpRequestException ex)
-            {
-                Log.Error($"HTTP isteği hatası: {ex.Message}");
-
+                return await ProcessResponse<T>(response, endpoint, "POST");
             }
             catch (Exception ex)
             {
-                Log.Error($"API isteği sırasında beklenmeyen hata: {ex.Message}");
-
+                _logger.LogError(ex, "POST isteği sırasında hata oluştu: {Endpoint}", endpoint);
+                return default(T);
             }
-            return default(T);
         }
-
 
         public async Task<T> PutAsync<T>(string endpoint, object data, bool requiresAuth = true)
         {
             try
             {
                 await SetAuthorizationHeader(requiresAuth);
-
                 var json = JsonSerializer.Serialize(data, _jsonOptions);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
                 var response = await _httpClient.PutAsync(endpoint, content);
-                var responseContent = await response.Content.ReadAsStringAsync();
 
-                if (!response.IsSuccessStatusCode)
-                {
-                    Log.Error($"API isteği başarısız: {response.StatusCode}, Content: {responseContent}");
-                }
-
-                var serviceResult = JsonSerializer.Deserialize<ServiceResult<T>>(responseContent, _jsonOptions);
-
-                if (serviceResult != null && !serviceResult.Success)
-                {
-                    Log.Warning($"API başarısız sonuç döndürdü: {serviceResult.Message}");
-
-                }
-
-                return serviceResult.Data;
-            }
-            catch (JsonException ex)
-            {
-                Log.Error($"JSON Deserialize hatası: {ex.Message}");
-
-            }
-            catch (HttpRequestException ex)
-            {
-                Log.Error($"HTTP isteği hatası: {ex.Message}");
-
+                return await ProcessResponse<T>(response, endpoint, "PUT");
             }
             catch (Exception ex)
             {
-                Log.Error($"API isteği sırasında beklenmeyen hata: {ex.Message}");
-
+                _logger.LogError(ex, "PUT isteği sırasında hata oluştu: {Endpoint}", endpoint);
+                return default(T);
             }
-            return default(T);
         }
 
         public async Task<T> DeleteAsync<T>(string endpoint, object data = null, bool requiresAuth = true)
@@ -208,7 +139,6 @@ namespace App.UI.Services
                 await SetAuthorizationHeader(requiresAuth);
 
                 HttpResponseMessage response;
-
                 if (data != null)
                 {
                     var request = new HttpRequestMessage(HttpMethod.Delete, endpoint);
@@ -221,45 +151,63 @@ namespace App.UI.Services
                     response = await _httpClient.DeleteAsync(endpoint);
                 }
 
-                var responseContent = await response.Content.ReadAsStringAsync();
-                Log.Information($"Response Status: {(int)response.StatusCode} {response.StatusCode}");
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    Log.Error($"API isteği başarısız: {response.StatusCode}, Content: {responseContent}");
-                }
-
-                if (string.IsNullOrEmpty(responseContent))
-                {
-                    return default;
-                }
-
-                var serviceResult = JsonSerializer.Deserialize<ServiceResult<T>>(responseContent, _jsonOptions);
-
-                if (serviceResult != null && !serviceResult.Success)
-                {
-                    Log.Warning($"API başarısız sonuç döndürdü: {serviceResult.Message}");
-
-                }
-
-                return serviceResult.Data;
-            }
-            catch (JsonException ex)
-            {
-                Log.Error($"JSON Deserialize hatası: {ex.Message}");
-
-            }
-            catch (HttpRequestException ex)
-            {
-                Log.Error($"HTTP isteği hatası: {ex.Message}");
-
+                return await ProcessResponse<T>(response, endpoint, "DELETE");
             }
             catch (Exception ex)
             {
-                Log.Error($"API isteği sırasında beklenmeyen hata: {ex.Message}");
-
+                _logger.LogError(ex, "DELETE isteği sırasında hata oluştu: {Endpoint}", endpoint);
+                return default(T);
             }
-            return default(T);
+        }
+
+        private async Task<T> ProcessResponse<T>(HttpResponseMessage response, string endpoint, string method)
+        {
+            var responseContent = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("{Method} isteği başarısız: {StatusCode} - {Endpoint} - Content: {Content}",
+                    method, response.StatusCode, endpoint, responseContent.Substring(0, Math.Min(responseContent.Length, 500)));
+
+                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    _logger.LogWarning("401 Unauthorized alındı, token problemi olabilir");
+                }
+
+                return default(T);
+            }
+
+            if (string.IsNullOrEmpty(responseContent))
+            {
+                return default(T);
+            }
+
+            try
+            {
+                // Eğer T bir ServiceResult ise direkt deserialize et
+                if (typeof(T).IsGenericType && typeof(T).GetGenericTypeDefinition() == typeof(ServiceResult<>))
+                {
+                    return JsonSerializer.Deserialize<T>(responseContent, _jsonOptions);
+                }
+
+                // Değilse ServiceResult içindeki Data'yı çıkar
+                var serviceResult = JsonSerializer.Deserialize<ServiceResult<T>>(responseContent, _jsonOptions);
+
+                if (serviceResult != null && serviceResult.Success)
+                {
+                    return serviceResult.Data;
+                }
+                else
+                {
+                    _logger.LogWarning("API başarısız sonuç döndürdü: {Message}", serviceResult?.Message);
+                    return default(T);
+                }
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "JSON Deserialize hatası: {Content}", responseContent.Substring(0, Math.Min(responseContent.Length, 500)));
+                return default(T);
+            }
         }
 
 

@@ -14,108 +14,153 @@ namespace App.UI.Services
         Task<bool> SignInAsync(TokenDto tokenDto);
         Task SignOutAsync();
         Task<bool> RefreshTokenAsync();
+        bool IsAuthenticated();
     }
 
     public class AuthService : IAuthService
     {
-        private readonly IApiService _apiService;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly HttpClient _httpClient;
+        private readonly ILogger<AuthService> _logger;
 
-        public AuthService(IApiService apiService, IHttpContextAccessor httpContextAccessor, IHttpClientFactory httpClientFactory)
+        public AuthService(IHttpContextAccessor httpContextAccessor, IHttpClientFactory httpClientFactory, ILogger<AuthService> logger)
         {
-            _apiService = apiService;
             _httpContextAccessor = httpContextAccessor;
             _httpClient = httpClientFactory.CreateClient("AuthClient");
+            _logger = logger;
         }
 
         public async Task<bool> SignInAsync(TokenDto tokenDto)
         {
-            if (tokenDto == null) return false;
-
-            // JWT token'dan kullanıcı bilgilerini çıkar
-            var (userId, roles) = JwtTokenParser.ParseToken(tokenDto.AccessToken);
-
-            // Session'ı kaydet
-            SessionManager.SaveSession(tokenDto.AccessToken, userId, tokenDto.AccessTokenExpiration, roles, tokenDto.RefreshToken);
-
-            // Claims oluştur
-            var claims = new List<Claim>
+            if (tokenDto == null || string.IsNullOrEmpty(tokenDto.AccessToken))
             {
-            new Claim(ClaimTypes.NameIdentifier, userId),
-            new Claim(ClaimTypes.Name, userId)
-            };
-
-            // Rolleri ekle
-            foreach (var role in roles)
-            {
-                claims.Add(new Claim(ClaimTypes.Role, role));
+                _logger.LogWarning("SignInAsync: Token bilgisi eksik");
+                return false;
             }
 
-            // Identity oluştur
-            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            var principal = new ClaimsPrincipal(identity);
+            try
+            {
+                // JWT token'dan kullanıcı bilgilerini çıkar
+                var (userId, roles) = JwtTokenParser.ParseToken(tokenDto.AccessToken);
 
-            // Cookie olarak oturum aç
-            await _httpContextAccessor.HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
-                principal,
-                new AuthenticationProperties
+                if (string.IsNullOrEmpty(userId))
                 {
-                    IsPersistent = true,
-                    ExpiresUtc = tokenDto.AccessTokenExpiration
-                });
+                    _logger.LogWarning("SignInAsync: User ID token'dan çıkarılamadı");
+                    return false;
+                }
 
-            return true;
+                // Session'ı kaydet
+                SessionManager.SaveSession(tokenDto.AccessToken, userId, tokenDto.AccessTokenExpiration, roles, tokenDto.RefreshToken);
+
+                // Claims oluştur
+                var claims = new List<Claim>
+                {
+                    new Claim(ClaimTypes.NameIdentifier, userId),
+                    new Claim(ClaimTypes.Name, userId),
+                    new Claim("AccessToken", tokenDto.AccessToken),
+                    new Claim("AccessTokenExpiration", tokenDto.AccessTokenExpiration.ToString("O"))
+                };
+
+                // Rolleri ekle
+                foreach (var role in roles)
+                {
+                    claims.Add(new Claim(ClaimTypes.Role, role));
+                }
+
+                // Identity oluştur
+                var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                var principal = new ClaimsPrincipal(identity);
+
+                // Cookie olarak oturum aç
+                await _httpContextAccessor.HttpContext.SignInAsync(
+                    CookieAuthenticationDefaults.AuthenticationScheme,
+                    principal,
+                    new AuthenticationProperties
+                    {
+                        IsPersistent = true,
+                        ExpiresUtc = tokenDto.AccessTokenExpiration,
+                        AllowRefresh = true
+                    });
+
+                _logger.LogInformation("Kullanıcı başarıyla giriş yaptı: {UserId}", userId);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "SignInAsync sırasında hata oluştu");
+                return false;
+            }
         }
 
         public async Task SignOutAsync()
         {
-            var session = SessionManager.GetSession();
-            if (session != null && !string.IsNullOrEmpty(session.RefreshToken))
+            try
             {
-                try
+                var session = SessionManager.GetSession();
+                if (session != null && !string.IsNullOrEmpty(session.RefreshToken))
                 {
-                    var refreshTokenDto = new RefreshTokenDto
+                    try
                     {
-                        Token = session.RefreshToken
-                    };
-                    await _apiService.PostAsync<RefreshTokenDto>("api/v1/Auth/RevokeRefreshToken", refreshTokenDto);
-                }
-                catch
-                {
+                        // API'ye refresh token'ı iptal etmesini söyle
+                        var refreshTokenDto = new RefreshTokenDto
+                        {
+                            Token = session.RefreshToken
+                        };
 
+                        var json = JsonSerializer.Serialize(refreshTokenDto);
+                        var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+                        await _httpClient.PostAsync("api/v1/Auth/RevokeRefreshToken", content);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Refresh token iptal edilemedi");
+                    }
                 }
+
+                // Session'ı temizle
+                SessionManager.ClearSession();
+
+                // Cookie'yi temizle
+                await _httpContextAccessor.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+                _logger.LogInformation("Kullanıcı çıkış yaptı");
             }
-            SessionManager.ClearSession();
-            await _httpContextAccessor.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "SignOutAsync sırasında hata oluştu");
+            }
         }
 
         public async Task<bool> RefreshTokenAsync()
         {
-            var session = SessionManager.GetSession();
-            if (session == null || string.IsNullOrEmpty(session.RefreshToken))
-                return false;
-
             try
             {
+                var session = SessionManager.GetSession();
+                if (session == null || string.IsNullOrEmpty(session.RefreshToken))
+                {
+                    _logger.LogWarning("RefreshTokenAsync: Session veya refresh token bulunamadı");
+                    return false;
+                }
+
                 var refreshTokenDto = new RefreshTokenDto
                 {
                     Token = session.RefreshToken
                 };
 
-                var content = new StringContent(
-               JsonSerializer.Serialize(refreshTokenDto, new JsonSerializerOptions
-               {
-                   PropertyNameCaseInsensitive = true
-               }),
-               System.Text.Encoding.UTF8,
-               "application/json");
+                var json = JsonSerializer.Serialize(refreshTokenDto, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
 
+                var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
                 var response = await _httpClient.PostAsync("api/v1/Auth/CreateTokenByRefreshToken", content);
 
                 if (!response.IsSuccessStatusCode)
                 {
+                    _logger.LogWarning("Token yenileme başarısız: {StatusCode}", response.StatusCode);
+
+                    // Eğer refresh token da geçersizse session'ı temizle
                     SessionManager.ClearSession();
                     await _httpContextAccessor.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
                     return false;
@@ -127,19 +172,34 @@ namespace App.UI.Services
 
                 if (tokenResponse?.Data == null)
                 {
+                    _logger.LogWarning("Token yenileme response'u geçersiz");
                     SessionManager.ClearSession();
                     await _httpContextAccessor.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
                     return false;
                 }
 
-                return await SignInAsync(tokenResponse.Data);
+                // Yeni token ile tekrar sign-in yap
+                var result = await SignInAsync(tokenResponse.Data);
+                if (result)
+                {
+                    _logger.LogInformation("Token başarıyla yenilendi");
+                }
+
+                return result;
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "RefreshTokenAsync sırasında hata oluştu");
                 SessionManager.ClearSession();
                 await _httpContextAccessor.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
                 return false;
             }
+        }
+
+        public bool IsAuthenticated()
+        {
+            var session = SessionManager.GetSession();
+            return session != null && SessionManager.IsTokenValid();
         }
     }
 }

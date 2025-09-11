@@ -1,6 +1,9 @@
 ﻿using App.Shared;
 using App.UI.Extensions;
+using App.UI.Helper;
 using App.UI.MiddleWare;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Serilog;
 
 namespace App.UI
@@ -14,34 +17,54 @@ namespace App.UI
             LoggerConfig.ConfigureLogger("App.UI");
             builder.Services.AddControllersWithViews();
             builder.Services.AddServicesUI();
+            // Authentication konfigürasyonu
             builder.Services.AddAuthentication(options =>
             {
-                options.DefaultScheme = "Cookies";
-                options.DefaultChallengeScheme = "Cookies";
+                options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
             })
-            .AddCookie("Cookies", options =>
+            .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
             {
-                CookieBuilder cookie = new CookieBuilder();
                 options.LoginPath = new PathString("/Authentication/Login");
                 options.LogoutPath = new PathString("/Authentication/Logout");
                 options.AccessDeniedPath = new PathString("/Authentication/AccessDenied");
-                options.Cookie.HttpOnly = false;
+                options.Cookie.Name = "AppAuthCookie";
+                options.Cookie.HttpOnly = true;
                 options.Cookie.SameSite = SameSiteMode.Lax;
                 options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
                 options.ExpireTimeSpan = TimeSpan.FromDays(1);
                 options.SlidingExpiration = true;
+
+                options.Events.OnValidatePrincipal = async context =>
+                {
+                    // Token geçerliliğini kontrol et
+                    var session = SessionManager.GetSession();
+                    if (session == null || !SessionManager.IsTokenValid())
+                    {
+                        // Token geçersizse oturumu sonlandır
+                        context.RejectPrincipal();
+                        await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                    }
+                };
             });
 
-
+            // Authorization
+            builder.Services.AddAuthorization(options =>
+            {
+                options.DefaultPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+                    .RequireAuthenticatedUser()
+                    .Build();
+            });
 
             var app = builder.Build();
             if (!app.Environment.IsDevelopment())
             {
                 app.UseExceptionHandler("/Home/Error");
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
             app.UseHttpsRedirection();
+            app.UseStaticFiles();
             app.UseRouting();
             app.UseAuthentication();
             app.UseMiddleware<TokenRefreshMiddleware>();

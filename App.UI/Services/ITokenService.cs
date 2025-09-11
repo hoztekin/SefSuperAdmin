@@ -16,10 +16,12 @@ namespace App.UI.Services
     {
         private readonly HttpClient _httpClient;
         private readonly JsonSerializerOptions _jsonOptions;
+        private readonly ILogger<TokenService> _logger;
 
-        public TokenService(HttpClient httpClient)
+        public TokenService(IHttpClientFactory httpClientFactory, ILogger<TokenService> logger)
         {
-            _httpClient = httpClient;
+            _httpClient = httpClientFactory.CreateClient("TokenClient"); 
+            _logger = logger;
             _jsonOptions = new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
@@ -33,12 +35,14 @@ namespace App.UI.Services
             // Oturum yoksa veya token süresi dolmuşsa, yenilemeyi dene
             if (session == null || !SessionManager.IsTokenValid())
             {
+                _logger.LogInformation("Token geçersiz, yenileme deneniyor...");
                 var refreshSuccess = await RefreshTokenAsync();
                 if (!refreshSuccess)
                 {
+                    _logger.LogWarning("Token yenilenemedi");
                     return null;
                 }
-                session = SessionManager.GetSession(); // Yenileme sonrası güncel oturumu al
+                session = SessionManager.GetSession();
             }
 
             return session?.AccessToken;
@@ -49,6 +53,7 @@ namespace App.UI.Services
             var session = SessionManager.GetSession();
             if (session == null || string.IsNullOrEmpty(session.RefreshToken))
             {
+                _logger.LogWarning("RefreshToken bulunamadı");
                 return false;
             }
 
@@ -64,6 +69,7 @@ namespace App.UI.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
+                    _logger.LogWarning("Token yenileme başarısız: {StatusCode}", response.StatusCode);
                     SessionManager.ClearSession();
                     return false;
                 }
@@ -73,6 +79,7 @@ namespace App.UI.Services
 
                 if (tokenResponse?.Data == null)
                 {
+                    _logger.LogWarning("Token response geçersiz");
                     return false;
                 }
 
@@ -80,17 +87,23 @@ namespace App.UI.Services
                 var (userId, roles) = JwtTokenParser.ParseToken(tokenResponse.Data.AccessToken);
 
                 // Yeni oturumu kaydet
-                SessionManager.SaveSession(tokenResponse.Data.AccessToken, userId, tokenResponse.Data.AccessTokenExpiration, roles, tokenResponse.Data.RefreshToken);
+                SessionManager.SaveSession(
+                    tokenResponse.Data.AccessToken,
+                    userId,
+                    tokenResponse.Data.AccessTokenExpiration,
+                    roles,
+                    tokenResponse.Data.RefreshToken);
 
+                _logger.LogInformation("Token başarıyla yenilendi");
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Token yenileme hatası: {ex.Message}");
+                _logger.LogError(ex, "Token yenileme hatası");
+                SessionManager.ClearSession();
                 return false;
             }
         }
-
 
         public async Task<bool> LoginAsync(string email, string password)
         {
@@ -106,6 +119,7 @@ namespace App.UI.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
+                    _logger.LogWarning("Login başarısız: {StatusCode}", response.StatusCode);
                     return false;
                 }
 
@@ -114,6 +128,7 @@ namespace App.UI.Services
 
                 if (tokenResponse?.Data == null)
                 {
+                    _logger.LogWarning("Login response geçersiz");
                     return false;
                 }
 
@@ -121,15 +136,19 @@ namespace App.UI.Services
                 var (userId, roles) = JwtTokenParser.ParseToken(tokenResponse.Data.AccessToken);
 
                 // Oturumu kaydet
-                SessionManager.SaveSession(tokenResponse.Data.AccessToken, userId, tokenResponse.Data.AccessTokenExpiration, roles, tokenResponse.Data.RefreshToken);
+                SessionManager.SaveSession(
+                    tokenResponse.Data.AccessToken,
+                    userId,
+                    tokenResponse.Data.AccessTokenExpiration,
+                    roles,
+                    tokenResponse.Data.RefreshToken);
 
+                _logger.LogInformation("Login başarılı: {UserId}", userId);
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Giriş hatası: {ex.Message}");
-                Console.WriteLine($"Inner Exception: {ex.InnerException?.Message}");
-                Console.WriteLine($"Stack Trace: {ex.StackTrace}");
+                _logger.LogError(ex, "Login işlemi sırasında hata");
                 return false;
             }
         }
@@ -137,6 +156,7 @@ namespace App.UI.Services
         public void Logout()
         {
             SessionManager.ClearSession();
+            _logger.LogInformation("Logout işlemi tamamlandı");
         }
 
         public bool IsAuthenticated()

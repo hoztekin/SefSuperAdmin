@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace App.UI.Controllers
 {
     [AllowAnonymous]
-    public class AuthenticationController(IApiService apiService, IAuthService authService) : Controller
+    public class AuthenticationController(IApiService apiService, IAuthService authService, ITokenService tokenService) : Controller
     {
 
         public IActionResult Register()
@@ -27,7 +27,8 @@ namespace App.UI.Controllers
             try
             {
                 var response = await apiService.PostAsync<CreateUserDto>("api/v1/user", model, false);
-                return RedirectToAction("Index", "Home");
+                this.SetSuccessMessage("Kayıt başarıyla tamamlandı! Giriş yapabilirsiniz.");
+                return RedirectToAction("Login");
             }
             catch (Exception ex)
             {
@@ -47,7 +48,6 @@ namespace App.UI.Controllers
         [HttpPost]
         public async Task<IActionResult> Login(LoginDto model, string? ReturnUrl = null)
         {
-
             if (!ModelState.IsValid)
             {
                 TempData["ReturnUrl"] = ReturnUrl;
@@ -56,53 +56,55 @@ namespace App.UI.Controllers
 
             try
             {
-                var tokenService = HttpContext.RequestServices.GetRequiredService<ITokenService>();
+                // API'den token al
+                var tokenResponse = await apiService.PostAsync<TokenDto>("api/v1/Auth/Login", model, false);
 
-                if (await tokenService.LoginAsync(model.UserName, model.Password))
+                if (tokenResponse != null && !string.IsNullOrEmpty(tokenResponse.AccessToken))
                 {
-                    var session = SessionManager.GetSession();
-                    if (session != null)
+                    // JWT token'dan kullanıcı bilgilerini çıkar
+                    var (userId, roles) = JwtTokenParser.ParseToken(tokenResponse.AccessToken);
+
+                    // Session'ı kaydet
+                    SessionManager.SaveSession(
+                        tokenResponse.AccessToken,
+                        userId,
+                        tokenResponse.AccessTokenExpiration,
+                        roles,
+                        tokenResponse.RefreshToken
+                    );
+
+                    // Cookie authentication için sign-in yap
+                    await authService.SignInAsync(tokenResponse);
+
+                    this.SetSuccessMessage("Giriş başarılı!");
+
+                    // Return URL kontrolü
+                    if (!string.IsNullOrEmpty(ReturnUrl) && Url.IsLocalUrl(ReturnUrl))
                     {
-                        // TokenDto nesnesini oluştur
-                        var tokenDto = new TokenDto
-                        {
-                            AccessToken = session.AccessToken,
-                            AccessTokenExpiration = session.AccessTokenExpiration,
-                            RefreshToken = session.RefreshToken
-                        };
-
-                        // Cookie authentication için sign-in yap
-                        await authService.SignInAsync(tokenDto);
-
-                        if (TempData["ReturnUrl"] != null)
-                        {
-                            var returnUrl = TempData["ReturnUrl"].ToString();
-                            if (Url.IsLocalUrl(returnUrl))
-                            {
-                                return LocalRedirect(returnUrl);
-                            }
-                        }
-                        return RedirectToAction("Index", "Home");
+                        return LocalRedirect(ReturnUrl);
                     }
+
+                    return RedirectToAction("Index", "Home");
                 }
-
-                ModelState.AddModelError("", "Giriş işlemi başarısız oldu.");
-                TempData["ReturnUrl"] = ReturnUrl;
-                return View(model);
-
+                else
+                {
+                    ModelState.AddModelError("", "Giriş bilgileri hatalı.");
+                }
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError("", $"Bir hata oluştu: {ex.Message}");
-                TempData["ReturnUrl"] = ReturnUrl;
-                return View(model);
+                ModelState.AddModelError("", $"Giriş işlemi sırasında hata oluştu: {ex.Message}");
             }
+
+            TempData["ReturnUrl"] = ReturnUrl;
+            return View(model);
         }
 
 
         public async Task<IActionResult> Logout()
         {
             await authService.SignOutAsync();
+            this.SetInfoMessage("Çıkış işlemi tamamlandı.");
             return RedirectToAction("Login");
         }
 
@@ -113,7 +115,7 @@ namespace App.UI.Controllers
                 return RedirectToAction("Index", "Home");
             }
 
-
+            this.SetWarningMessage("Oturum süresi doldu, tekrar giriş yapınız.");
             return RedirectToAction("Login");
         }
         public async Task<IActionResult> AccessDenied()
@@ -133,7 +135,7 @@ namespace App.UI.Controllers
             //ViewBag.Roles = roles;
             //ViewBag.Claims = identityClaims;
             #endregion
-
+            this.SetErrorMessage("Bu sayfaya erişim yetkiniz bulunmamaktadır.");
             return View();
         }
     }

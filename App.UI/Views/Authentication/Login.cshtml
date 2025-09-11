@@ -1,0 +1,47 @@
+﻿	
+
+@model LoginDto
+
+@{
+	ViewData["Title"] = "Üye Girişi";
+
+}
+
+<div class="row">
+	<div class="col-sm-4 mx-auto mt-4 my-4">
+		<h1 class="display-4 border-bottom text-center pb-2">@ViewData["Title"]</h1>
+	</div>
+</div>
+
+<div class="container">
+	<div class="row">
+		<div class="col-sm-4 mx-auto mt-4">
+			<div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+			<form asp-action="Login" method="post">
+				<div class="form-group mb-3 mt-4">
+					<label asp-for="Email" class="form-label">Mail Adresi</label>
+					<input asp-for="Email" class="form-control" placeholder="Mail Adresi" />
+					<span asp-validation-for="Email" class="text-danger small"></span>
+				</div>
+				<div class="form-group mb-3 mt-4">
+					<label asp-for="Password" class="form-label">Şifre</label>
+					<input asp-for="Password" class="form-control" placeholder="Şifre" />
+					<span asp-validation-for="Password" class="text-danger small"></span>
+				</div>
+				<div class="" style="display:flex; justify-content:space-between">
+					@* <div class="form-wrapper">
+						<input type="checkbox" asp-for="RememberMe" /> Beni Hatırla
+					</div> *@
+					@* <div>
+						<a href="/SifremiUnuttum" style="text-decoration:none">Şifremi Unuttum</a>
+					</div> *@
+				</div>
+				
+				<div class="form-group d-grid gap-2 col-6 mx-auto mt-4">
+					<button type="submit" class="btn btn-primary btn-lg"><i class="fa-solid fa-right-to-bracket me-2"></i> Giriş</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+

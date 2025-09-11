@@ -1,0 +1,47 @@
+﻿
+
+@model List<RoleDto>
+
+
+@{
+    ViewData["Title"] = "Rol İşlemleri";
+    Layout = "~/Areas/Admin/Views/Shared/_LayoutAdmin.cshtml";
+}
+
+<div class="col-4 offset-4 mt-4">
+	<h1 class="display-6 border-bottom text-center pb-2">@ViewData["Title"]</h1>
+</div>
+
+
+<a class="btn btn-primary mb-4" asp-action="Create" class="btn btn-info">Role Oluştur</a>
+
+<div class="container">
+	<div class="row">
+		<table class="table table table-bordered table-striped">
+			<tr>
+				<th>Id</th>
+				<th>Rol</th>
+				<th>Silme</th>
+			</tr>
+			@foreach (var item in Model)
+			{
+				<tr>
+					<td>@item.RoleId</td>
+					<td>@item.RoleName</td>
+					<td>
+						<form asp-action="Delete" asp-route-id="@item.RoleId" method="post">
+							<button class="btn btn-danger" type="submit">Sil</button>
+						</form>
+					</td>
+				</tr>
+			}
+
+
+		</table>
+
+
+
+		
+	</div>
+</div>
+

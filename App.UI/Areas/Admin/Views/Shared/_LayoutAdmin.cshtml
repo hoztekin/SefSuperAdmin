@@ -1,0 +1,133 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Admin Paneli</title>
+    <script type="importmap"></script>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/NLayer.WebUI.styles.css" asp-append-version="true" />
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.1/dist/sweetalert2.min.css" rel="stylesheet">
+
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+            <div class="container-fluid">
+                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">Admin Paneli</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <ul class="navbar-nav flex-grow-1">
+                        <li class="nav-item">
+                            <a class="nav-link text-dark btn btn-outline-danger" asp-area="" asp-controller="Home" asp-action="Index">Ana Sayfa</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark btn btn-outline-success" asp-area="Admin" asp-controller="Admin" asp-action="Index">Admin Ana Sayfa</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark btn btn-outline-primary" asp-area="Admin" asp-controller="Member" asp-action="Index">Üyeler</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark btn btn-outline-warning" asp-area="Admin" asp-controller="Role" asp-action="Index">Roller</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark btn btn-outline-secondary" asp-area="Admin" asp-controller="Product" asp-action="Index">Ürünler</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark btn btn-outline-info" asp-area="Admin" asp-controller="Categories" asp-action="Index">Kategoriler</a>
+                        </li>
+                    </ul>
+                    <ul class="navbar-nav"> 
+                        <li class="nav-item">
+                            <a class="nav-link text-dark btn btn-outline-success" asp-area="" asp-controller="Password" asp-action="PasswordChange">Parolamı Değiştir</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark btn btn-outline-danger" asp-area="" asp-controller="Authentication" asp-action="Logout">Çıkış</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+    <div class="container">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2025 - NLayer.WebUI - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+        </div>
+    </footer>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.1/dist/sweetalert2.all.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+
+
+    <script>
+        $(document).ready(function() {
+
+            var successMessage = '@Html.Raw(TempData["SuccessMessage"])';
+            var errorMessage = '@Html.Raw(TempData["ErrorMessage"])';
+            var warningMessage = '@Html.Raw(@TempData["WarningMessage"])';
+            var infoMessage = '@Html.Raw(TempData["InfoMessage"])';
+
+            if (successMessage && successMessage !== '') {
+
+                Swal.fire({
+                    title: 'Başarılı!',
+                    text: successMessage,
+                    icon: 'success',
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 5000
+                });
+            }
+            if (errorMessage && errorMessage !== '') {
+                Swal.fire({
+                    title: 'Hata!',
+                    text: errorMessage,
+                    icon: 'error',
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 5000
+                });
+            }
+            if (warningMessage && warningMessage !== '') {
+                Swal.fire({
+                    title: 'Uyarı!',
+                    text: warningMessage,
+                    icon: 'warning',
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 5000
+                });
+            }
+            if (infoMessage && infoMessage !== '') {
+                Swal.fire({
+                    title: 'Uyarı!',
+                    text: infoMessage,
+                    icon: 'info',
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    //confirmButtonText: 'Tamam',
+                    timer: 5000
+                });
+            }
+        });
+    </script>
+
+
+
+</body>
+</html>
+
+
+

@@ -1,0 +1,12 @@
+<Solution>
+  <Project Path="App.Api/App.Api.csproj" />
+  <Project Path="App.Shared/App.Shared.csproj" />
+  <Project Path="App.UI/App.UI.csproj" />
+  <Project Path="App.Worker/App.Worker.csproj" />
+  <Project Path="docker-compose.dcproj">
+    <Build />
+  </Project>
+  <Project Path="Repositories/App.Repositories.csproj" />
+  <Project Path="Services/App.Services.csproj" />
+  <Project Path="TestProject/App.TestProject.csproj" />
+</Solution>

@@ -1,0 +1,166 @@
+services:
+  app.api:
+    container_name: app-api
+    image: local/appapi
+    build:
+      context: .
+      dockerfile: App.Api/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ASPNETCORE_HTTPS_PORTS=8081
+      - ConnectionStrings__SqlServer=Server=sql-server;Database=ProjectAppDb;User Id=sa;Password=StrongPassword123!;TrustServerCertificate=True;
+    ports:
+      - "5190:8080"
+      - "7190:8081"
+    networks:
+      - app-network
+    volumes:
+      - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
+      - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
+      - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
+      - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro
+    depends_on:
+      - sql-server
+      - seq
+  app.ui:
+    image: local/appui
+    build:
+      context: .
+      dockerfile: App.UI/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ASPNETCORE_HTTPS_PORTS=8081
+    ports:
+      - "5191:8080"
+      - "7191:8081"
+    networks:
+      - app-network
+    volumes:
+      - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
+      - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
+      - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
+      - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro
+    depends_on:
+      - app.api
+      - seq
+  sql-server:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=StrongPassword123!
+    ports:
+      - "1433:1433"
+    volumes:
+      - sql-data:/var/opt/mssql
+    networks:
+      - app-network
+
+  rabbitmq:
+    image: "rabbitmq:3-management"
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"  
+      - "15672:15672"  
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq 
+    networks:
+      - app-network
+
+  app.worker:
+    image: local/appworker
+    build:
+      context: .
+      dockerfile: App.Worker/Dockerfile
+    environment:
+      - RabbitMQ__HostName=rabbitmq
+      - RabbitMQ__UserName=${RABBITMQ_USERNAME}
+      - RabbitMQ__Password=${RABBITMQ_PASSWORD}
+    networks:
+      - app-network
+    depends_on:
+      - rabbitmq
+      - seq
+
+  seq:
+    image: datalust/seq:latest
+    container_name: projectapp-seq
+    ports:
+      - "5341:80"
+    environment:
+      - ACCEPT_EULA=Y
+    volumes:
+      - seq-data:/data
+    networks:
+      - app-network
+
+  # elasticsearch:
+  #   image: docker.elastic.co/elasticsearch/elasticsearch:8.7.1
+  #   expose:
+  #     - 9200
+  #   environment:
+  #     - xpack.security.enabled=false
+  #     - "discovery.type=single-node"
+  #     - ELASTIC_USERNAME=elastic
+  #     - ELASTIC_PASSWORD=DkIedPPSCb
+  #   networks:
+  #     - app-network
+  #   ports:
+  #     - 9200:9200
+  #   volumes:
+  #     - app-elasticsearch-data:/usr/share/elasticsearch/data
+
+  # kibana:
+  #   image: docker.elastic.co/kibana/kibana:8.7.1
+  #   environment:
+  #     - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+  #   expose:
+  #     - 5601
+  #   networks:
+  #      - app-network
+  #   depends_on:
+  #     - elasticsearch
+  #   ports:
+  #     - 5601:5601
+  #   volumes:
+  #     - app-kibana-data:/usr/share/kibana/data
+
+  # redis:
+  #   image: "redis:latest"
+  #   container_name: redis
+  #   ports:
+  #     - "6379:6379"
+  #   environment:
+  #     - REDIS_PASSWORD=${REDIS_PASSWORD}
+  #   command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+  #   networks:
+  #     - app-network
+
+  # redisadmin:
+  #   image: erikdubbelboer/phpredisadmin
+  #   container_name: redisadmin
+  #   environment:
+  #     - REDIS_1_HOST=Redis
+  #     - REDIS_1_AUTH=${REDIS_PASSWORD}
+  #   ports:
+  #     - "6380:80"
+  #   networks:
+  #     - app-network
+  #   depends_on:
+  #     - redis
+
+volumes:
+  sql-data:
+  rabbitmq-data:
+  seq-data:
+  # app-elasticsearch-data:
+  # app-kibana-data:
+
+networks:
+  app-network:
+    name: app-network 
+    driver: bridge

@@ -1,0 +1,13 @@
+﻿namespace App.Services.Roles.DTOs
+{
+    public class RoleAssignDTO
+    {
+        public string RoleId { get; set; }
+
+        public string RoleName { get; set; }
+
+        public bool Exist { get; set; }
+
+        public string UserId { get; set; }
+    }
+}

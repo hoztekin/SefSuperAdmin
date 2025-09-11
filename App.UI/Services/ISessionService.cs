@@ -147,7 +147,7 @@ namespace App.UI.Services
                 var allPermissions = new List<string>();
 
                 // User'ın kendi permissions'larını JWT'den çıkarabilirsin
-               
+
 
                 // Duplicate'leri temizle
                 var uniquePermissions = allPermissions.Distinct().ToList();
@@ -250,7 +250,7 @@ namespace App.UI.Services
             return session?.Permissions ?? new List<string>();
         }
 
-      
+
 
         public UserInfoDto GetCurrentUser()
         {

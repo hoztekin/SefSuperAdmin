@@ -1,6 +1,5 @@
 ﻿using App.UI.DTOS;
 using App.UI.Helper;
-using Serilog;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;

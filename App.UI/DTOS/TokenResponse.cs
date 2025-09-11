@@ -2,9 +2,10 @@
 {
     public class TokenResponse
     {
-        public TokenData Data { get; set; }
-        public bool IsSuccessful { get; set; }
-        public string Error { get; set; }
+        public TokenDtoUI Data { get; set; }
+        public bool Success { get; set; }
+        public string Message { get; set; }
+        public List<string> ErrorMessage { get; set; }
     }
 
     public class TokenData

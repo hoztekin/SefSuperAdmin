@@ -11,7 +11,7 @@ namespace App.UI.Services
 {
     public interface IAuthService
     {
-        Task<bool> SignInAsync(TokenDto tokenDto);
+        Task<bool> SignInAsync(TokenDtoUI tokenDto);
         Task SignOutAsync();
         Task<bool> RefreshTokenAsync();
         bool IsAuthenticated();
@@ -30,7 +30,7 @@ namespace App.UI.Services
             _logger = logger;
         }
 
-        public async Task<bool> SignInAsync(TokenDto tokenDto)
+        public async Task<bool> SignInAsync(TokenDtoUI tokenDto)
         {
             if (tokenDto == null || string.IsNullOrEmpty(tokenDto.AccessToken))
             {
@@ -167,10 +167,10 @@ namespace App.UI.Services
                 }
 
                 var responseString = await response.Content.ReadAsStringAsync();
-                var tokenResponse = JsonSerializer.Deserialize<ServiceResult<TokenDto>>(responseString,
+                var serviceTokenResponse = JsonSerializer.Deserialize<ServiceResult<TokenDto>>(responseString,
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-                if (tokenResponse?.Data == null)
+                if (serviceTokenResponse?.Data == null)
                 {
                     _logger.LogWarning("Token yenileme response'u geçersiz");
                     SessionManager.ClearSession();
@@ -178,8 +178,17 @@ namespace App.UI.Services
                     return false;
                 }
 
+                // Services TokenDto'yu UI TokenDtoUI'ye çevir
+                var uiTokenDto = new TokenDtoUI
+                {
+                    AccessToken = serviceTokenResponse.Data.AccessToken,
+                    AccessTokenExpiration = serviceTokenResponse.Data.AccessTokenExpiration,
+                    RefreshToken = serviceTokenResponse.Data.RefreshToken,
+                    RefreshTokenExpiration = serviceTokenResponse.Data.RefreshTokenExpiration
+                };
+
                 // Yeni token ile tekrar sign-in yap
-                var result = await SignInAsync(tokenResponse.Data);
+                var result = await SignInAsync(uiTokenDto);
                 if (result)
                 {
                     _logger.LogInformation("Token başarıyla yenilendi");

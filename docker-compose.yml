@@ -1,4 +1,4 @@
-services:
+﻿services:
   app.api:
     container_name: app-api
     image: local/appapi
@@ -9,7 +9,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_HTTPS_PORTS=8081
-      - ConnectionStrings__SqlServer=Server=sql-server;Database=ProjectAppDb;User Id=sa;Password=StrongPassword123!;TrustServerCertificate=True;
+      - ConnectionStrings__SqlServer=Server=sql-server;Database=SefimSuperAdmin;User Id=sa;Password=StrongPassword123!;TrustServerCertificate=True;
     ports:
       - "5190:8080"
       - "7190:8081"
@@ -32,6 +32,8 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_HTTPS_PORTS=8081
+      - DOTNET_RUNNING_IN_CONTAINER=true
+      - API_BASE_URL=http://app-api:8080/
     ports:
       - "5191:8080"
       - "7191:8081"
@@ -93,6 +95,8 @@ services:
       - "5341:80"
     environment:
       - ACCEPT_EULA=Y
+      - SEQ_FIRSTRUN_ADMINUSERNAME=${SEQ_CONTAINER_ADMIN_USER}
+      - SEQ_FIRSTRUN_ADMINPASSWORD=${SEQ_CONTAINER_ADMIN_PASSWORD}
     volumes:
       - seq-data:/data
     networks:

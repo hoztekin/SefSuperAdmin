@@ -69,7 +69,7 @@ namespace App.UI
             app.UseAuthentication();
             app.UseMiddleware<TokenRefreshMiddleware>();
             app.UseAuthorization();
-            app.MapStaticAssets();    
+            app.MapStaticAssets();
 
             app.MapControllerRoute(
                 name: "default",

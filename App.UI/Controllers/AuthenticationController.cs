@@ -1,6 +1,6 @@
-﻿using App.Services.Authentications.DTOs;
-using App.Services.Authentications.Login;
+﻿using App.Services.Authentications.Login;
 using App.Services.Users.Create;
+using App.UI.DTOS;
 using App.UI.Helper;
 using App.UI.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -57,7 +57,7 @@ namespace App.UI.Controllers
             try
             {
                 // API'den token al
-                var tokenResponse = await apiService.PostAsync<TokenDto>("api/v1/Auth/Login", model, false);
+                var tokenResponse = await apiService.PostAsync<TokenDtoUI>("api/v1/Auth/Login", model, false);
 
                 if (tokenResponse != null && !string.IsNullOrEmpty(tokenResponse.AccessToken))
                 {

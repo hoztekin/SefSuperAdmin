@@ -1,12 +1,10 @@
-﻿using App.Repositories;
-using App.Repositories.Extensions;
+﻿using App.Repositories.Extensions;
 using App.Repositories.SeedDatas;
 using App.Services.Extensions;
 using App.Services.Filters;
 using App.Shared;
 using App.Shared.Redis;
 using App.Worker;
-using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using Serilog;
 using System.Text.Json.Serialization;

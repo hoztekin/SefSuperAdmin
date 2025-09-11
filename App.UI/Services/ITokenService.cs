@@ -20,7 +20,7 @@ namespace App.UI.Services
 
         public TokenService(IHttpClientFactory httpClientFactory, ILogger<TokenService> logger)
         {
-            _httpClient = httpClientFactory.CreateClient("TokenClient"); 
+            _httpClient = httpClientFactory.CreateClient("TokenClient");
             _logger = logger;
             _jsonOptions = new JsonSerializerOptions
             {

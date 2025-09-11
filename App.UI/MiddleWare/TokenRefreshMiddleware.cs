@@ -7,7 +7,7 @@ namespace App.UI.MiddleWare
 {
     public class TokenRefreshMiddleware(RequestDelegate next)
     {
-       
+
 
         public async Task InvokeAsync(HttpContext context, IAuthService authService, ILogger<TokenRefreshMiddleware> logger)
         {

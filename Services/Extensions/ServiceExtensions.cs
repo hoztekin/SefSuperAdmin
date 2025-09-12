@@ -7,6 +7,7 @@ using App.Services.Authentications.Helper;
 using App.Services.ExceptionHandlers;
 using App.Services.File;
 using App.Services.Filters;
+using App.Services.Machine;
 using App.Services.Roles;
 using App.Services.Tokens;
 using App.Services.Users;
@@ -32,6 +33,7 @@ namespace App.Services.Extensions
             services.AddScoped<IRoleService, RoleService>();
             services.AddScoped<IFileService, FileService>();
             services.AddScoped<IAccountService, AccountService>();
+            services.AddScoped<IMachineService, MachineService>();
 
             services.AddIdentity<UserApp, UserRole>(opts =>
             {

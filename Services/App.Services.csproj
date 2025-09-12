@@ -20,4 +20,8 @@
     <ProjectReference Include="..\Repositories\App.Repositories.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Machine\Dtos\" />
+  </ItemGroup>
+
 </Project>

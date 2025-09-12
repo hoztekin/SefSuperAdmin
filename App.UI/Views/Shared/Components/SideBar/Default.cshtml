@@ -1,0 +1,205 @@
+﻿@model SidebarViewModel
+
+<!-- start: sidebar -->
+<aside id="sidebar-left" class="sidebar-left">
+    <div class="sidebar-header">
+        <div class="sidebar-title">
+            @*  <img src="/img/logo.png" alt="SefimPlus" width="80" height="40" class="logo-img"> *@
+
+        </div>
+        <div class="sidebar-toggle d-none d-md-block" data-toggle-class="sidebar-left-collapsed" data-target="html" data-fire-event="sidebar-left-toggle">
+            <i class="fas fa-bars" aria-label="Toggle sidebar"></i>
+        </div>
+    </div>
+
+    <div class="nano">
+        <div class="nano-content">
+            <nav id="menu" class="nav-main" role="navigation">
+                <ul class="nav nav-main">
+
+                    <!-- Dashboard -->
+                    <li class="@(Model.IsActive("Home", "Index") ? "nav-active" : "")">
+                        <a class="nav-link" href="@Url.Action("Index", "Home")">
+                            <i class="bx bx-home-alt" aria-hidden="true"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+
+                    <!-- Kullanıcılar -->
+                    <li class="nav-parent @(Model.IsParentActive("Users") ? "nav-expanded" : "")">
+                        <a class="nav-link" href="#">
+                            <i class="bx bx-user" aria-hidden="true"></i>
+                            <span>Kullanıcılar</span>
+                        </a>
+                        <ul class="nav nav-children">
+                            <li class="@(Model.IsActive("Users", "Index") ? "nav-active" : "")">
+                                <a class="nav-link" href="@Url.Action("Index", "Users")">
+                                    <i class="bx bx-list-ul" aria-hidden="true"></i>
+                                    Kullanıcı Listesi
+                                </a>
+                            </li>
+                            <li class="@(Model.IsActive("Users", "Create") ? "nav-active" : "")">
+                                <a class="nav-link" href="@Url.Action("Create", "Users")">
+                                    <i class="bx bx-plus" aria-hidden="true"></i>
+                                    Yeni Kullanıcı
+                                </a>
+                            </li>
+                            <li class="@(Model.IsActive("Users", "Roles") ? "nav-active" : "")">
+                                <a class="nav-link" href="@Url.Action("Roles", "Users")">
+                                    <i class="bx bx-shield" aria-hidden="true"></i>
+                                    Roller & İzinler
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <!-- Firmalar -->
+                    <li class="nav-parent @(Model.IsParentActive("Companies") ? "nav-expanded" : "")">
+                        <a class="nav-link" href="#">
+                            <i class="bx bx-buildings" aria-hidden="true"></i>
+                            <span>Firmalar</span>
+                        </a>
+                        <ul class="nav nav-children">
+                            <li class="@(Model.IsActive("Companies", "Index") ? "nav-active" : "")">
+                                <a class="nav-link" href="@Url.Action("Index", "Companies")">
+                                    <i class="bx bx-list-ul" aria-hidden="true"></i>
+                                    Firma Listesi
+                                </a>
+                            </li>
+                            <li class="@(Model.IsActive("Companies", "Create") ? "nav-active" : "")">
+                                <a class="nav-link" href="@Url.Action("Create", "Companies")">
+                                    <i class="bx bx-plus" aria-hidden="true"></i>
+                                    Yeni Firma
+                                </a>
+                            </li>
+                            <li class="@(Model.IsActive("Companies", "Branches") ? "nav-active" : "")">
+                                <a class="nav-link" href="@Url.Action("Branches", "Companies")">
+                                    <i class="bx bx-store" aria-hidden="true"></i>
+                                    Şubeler
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <!-- IP İşlemleri -->
+                    <li class="nav-parent @(Model.IsParentActive("IPOperations") ? "nav-expanded" : "")">
+                        <a class="nav-link" href="#">
+                            <i class="bx bx-network-chart" aria-hidden="true"></i>
+                            <span>IP İşlemleri</span>
+                        </a>
+                        <ul class="nav nav-children">
+                            <li class="@(Model.IsActive("IPOperations", "Index") ? "nav-active" : "")">
+                                <a class="nav-link" href="@Url.Action("Index", "IPOperations")">
+                                    <i class="bx bx-list-ul" aria-hidden="true"></i>
+                                    IP Logları
+                                </a>
+                            </li>
+                            <li class="@(Model.IsActive("IPOperations", "Whitelist") ? "nav-active" : "")">
+                                <a class="nav-link" href="@Url.Action("Whitelist", "IPOperations")">
+                                    <i class="bx bx-check-shield" aria-hidden="true"></i>
+                                    Beyaz Liste
+                                </a>
+                            </li>
+                            <li class="@(Model.IsActive("IPOperations", "Blacklist") ? "nav-active" : "")">
+                                <a class="nav-link" href="@Url.Action("Blacklist", "IPOperations")">
+                                    <i class="bx bx-x-circle" aria-hidden="true"></i>
+                                    Kara Liste
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <!-- Ayarlar -->
+                    <li class="nav-parent @(Model.IsParentActive("Authentication", "Settings") ? "nav-expanded" : "")">
+                        <a class="nav-link" href="#">
+                            <i class="bx bx-cog" aria-hidden="true"></i>
+                            <span>Ayarlar</span>
+                        </a>
+                        <ul class="nav nav-children">
+                            <li class="@(Model.IsActive("Authentication", "Profile") ? "nav-active" : "")">
+                                <a class="nav-link" href="@Url.Action("Profile", "Authentication")">
+                                    <i class="bx bx-user-circle" aria-hidden="true"></i>
+                                    Profil
+                                </a>
+                            </li>
+                            <li class="@(Model.IsActive("Settings", "SystemSettings") ? "nav-active" : "")">
+                                <a class="nav-link" href="@Url.Action("SystemSettings", "Settings")">
+                                    <i class="bx bx-wrench" aria-hidden="true"></i>
+                                    Sistem Ayarları
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
+                </ul>
+            </nav>
+
+            <!-- Hızlı İşlemler Widget -->
+            <hr class="separator" />
+
+            <div class="sidebar-widget widget-tasks">
+                <div class="widget-header">
+                    <h6>Hızlı İşlemler</h6>
+                    <div class="widget-toggle">+</div>
+                </div>
+                <div class="widget-content">
+                    <ul class="list-unstyled m-0">
+                        <li><a href="@Url.Action("Create", "Users")">Yeni Kullanıcı</a></li>
+                        <li><a href="@Url.Action("Create", "Companies")">Yeni Firma</a></li>
+                        <li><a href="@Url.Action("Whitelist", "IPOperations")">Beyaz Liste</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Sistem Durumu Widget -->
+            <hr class="separator" />
+
+            <div class="sidebar-widget widget-stats">
+                <div class="widget-header">
+                    <h6>Sistem Durumu</h6>
+                    <div class="widget-toggle">+</div>
+                </div>
+                <div class="widget-content">
+                    <ul>
+                        <li>
+                            <span class="stats-title">CPU Kullanımı</span>
+                            <span class="stats-complete">45%</span>
+                            <div class="progress">
+                                <div class="progress-bar progress-bar-primary progress-without-number" role="progressbar" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100" style="width: 45%;">
+                                    <span class="sr-only">45% Complete</span>
+                                </div>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="stats-title">RAM Kullanımı</span>
+                            <span class="stats-complete">67%</span>
+                            <div class="progress">
+                                <div class="progress-bar progress-bar-primary progress-without-number" role="progressbar" aria-valuenow="67" aria-valuemin="0" aria-valuemax="100" style="width: 67%;">
+                                    <span class="sr-only">67% Complete</span>
+                                </div>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="stats-title">Disk Kullanımı</span>
+                            <span class="stats-complete">23%</span>
+                            <div class="progress">
+                                <div class="progress-bar progress-bar-primary progress-without-number" role="progressbar" aria-valuenow="23" aria-valuemin="0" aria-valuemax="100" style="width: 23%;">
+                                    <span class="sr-only">23% Complete</span>
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // Destroy any existing nano scroll
+            if (typeof $.fn.nanoScroller != 'undefined') {
+                $('#sidebar-left .nano').nanoScroller({ destroy: true });
+                $('#sidebar-left .nano').nanoScroller();
+            }
+        </script>
+    </div>
+</aside>
+<!-- end: sidebar -->

@@ -4,7 +4,65 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Bu Sayfaya eişme yetkiniz yoktur</h1>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white text-center">
+                    <h4><i class="fas fa-ban"></i> Erişim Engellendi</h4>
+                </div>
+                <div class="card-body text-center">
+                    <div class="mb-4">
+                        <i class="fas fa-exclamation-triangle text-warning" style="font-size: 4rem;"></i>
+                    </div>
+
+                    @if (TempData["ErrorMessage"] != null)
+                    {
+                        <div class="alert alert-danger">
+                            @TempData["ErrorMessage"]
+                        </div>
+                    }
+                    else
+                    {
+                        <h5 class="mb-3">Bu sayfaya erişim yetkiniz bulunmamaktadır</h5>
+                        <p class="text-muted mb-4">
+                            Bu uygulamayı kullanabilmek için yönetici yetkilerine sahip olmanız gerekmektedir.
+                        </p>
+                    }
+
+                    <div class="d-flex justify-content-center gap-2">
+                        <a href="@Url.Action("Login", "Authentication")" class="btn btn-primary">
+                            <i class="fas fa-sign-in-alt"></i> Tekrar Giriş Yap
+                        </a>
+                        <a href="javascript:history.back()" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Geri Dön
+                        </a>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <small class="text-muted">
+                        Eğer yönetici yetkileriniz olduğunu düşünüyorsanız, lütfen sistem yöneticinizle iletişime geçin.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .gap-2 {
+        gap: 0.5rem;
+    }
+
+    .fas {
+        margin-right: 0.25rem;
+    }
+</style>
 
 
 @* <h1>Access Denied</h1>

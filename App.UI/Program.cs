@@ -67,6 +67,7 @@ namespace App.UI
             app.UseStaticFiles();
             app.UseRouting();
             app.UseAuthentication();
+            app.UseSession();
             app.UseMiddleware<TokenRefreshMiddleware>();
             app.UseAuthorization();
             app.MapStaticAssets();

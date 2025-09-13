@@ -1,11 +1,11 @@
-﻿namespace App.UI.DTOS
+﻿namespace App.Services.Machine.Validation
 {
-    public class SelectedMachineInfo
+    public class UpdateMachineDto
     {
-        public int MachineId { get; set; }
+        public int Id { get; set; }
         public string BranchId { get; set; } = string.Empty;
         public string BranchName { get; set; } = string.Empty;
         public string ApiAddress { get; set; } = string.Empty;
-        public DateTime SelectedAt { get; set; }
+        public string Code { get; set; } = string.Empty;
     }
 }

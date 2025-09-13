@@ -20,10 +20,11 @@ namespace App.UI.Services
         string GetAccessToken();
         string GetRefreshToken();
         ISession GetSession();
-        void SaveSelectedMachine(string branchId, string branchName, string apiAddress);
         SelectedMachineInfo GetSelectedMachine();
         void ClearSelectedMachine();
         bool HasSelectedMachine();
+        void SaveSelectedMachine(int machineId, string branchId, string branchName, string apiAddress);
+
     }
 
     public class SessionService : ISessionService
@@ -31,7 +32,7 @@ namespace App.UI.Services
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ILogger<SessionService> _logger;
         private const string SESSION_SELECTED_MACHINE_KEY = "SelectedMachine";
-
+        private const string SELECTED_MACHINE_KEY = "SelectedMachine";
         // Session Keys
         private const string SESSION_TOKEN_KEY = "AuthToken";
         private const string SESSION_USER_KEY = "UserInfo";
@@ -50,63 +51,50 @@ namespace App.UI.Services
 
         private ISession Session => _httpContextAccessor.HttpContext?.Session;
 
-        public void SaveSelectedMachine(string branchId, string branchName, string apiAddress)
+        public void SaveSelectedMachine(int machineId, string branchId, string branchName, string apiAddress)
         {
-            try
+            var session = _httpContextAccessor.HttpContext?.Session;
+            if (session != null)
             {
                 var machineInfo = new SelectedMachineInfo
                 {
+                    MachineId = machineId,
                     BranchId = branchId,
                     BranchName = branchName,
                     ApiAddress = apiAddress,
-                    SelectedAt = DateTime.UtcNow
+                    SelectedAt = DateTime.Now
                 };
 
-                Session.SetString(SESSION_SELECTED_MACHINE_KEY, JsonSerializer.Serialize(machineInfo));
-
-                _logger.LogInformation("Seçili makine kaydedildi: {BranchName} - {ApiAddress}", branchName, apiAddress);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Seçili makine kaydedilirken hata oluştu");
+                var json = System.Text.Json.JsonSerializer.Serialize(machineInfo);
+                session.SetString(SELECTED_MACHINE_KEY, json);
             }
         }
 
-        public SelectedMachineInfo GetSelectedMachine()
+
+        public SelectedMachineInfo? GetSelectedMachine()
         {
-            try
+            var session = _httpContextAccessor.HttpContext?.Session;
+            if (session != null)
             {
-                var machineJson = Session.GetString(SESSION_SELECTED_MACHINE_KEY);
-
-                if (string.IsNullOrEmpty(machineJson))
-                    return null;
-
-                return JsonSerializer.Deserialize<SelectedMachineInfo>(machineJson);
+                var json = session.GetString(SELECTED_MACHINE_KEY);
+                if (!string.IsNullOrEmpty(json))
+                {
+                    return System.Text.Json.JsonSerializer.Deserialize<SelectedMachineInfo>(json);
+                }
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Seçili makine bilgileri okunurken hata oluştu");
-                return null;
-            }
+            return null;
         }
 
         public void ClearSelectedMachine()
         {
-            try
-            {
-                Session.Remove(SESSION_SELECTED_MACHINE_KEY);
-                _logger.LogInformation("Seçili makine bilgileri temizlendi");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Seçili makine temizlenirken hata oluştu");
-            }
+            var session = _httpContextAccessor.HttpContext?.Session;
+            session?.Remove(SELECTED_MACHINE_KEY);
         }
 
         public bool HasSelectedMachine()
         {
-            var machine = GetSelectedMachine();
-            return machine != null && !string.IsNullOrEmpty(machine.ApiAddress);
+            var selectedMachine = GetSelectedMachine();
+            return selectedMachine != null;
         }
 
         public void SaveAuthSession(AuthResponseDto authResponse)

@@ -1,0 +1,211 @@
+﻿@model List<MachineListViewModel>
+
+
+@{
+    ViewData["Title"] = "Makine Yönetimi";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="body">
+    <div class="inner-wrapper">
+        <section role="main" class="content-body">
+            <header class="page-header">
+                <h2>@ViewData["Title"]</h2>
+                <div class="right-wrapper text-end">
+                    <ol class="breadcrumbs">
+                        <li><a href="@Url.Action("Index", "Home")"><i class="bx bx-home-alt"></i></a></li>
+                        <li><span>Makine Yönetimi</span></li>
+                    </ol>
+                </div>
+            </header>
+
+            <div class="row">
+                <div class="col">
+                    <section class="card">
+                        <header class="card-header">
+                            <div class="card-actions">
+                                <a href="@Url.Action("Create")" class="btn btn-primary btn-sm">
+                                    <i class="bx bx-plus"></i> Yeni Makine
+                                </a>
+                            </div>
+                            <h2 class="card-title">Makine Listesi</h2>
+                        </header>
+                        <div class="card-body">
+                            @if (Model.Any())
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-striped table-hover mb-0" id="machineTable">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th width="80">Durum</th>
+                                                <th>Şube Adı</th>
+                                                <th>Şube ID</th>
+                                                <th>Kod</th>
+                                                <th>API Adresi</th>
+                                                <th width="120">Oluşturma</th>
+                                                <th width="140">İşlemler</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var machine in Model)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        <div class="form-check form-switch">
+                                                            <input class="form-check-input status-toggle"
+                                                                   type="checkbox"
+                                                                   @(machine.IsActive ? "checked" : "")
+                                                                   data-id="@machine.Id"
+                                                                   id="switch_@machine.Id">
+                                                            <label class="form-check-label" for="switch_@machine.Id">
+                                                                <span class="badge @(machine.IsActive ? "bg-success" : "bg-secondary")">
+                                                                    @(machine.IsActive ? "Aktif" : "Pasif")
+                                                                </span>
+                                                            </label>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            <i class="bx bx-server text-primary me-2"></i>
+                                                            <strong>@machine.BranchName</strong>
+                                                        </div>
+                                                    </td>
+                                                    <td><code>@machine.BranchId</code></td>
+                                                    <td><span class="badge bg-info">@machine.Code</span></td>
+                                                    <td>
+                                                        <a href="@machine.ApiAddress" target="_blank" class="text-truncate d-inline-block" style="max-width: 200px;">
+                                                            @machine.ApiAddress
+                                                        </a>
+                                                    </td>
+                                                    <td>
+                                                        <small class="text-muted">
+                                                            @machine.CreatedDate.ToString("dd.MM.yyyy")
+                                                        </small>
+                                                    </td>
+                                                    <td>
+                                                        <div class="btn-group btn-group-sm" role="group">
+                                                            <a href="@Url.Action("Details", new { id = machine.Id })"
+                                                               class="btn btn-outline-info" title="Detay">
+                                                                <i class="bx bx-show"></i>
+                                                            </a>
+                                                            <a href="@Url.Action("Edit", new { id = machine.Id })"
+                                                               class="btn btn-outline-warning" title="Düzenle">
+                                                                <i class="bx bx-edit"></i>
+                                                            </a>
+                                                            <button type="button"
+                                                                    class="btn btn-outline-danger btn-delete"
+                                                                    data-id="@machine.Id"
+                                                                    data-name="@machine.BranchName"
+                                                                    title="Sil">
+                                                                <i class="bx bx-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="text-center py-5">
+                                    <i class="bx bx-server" style="font-size: 4rem; color: #ddd;"></i>
+                                    <h4 class="text-muted mt-3">Henüz makine bulunmuyor</h4>
+                                    <p class="text-muted">İlk makineyi oluşturmak için aşağıdaki butona tıklayın.</p>
+                                    <a href="@Url.Action("Create")" class="btn btn-primary">
+                                        <i class="bx bx-plus"></i> Yeni Makine Ekle
+                                    </a>
+                                </div>
+                            }
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // DataTable initialization
+            if ($('#machineTable').length > 0) {
+                $('#machineTable').DataTable({
+                    "language": {
+                        "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Turkish.json"
+                    },
+                    "pageLength": 25,
+                    "order": [[5, "desc"]], // Son oluşturulanları üstte göster
+                    "columnDefs": [
+                        { "orderable": false, "targets": [0, 6] } // Durum ve İşlemler sütunları sıralanamaz
+                    ]
+                });
+            }
+
+            // Status toggle
+            $('.status-toggle').change(function() {
+                const $this = $(this);
+                const machineId = $this.data('id');
+                const isActive = $this.is(':checked');
+                const $badge = $this.siblings('label').find('.badge');
+
+                $.post('@Url.Action("ToggleStatus")', {
+                    id: machineId,
+                    isActive: isActive
+                })
+                .done(function(response) {
+                    if (response.success) {
+                        $badge.removeClass('bg-success bg-secondary')
+                              .addClass(isActive ? 'bg-success' : 'bg-secondary')
+                              .text(isActive ? 'Aktif' : 'Pasif');
+
+                        toastr.success(response.message);
+                    } else {
+                        // Checkbox'ı geri çevir
+                        $this.prop('checked', !isActive);
+                        toastr.error(response.message);
+                    }
+                })
+                .fail(function() {
+                    // Checkbox'ı geri çevir
+                    $this.prop('checked', !isActive);
+                    toastr.error('Makine durumu güncellenirken hata oluştu');
+                });
+            });
+
+            // Delete machine
+            $(document).on('click', '.btn-delete', function() {
+                const machineId = $(this).data('id');
+                const machineName = $(this).data('name');
+
+                Swal.fire({
+                    title: 'Makineyi Sil',
+                    text: `"${machineName}" makinesini silmek istediğinizden emin misiniz?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Evet, Sil',
+                    cancelButtonText: 'İptal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Delete form create and submit
+                        const form = $('<form>', {
+                            method: 'POST',
+                            action: '@Url.Action("Delete")'
+                        }).append($('<input>', {
+                            type: 'hidden',
+                            name: 'id',
+                            value: machineId
+                        })).append($('@Html.AntiForgeryToken()'));
+
+                        $('body').append(form);
+                        form.submit();
+                    }
+                });
+            });
+        });
+    </script>
+}
+

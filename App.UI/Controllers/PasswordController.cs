@@ -1,11 +1,13 @@
 ﻿using App.UI.DTOS;
 using App.UI.Helper;
 using App.UI.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
 namespace App.UI.Controllers
 {
+    [Authorize]
     public class PasswordController(IAccountService accountService) : Controller
     {
         public IActionResult PasswordChange()

@@ -9,6 +9,13 @@ namespace App.UI.Extensions
         {
             services.AddHttpContextAccessor();
 
+            services.AddSession(options =>
+            {
+                options.IdleTimeout = TimeSpan.FromHours(2); // 2 saat session timeout
+                options.Cookie.HttpOnly = true;
+                options.Cookie.IsEssential = true;
+            });
+
             // API Base URL'ini configuration'dan al
             var apiBaseUrl = GetApiBaseUrl();
 
@@ -48,6 +55,8 @@ namespace App.UI.Extensions
             services.AddScoped<IRoleService, RoleService>();
             services.AddScoped<IMemberService, MemberService>();
             services.AddScoped<IAccountService, AccountService>();
+            services.AddScoped<ISessionService, SessionService>();
+
 
             // AutoMapper
             services.AddAutoMapper(Assembly.GetExecutingAssembly());

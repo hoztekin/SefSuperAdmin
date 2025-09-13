@@ -465,22 +465,56 @@
     </div>
 </div>
 
-@section Scripts {
 
+
+@section Scripts {
     <script>
         let selectedMachineId = null;
-        let isSelecting = false; // Çoklu seçimi engelle
+        let isSelecting = false;
 
-        // Sayfa yüklendiğinde modal'ı kontrol et
+        // Native notification functions (no external libraries needed)
+        function showSuccess(message) {
+            showNotification(message, 'success');
+        }
+
+        function showError(message) {
+            showNotification(message, 'error');
+        }
+
+        function showNotification(message, type) {
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+            const icon = type === 'success' ? 'bx-check-circle' : 'bx-error-circle';
+
+            const alertHtml = `
+                <div class="alert ${alertClass} alert-dismissible fade show position-fixed notification-toast"
+                     style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;" role="alert">
+                    <i class="bx ${icon} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+
+            $('body').append(alertHtml);
+
+            setTimeout(() => {
+                $('.notification-toast').last().alert('close');
+            }, 4000);
+        }
+
+        function showConfirm(title, message, callback) {
+            if (confirm(`${title}\n\n${message}`)) {
+                callback();
+            }
+        }
+
+        // Page load - check selected machine
         $(document).ready(function() {
             checkSelectedMachine();
         });
 
         function checkSelectedMachine() {
-
             $.get('@Url.Action("GetSelectedMachine", "Home")')
                 .done(function(response) {
-
                     if (response.success && response.data) {
                         showSelectedMachineInfo(response.data);
                     } else {
@@ -489,6 +523,7 @@
                     }
                 })
                 .fail(function(xhr, status, error) {
+                    console.error('Selected machine check failed:', error);
                     $('#machineSelectionModal').modal('show');
                     loadMachines();
                 });
@@ -499,190 +534,208 @@
 
             $.get('@Url.Action("GetMachines", "Home")')
                 .done(function(response) {
-
                     if (response.success && response.data && response.data.length > 0) {
                         displayMachines(response.data);
                     } else {
-                        showErrorState(response.message || 'Hiç makine bulunamadı');
+                        showErrorState(response.message || 'Hiç aktif makine bulunamadı');
                     }
                 })
                 .fail(function(xhr, status, error) {
-                    let errorMessage = 'Sunucu hatası oluştu';
-                    if (xhr.responseJSON && xhr.responseJSON.message) {
-                        errorMessage = xhr.responseJSON.message;
-                    } else if (xhr.responseText) {
-                        errorMessage = 'HTTP ' + xhr.status + ': ' + xhr.statusText;
-                    }
-                    showErrorState(errorMessage);
+                    console.error('Failed to load machines:', error);
+                    showErrorState('Makineler yüklenirken bir hata oluştu. Lütfen tekrar deneyiniz.');
                 });
         }
 
         function displayMachines(machines) {
-            const container = $('#machineSelectionCards');
-            container.empty();
+            hideAllStates();
 
-            machines.forEach(machine => {
-                const cardHtml = `
-                    <div class="col-md-6 col-lg-4">
-                        <div class="card machine-card h-100 position-relative" onclick="selectMachine('${machine.id}', this)">
-                            <div class="machine-status"></div>
-                            <div class="card-body text-center">
-                                <div class="machine-icon mx-auto">
-                                    <i class="bx bx-server"></i>
-                                </div>
-                                <h6 class="card-title mb-2">${machine.branchName}</h6>
-                                <p class="card-text">
-                                    <small class="text-muted">Branch ID: ${machine.branchId}</small><br>
-                                    <small class="text-muted">Code: ${machine.code}</small>
-                                </p>
-                                <div class="api-address mt-2">
+            const $container = $('#machineSelectionCards');
+            $container.empty();
+
+            machines.forEach(function(machine) {
+                const card = createMachineCard(machine);
+                $container.append(card);
+            });
+
+            $container.show();
+        }
+
+        function createMachineCard(machine) {
+            const statusBadge = machine.isActive
+                ? '<span class="badge bg-success">Aktif</span>'
+                : '<span class="badge bg-secondary">Pasif</span>';
+
+            const isDisabled = !machine.isActive ? 'disabled' : '';
+            const cardClass = machine.isActive
+                ? 'border-primary machine-card'
+                : 'border-secondary machine-card opacity-75';
+
+            return `
+                <div class="col-md-6 col-lg-4">
+                    <div class="card ${cardClass}" data-machine-id="${machine.id}">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="card-title mb-0">
+                                    <i class="bx bx-server text-primary"></i>
+                                    ${machine.branchName}
+                                </h6>
+                                ${statusBadge}
+                            </div>
+                            <div class="mb-2">
+                                <small class="text-muted">Şube ID:</small>
+                                <code class="small">${machine.branchId}</code>
+                            </div>
+                            <div class="mb-2">
+                                <small class="text-muted">Makine Kodu:</small>
+                                <span class="badge bg-info small">${machine.code}</span>
+                            </div>
+                            <div class="mb-3">
+                                <small class="text-muted">API:</small>
+                                <div class="text-truncate small" title="${machine.apiAddress}">
                                     ${machine.apiAddress}
                                 </div>
                             </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    ${formatDate(machine.createdDate)}
+                                </small>
+                                <button class="btn btn-primary btn-sm select-machine-btn"
+                                        data-machine-id="${machine.id}"
+                                        data-machine-name="${machine.branchName}"
+                                        ${isDisabled}>
+                                    <i class="bx bx-check"></i> Seç
+                                </button>
+                            </div>
                         </div>
                     </div>
-                `;
-                container.append(cardHtml);
-            });
-
-            hideLoadingState();
-            showMachineCards();
+                </div>
+            `;
         }
 
-        function selectMachine(machineId, cardElement) {
-            if (isSelecting) {
-                return;
+        // Machine card click events
+        $(document).on('click', '.machine-card', function() {
+            if (!$(this).hasClass('opacity-75')) {
+                $('.machine-card').removeClass('selected');
+                $(this).addClass('selected');
+                selectedMachineId = $(this).data('machine-id');
             }
+        });
 
-            if (selectedMachineId === machineId) {
-                return;
-            }
+        // Select machine button click
+        $(document).on('click', '.select-machine-btn', function(e) {
+            e.stopPropagation();
+
+            if (isSelecting) return;
+
+            const machineId = $(this).data('machine-id');
+            const machineName = $(this).data('machine-name');
+
+            selectMachine(machineId, machineName, $(this));
+        });
+
+        function selectMachine(machineId, machineName, $btn) {
+            if (isSelecting) return;
 
             isSelecting = true;
+            const originalText = $btn.html();
 
-            // Tüm kartlardan seçim durumunu kaldır
-            $('.machine-card').removeClass('selecting');
-
-            // Seçilen kartı işaretle
-            $(cardElement).addClass('selecting');
-            selectedMachineId = machineId;
-
-            // Loading durumu göster
-            $(cardElement).find('.machine-icon i').removeClass('bx-server').addClass('bx-loader-alt bx-spin');
-
-            const requestData = { machineId: machineId };
+            $btn.prop('disabled', true)
+                .html('<i class="spinner-border spinner-border-sm me-1"></i> Bağlanıyor...');
 
             $.ajax({
                 url: '@Url.Action("SelectMachine", "Home")',
                 type: 'POST',
                 contentType: 'application/json',
-                data: JSON.stringify(requestData),
+                data: JSON.stringify({ machineId: machineId.toString() }),
                 success: function(response) {
-                    isSelecting = false;
-
                     if (response.success) {
-                        // Başarılı, modal'ı kapat
-                        Swal.fire({
-                            title: 'Başarılı!',
-                            text: response.message,
-                            icon: 'success',
-                            timer: 2000,
-                            showConfirmButton: false
-                        }).then(() => {
-                            $('#machineSelectionModal').modal('hide');
-                            showSelectedMachineInfo(response.machine);
-                        });
-                    } else {
-                        // Hata durumu
-                        Swal.fire({
-                            title: 'Hata!',
-                            text: response.message,
-                            icon: 'error'
-                        });
+                        showSuccess(response.message);
+                        $('#machineSelectionModal').modal('hide');
+                        showSelectedMachineInfo(response.machine);
 
-                        resetCardSelection(cardElement);
+                        setTimeout(function() {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        showError(response.message);
+                        $btn.prop('disabled', false).html(originalText);
                     }
                 },
                 error: function(xhr, status, error) {
+                    console.error('Machine selection failed:', error);
+                    showError('Makine seçimi sırasında bir hata oluştu');
+                    $btn.prop('disabled', false).html(originalText);
+                },
+                complete: function() {
                     isSelecting = false;
-
-                    let errorMessage = 'Beklenmeyen bir hata oluştu';
-                    if (xhr.responseJSON && xhr.responseJSON.message) {
-                        errorMessage = xhr.responseJSON.message;
-                    }
-
-                    Swal.fire({
-                        title: 'Hata!',
-                        text: errorMessage,
-                        icon: 'error'
-                    });
-
-                    resetCardSelection(cardElement);
                 }
             });
         }
 
-        function resetCardSelection(cardElement) {
-            $(cardElement).removeClass('selecting');
-            $(cardElement).find('.machine-icon i').removeClass('bx-loader-alt bx-spin').addClass('bx-server');
-            selectedMachineId = null;
-        }
-
-        // Diğer fonksiyonlar aynı kalacak...
-        function refreshMachines() {
-            selectedMachineId = null;
-            loadMachines();
-        }
-
-        function showLoadingState() {
-            $('#machineLoadingState').show();
-            $('#machineSelectionCards').hide();
-            $('#machineErrorState').hide();
-        }
-
-        function hideLoadingState() {
-            $('#machineLoadingState').hide();
-        }
-
-        function showMachineCards() {
-            $('#machineSelectionCards').show();
-            $('#machineErrorState').hide();
-        }
-
-        function showErrorState(message) {
-            $('#machineErrorMessage').text(message);
-            $('#machineErrorState').show();
-            $('#machineLoadingState').hide();
-            $('#machineSelectionCards').hide();
-        }
-
         function showSelectedMachineInfo(machine) {
             const machineInfo = `
-                <div class="alert alert-info alert-dismissible fade show" role="alert">
-                    <i class="bx bx-server"></i>
-                    <strong>Seçili Makine:</strong> ${machine.branchName}
-                    <small class="ms-2 text-muted">(${machine.apiAddress})</small>
-                    <button type="button" class="btn btn-sm btn-outline-info ms-2" onclick="changeMachine()">
-                        Değiştir
+                <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
+                    <strong><i class="bx bx-server"></i> Seçili Makine:</strong>
+                    ${machine.branchName} (${machine.branchId})
+                    <button type="button" class="btn btn-sm btn-outline-success ms-2" onclick="changeMachine()">
+                        <i class="bx bx-refresh"></i> Değiştir
                     </button>
                 </div>
             `;
 
-            if ($('#selectedMachineInfo').length === 0) {
-                $('.page-header').after('<div id="selectedMachineInfo">' + machineInfo + '</div>');
-            } else {
-                $('#selectedMachineInfo').html(machineInfo);
-            }
+            $('.selected-machine-info').remove();
+            $('.content-body').prepend(`<div class="selected-machine-info">${machineInfo}</div>`);
         }
 
         function changeMachine() {
-            selectedMachineId = null;
-            $('#machineSelectionModal').modal('show');
+            showConfirm(
+                'Makine Değiştir',
+                'Başka bir makineyi seçmek istediğinizden emin misiniz?',
+                function() {
+                    $('.selected-machine-info').remove();
+                    $('#machineSelectionModal').modal('show');
+                    loadMachines();
+                }
+            );
+        }
+
+        function refreshMachines() {
             loadMachines();
         }
-    </script>
 
-    <script>
+        function showLoadingState() {
+            hideAllStates();
+            $('#machineLoadingState').show();
+        }
+
+        function showErrorState(message) {
+            hideAllStates();
+            $('#machineErrorMessage').text(message);
+            $('#machineErrorState').show();
+        }
+
+        function hideAllStates() {
+            $('#machineLoadingState, #machineSelectionCards, #machineErrorState').hide();
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffTime = Math.abs(now - date);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays === 1) {
+                return 'Bugün';
+            } else if (diffDays === 2) {
+                return 'Dün';
+            } else if (diffDays <= 7) {
+                return `${diffDays} gün önce`;
+            } else {
+                return date.toLocaleDateString('tr-TR');
+            }
+        }
+
+        // System status refresh
         function refreshSystemStatus() {
             const button = event.target;
             const originalText = button.innerHTML;
@@ -692,22 +745,20 @@
             setTimeout(function() {
                 button.innerHTML = originalText;
                 button.disabled = false;
-
-                Swal.fire({
-                    title: 'Sistem Durumu Yenilendi',
-                    text: 'Tüm sistemler normal çalışıyor',
-                    icon: 'success',
-                    position: 'top-end',
-                    showConfirmButton: false,
-                    timer: 2000
-                });
+                showSuccess('Sistem durumu yenilendi - Tüm sistemler normal çalışıyor');
             }, 2000);
         }
+
+        // Global functions
+        window.changeMachine = changeMachine;
+        window.refreshMachines = refreshMachines;
+        window.refreshSystemStatus = refreshSystemStatus;
     </script>
 }
 
 @section Css {
     <style>
+        /* Dashboard Card Animations */
         .card {
             transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
         }
@@ -729,10 +780,12 @@
             box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.15);
         }
 
+        /* Machine Selection Modal Styles */
         .machine-card {
             cursor: pointer;
             transition: all 0.3s ease;
             border: 2px solid transparent;
+            border-width: 2px;
         }
 
             .machine-card:hover {
@@ -741,15 +794,72 @@
                 border-color: #007bff;
             }
 
-            .machine-card.selecting {
-                border-color: #007bff;
-                background-color: rgba(0, 123, 255, 0.05);
+            .machine-card.selected {
+                border-color: #0d6efd !important;
+                background-color: rgba(13, 110, 253, 0.05);
             }
 
             .machine-card .card-body {
                 padding: 1.5rem;
             }
 
+            .machine-card.selecting {
+                border-color: #007bff;
+                background-color: rgba(0, 123, 255, 0.05);
+            }
+
+        /* Selected Machine Info */
+        .selected-machine-info {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .btn-change-machine {
+            background: none;
+            border: none;
+            color: inherit;
+            padding: 0;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+            .btn-change-machine:hover {
+                opacity: 0.8;
+            }
+
+        /* Modal Improvements */
+        #machineSelectionModal .modal-body {
+            min-height: 300px;
+        }
+
+        .spinner-border-sm {
+            width: 1rem;
+            height: 1rem;
+        }
+
+        /* Notification Toast */
+        .notification-toast {
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            animation: slideInRight 0.3s ease-out;
+        }
+
+        @@keyframes slideInRight {
+            from
+
+        {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        }
+
+        /* Machine Icon Styling */
         .machine-icon {
             width: 60px;
             height: 60px;
@@ -785,6 +895,78 @@
             padding: 0.25rem 0.5rem;
             border-radius: 4px;
             word-break: break-all;
+        }
+
+        /* Loading State */
+        .spinner-border {
+            animation: spinner-border 0.75s linear infinite;
+        }
+
+        @@keyframes spinner-border {
+            to
+
+        {
+            transform: rotate(360deg);
+        }
+
+        }
+
+        /* Responsive Improvements */
+        @@media (max-width: 768px) {
+            .machine-card .card-body
+
+        {
+            padding: 1rem;
+        }
+
+        .notification-toast {
+            right: 10px;
+            left: 10px;
+            min-width: auto;
+        }
+
+        }
+
+        /* Status Badges */
+        .badge {
+            font-size: 0.75em;
+            font-weight: 500;
+        }
+
+        /* API Address Truncation */
+        .text-truncate {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Button Loading State */
+        .btn:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+        /* Modal Backdrop */
+        .modal-backdrop.show {
+            opacity: 0.5;
+        }
+
+        /* Alert Improvements */
+        .alert {
+            border: none;
+            border-radius: 8px;
+        }
+
+        .alert-success {
+            background-color: rgba(40, 167, 69, 0.1);
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+
+        .alert-danger {
+            background-color: rgba(220, 53, 69, 0.1);
+            color: #721c24;
+            border-left: 4px solid #dc3545;
         }
     </style>
 }

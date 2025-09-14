@@ -60,6 +60,17 @@ namespace App.Api
             app.UseAuthorization();
             app.MapControllers();
 
+            app.MapGet("/health", () =>
+            {
+                return Results.Ok(new
+                {
+                    status = "healthy",
+                    timestamp = DateTime.UtcNow,
+                    service = "SefimPlus.Api"
+                });
+            });
+
+
             using (var scope = app.Services.CreateScope())
             {
                 var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();

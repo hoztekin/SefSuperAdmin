@@ -1,5 +1,5 @@
 ﻿using App.Services.Account.Dtos;
-using App.UI.DTOS;
+using App.UI.ViewModels;
 using AutoMapper;
 
 namespace App.UI.Services

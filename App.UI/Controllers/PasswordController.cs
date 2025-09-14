@@ -1,6 +1,6 @@
-﻿using App.UI.DTOS;
-using App.UI.Helper;
+﻿using App.UI.Helper;
 using App.UI.Services;
+using App.UI.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;

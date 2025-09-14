@@ -25,6 +25,13 @@ namespace App.UI.Services
         bool HasSelectedMachine();
         void SaveSelectedMachine(int machineId, string branchId, string branchName, string apiAddress);
 
+        // Uzaktaki API token yönetimi
+        void SaveExternalApiToken(string apiAddress, ExternalApiTokenInfo tokenInfo);
+        ExternalApiTokenInfo? GetExternalApiToken(string apiAddress);
+        void ClearExternalApiToken(string apiAddress);
+        void ClearAllExternalApiTokens();
+        bool HasValidExternalApiToken(string apiAddress);
+
     }
 
     public class SessionService : ISessionService
@@ -42,6 +49,7 @@ namespace App.UI.Services
         private const string SESSION_TOKEN_EXPIRES_KEY = "TokenExpiresAt";
         private const string SESSION_REFRESH_TOKEN_KEY = "RefreshToken";
         private const string SESSION_USERNAME_KEY = "Username";
+        private const string EXTERNAL_API_TOKENS_KEY = "external_api_tokens";
 
         public SessionService(IHttpContextAccessor httpContextAccessor, ILogger<SessionService> logger)
         {
@@ -299,6 +307,119 @@ namespace App.UI.Services
         public ISession GetSession()
         {
             return Session;
+        }
+
+        public void SaveExternalApiToken(string apiAddress, ExternalApiTokenInfo tokenInfo)
+        {
+            try
+            {
+                var allTokens = GetAllExternalApiTokens();
+
+                // Normalize API address (remove trailing slash)
+                var normalizedAddress = apiAddress.TrimEnd('/');
+
+                allTokens[normalizedAddress] = tokenInfo;
+
+                var json = JsonSerializer.Serialize(allTokens);
+                Session.SetString(EXTERNAL_API_TOKENS_KEY, json);
+
+                _logger.LogInformation("External API token saved: {ApiAddress}", normalizedAddress);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "External API token kaydedilirken hata: {ApiAddress}", apiAddress);
+            }
+        }
+
+        public ExternalApiTokenInfo? GetExternalApiToken(string apiAddress)
+        {
+            try
+            {
+                var allTokens = GetAllExternalApiTokens();
+                var normalizedAddress = apiAddress.TrimEnd('/');
+
+                if (allTokens.TryGetValue(normalizedAddress, out var tokenInfo))
+                {
+                    if (!tokenInfo.IsExpired)
+                    {
+                        return tokenInfo;
+                    }
+                    else
+                    {
+                        _logger.LogWarning("External API token expired: {ApiAddress}", normalizedAddress);
+                        // Expired token'ı temizle
+                        ClearExternalApiToken(normalizedAddress);
+                        return null;
+                    }
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "External API token alınırken hata: {ApiAddress}", apiAddress);
+                return null;
+            }
+        }
+
+        public void ClearExternalApiToken(string apiAddress)
+        {
+            try
+            {
+                var allTokens = GetAllExternalApiTokens();
+                var normalizedAddress = apiAddress.TrimEnd('/');
+
+                if (allTokens.Remove(normalizedAddress))
+                {
+                    var json = JsonSerializer.Serialize(allTokens);
+                    Session.SetString(EXTERNAL_API_TOKENS_KEY, json);
+
+                    _logger.LogInformation("External API token cleared: {ApiAddress}", normalizedAddress);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "External API token temizlenirken hata: {ApiAddress}", apiAddress);
+            }
+        }
+
+        public void ClearAllExternalApiTokens()
+        {
+            try
+            {
+                Session.Remove(EXTERNAL_API_TOKENS_KEY);
+                _logger.LogInformation("All external API tokens cleared");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Tüm external API token'ları temizlenirken hata");
+            }
+        }
+
+        public bool HasValidExternalApiToken(string apiAddress)
+        {
+            var token = GetExternalApiToken(apiAddress);
+            return token != null && !token.IsExpired;
+        }
+
+        private Dictionary<string, ExternalApiTokenInfo> GetAllExternalApiTokens()
+        {
+            try
+            {
+                var json = Session.GetString(EXTERNAL_API_TOKENS_KEY);
+                if (string.IsNullOrEmpty(json))
+                {
+                    return new Dictionary<string, ExternalApiTokenInfo>();
+                }
+
+                return JsonSerializer.Deserialize<Dictionary<string, ExternalApiTokenInfo>>(json)
+                       ?? new Dictionary<string, ExternalApiTokenInfo>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "External API tokens deserialize hatası");
+                return new Dictionary<string, ExternalApiTokenInfo>();
+            }
         }
     }
 }

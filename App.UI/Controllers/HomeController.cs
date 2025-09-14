@@ -1,4 +1,5 @@
-﻿using App.UI.Models;
+﻿using App.UI.DTOS;
+using App.UI.Models;
 using App.UI.Services;
 using App.UI.ViewModels;
 using Microsoft.AspNetCore.Mvc;
@@ -6,10 +7,8 @@ using System.Diagnostics;
 
 namespace App.UI.Controllers;
 
-public class HomeController(ILogger<HomeController> logger, IApiService apiService, ISessionService sessionService) : Controller
+public class HomeController(ILogger<HomeController> logger, IApiService apiService, ISessionService sessionService, IExternalApiService externalApiService) : Controller
 {
-
-
     public IActionResult Index()
     {
         // Dashboard için statik veriler (sonra API'den çekilecek)
@@ -88,7 +87,7 @@ public class HomeController(ILogger<HomeController> logger, IApiService apiServi
     {
         try
         {
-            // Düzeltilmiş validasyon
+            // Validasyon
             if (request == null || string.IsNullOrEmpty(request.MachineId))
             {
                 return Json(new { success = false, message = "Geçersiz makine ID'si" });
@@ -108,48 +107,215 @@ public class HomeController(ILogger<HomeController> logger, IApiService apiServi
                 return Json(new { success = false, message = "Makine bulunamadı" });
             }
 
-            // API bağlantısını test et
-            //var connectionResult = await apiService.GetAsync<bool>($"api/v1/Machine/test-connection?apiAddress={Uri.EscapeDataString(machine.ApiAddress)}");
+            logger.LogInformation("Makine seçildi: {MachineName} - API: {ApiAddress}",
+                machine.BranchName, machine.ApiAddress);
 
-            //if (!connectionResult)
-            //{
-            //    logger.LogWarning("Makine API'sine bağlanılamadı: {ApiAddress}", machine.ApiAddress);
-            //    return Json(new
-            //    {
-            //        success = false,
-            //        message = $"Makine API'sine bağlanılamadı: {machine.ApiAddress}"
-            //    });
-            //}
+            // 1. Uzaktaki API'nin health check'ini yap
+            var healthResponse = await externalApiService.CheckHealthAsync(machine.ApiAddress);
 
-            // Session'a seçili makineyi kaydet
+            if (!healthResponse.IsHealthy)
+            {
+                logger.LogWarning("Makine API'si sağlıksız: {ApiAddress} - {Message}",
+                    machine.ApiAddress, healthResponse.Message);
+
+                return Json(new
+                {
+                    success = false,
+                    message = $"Makine API'sine bağlanılamıyor: {healthResponse.Message}",
+                    healthCheck = new
+                    {
+                        healthy = false,
+                        message = healthResponse.Message,
+                        responseTime = healthResponse.ResponseTime
+                    }
+                });
+            }
+
+            logger.LogInformation("Health check başarılı: {ApiAddress} - {ResponseTime}ms",
+                machine.ApiAddress, healthResponse.ResponseTime);
+
+            // 2. Uzaktaki API'ye login ol ve token al
+            var loginResponse = await externalApiService.LoginAsync(machine.ApiAddress, "SystemAdmin", "1234");
+
+            if (!loginResponse.Success || string.IsNullOrEmpty(loginResponse.AccessToken))
+            {
+                logger.LogError("Uzaktaki API'ye login başarısız: {ApiAddress} - {Message}",
+                    machine.ApiAddress, loginResponse.Message);
+
+                return Json(new
+                {
+                    success = false,
+                    message = $"Makine API'sine giriş yapılamadı: {loginResponse.Message}",
+                    healthCheck = new
+                    {
+                        healthy = true,
+                        responseTime = healthResponse.ResponseTime
+                    },
+                    login = new
+                    {
+                        success = false,
+                        message = loginResponse.Message
+                    }
+                });
+            }
+
+            logger.LogInformation("Login başarılı: {ApiAddress} - Token alındı", machine.ApiAddress);
+
+            // 3. Token'ı session'da sakla
+            var tokenInfo = new ExternalApiTokenInfo
+            {
+                ApiAddress = machine.ApiAddress,
+                AccessToken = loginResponse.AccessToken,
+                RefreshToken = loginResponse.RefreshToken,
+                ExpiresAt = loginResponse.ExpiresAt != default ? loginResponse.ExpiresAt : DateTime.UtcNow.AddHours(1),
+                CreatedAt = DateTime.UtcNow
+            };
+
+            sessionService.SaveExternalApiToken(machine.ApiAddress, tokenInfo);
+
+            // 4. Session'a seçili makineyi kaydet
             sessionService.SaveSelectedMachine(
                 machine.Id,
                 machine.BranchId,
                 machine.BranchName,
                 machine.ApiAddress);
 
-            logger.LogInformation("Makine başarıyla seçildi: {MachineName} - {ApiAddress}",
+            logger.LogInformation("Makine başarıyla seçildi ve API'ye bağlanıldı: {MachineName} - {ApiAddress}",
                 machine.BranchName, machine.ApiAddress);
 
             return Json(new
             {
                 success = true,
-                message = $"{machine.BranchName} makinesi başarıyla seçildi",
+                message = $"{machine.BranchName} makinesi başarıyla seçildi ve API'ye bağlanıldı",
                 machine = new
                 {
                     id = machine.Id,
                     branchId = machine.BranchId,
                     branchName = machine.BranchName,
                     apiAddress = machine.ApiAddress
+                },
+                healthCheck = new
+                {
+                    healthy = true,
+                    message = healthResponse.Message,
+                    responseTime = healthResponse.ResponseTime
+                },
+                login = new
+                {
+                    success = true,
+                    message = "Başarıyla giriş yapıldı",
+                    tokenExpires = tokenInfo.ExpiresAt
                 }
             });
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Makine seçilirken hata oluştu");
-            return Json(new { success = false, message = "Makine seçilirken beklenmeyen bir hata oluştu" });
+            logger.LogError(ex, "Makine seçilirken hata oluştu: {MachineId}", request?.MachineId);
+            return Json(new
+            {
+                success = false,
+                message = "Makine seçilirken beklenmeyen bir hata oluştu"
+            });
         }
     }
+
+    // Seçili makinenin durumunu kontrol et - Yeni metod
+    [HttpGet]
+    public IActionResult CheckSelectedMachineStatus()
+    {
+        try
+        {
+            var selectedMachine = sessionService.GetSelectedMachine();
+
+            if (selectedMachine == null)
+            {
+                return Json(new { success = false, message = "Seçili makine bulunamadı" });
+            }
+
+            var hasValidToken = sessionService.HasValidExternalApiToken(selectedMachine.ApiAddress);
+            var tokenInfo = sessionService.GetExternalApiToken(selectedMachine.ApiAddress);
+
+            return Json(new
+            {
+                success = true,
+                data = new
+                {
+                    machine = new
+                    {
+                        id = selectedMachine.MachineId,
+                        branchId = selectedMachine.BranchId,
+                        branchName = selectedMachine.BranchName,
+                        apiAddress = selectedMachine.ApiAddress
+                    },
+                    token = new
+                    {
+                        hasValidToken = hasValidToken,
+                        expiresAt = tokenInfo?.ExpiresAt,
+                        isExpired = tokenInfo?.IsExpired ?? true
+                    }
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Seçili makine durumu kontrol edilirken hata oluştu");
+            return Json(new { success = false, message = "Makine durumu kontrol edilemedi" });
+        }
+    }
+
+    // Token yenileme - Yeni metod
+    [HttpPost]
+    public async Task<IActionResult> RefreshExternalApiToken()
+    {
+        try
+        {
+            var selectedMachine = sessionService.GetSelectedMachine();
+
+            if (selectedMachine == null)
+            {
+                return Json(new { success = false, message = "Seçili makine bulunamadı" });
+            }
+
+            // Yeniden login ol
+            var loginResponse = await externalApiService.LoginAsync(selectedMachine.ApiAddress, "SystemAdmin", "1234");
+
+            if (!loginResponse.Success || string.IsNullOrEmpty(loginResponse.AccessToken))
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = $"Token yenilenemedi: {loginResponse.Message}"
+                });
+            }
+
+            // Yeni token'ı kaydet
+            var tokenInfo = new ExternalApiTokenInfo
+            {
+                ApiAddress = selectedMachine.ApiAddress,
+                AccessToken = loginResponse.AccessToken,
+                RefreshToken = loginResponse.RefreshToken,
+                ExpiresAt = loginResponse.ExpiresAt != default ? loginResponse.ExpiresAt : DateTime.UtcNow.AddHours(1),
+                CreatedAt = DateTime.UtcNow
+            };
+
+            sessionService.SaveExternalApiToken(selectedMachine.ApiAddress, tokenInfo);
+
+            logger.LogInformation("Token yenilendi: {ApiAddress}", selectedMachine.ApiAddress);
+
+            return Json(new
+            {
+                success = true,
+                message = "Token başarıyla yenilendi",
+                tokenExpires = tokenInfo.ExpiresAt
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Token yenilenirken hata oluştu");
+            return Json(new { success = false, message = "Token yenilenemedi" });
+        }
+    }
+
 
     // Ajax endpoint'leri (gelecekte API'den veri çekmek için)
     [HttpGet]

@@ -49,6 +49,19 @@ namespace App.UI.Extensions
                 ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
             });
 
+            // External API için ayrı HttpClient
+            services.AddHttpClient("ExternalApiClient", client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(30);
+                // Default headers
+                client.DefaultRequestHeaders.Add("User-Agent", "SefimPlus-API-Client/1.0");
+            }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+            });
+
+
+
             // Service registrations
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IAuthService, AuthService>();
@@ -56,7 +69,7 @@ namespace App.UI.Extensions
             services.AddScoped<IMemberService, MemberService>();
             services.AddScoped<IAccountService, AccountService>();
             services.AddScoped<ISessionService, SessionService>();
-
+            services.AddScoped<IExternalApiService, ExternalApiService>();
 
             // AutoMapper
             services.AddAutoMapper(Assembly.GetExecutingAssembly());

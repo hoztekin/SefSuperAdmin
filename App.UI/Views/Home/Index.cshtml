@@ -472,39 +472,110 @@
         let selectedMachineId = null;
         let isSelecting = false;
 
-        // Native notification functions (no external libraries needed)
         function showSuccess(message) {
-            showNotification(message, 'success');
+            Swal.fire({
+                title: 'Başarılı!',
+                html: message, // html kullanarak <br> taglerini destekleyelim
+                icon: 'success',
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 6000,
+                timerProgressBar: true,
+                toast: true,
+                background: '#d4edda',
+                iconColor: '#28a745',
+                customClass: {
+                    popup: 'colored-toast'
+                },
+                showClass: {
+                    popup: 'animate__animated animate__fadeInRight animate__faster'
+                },
+                hideClass: {
+                    popup: 'animate__animated animate__fadeOutRight animate__faster'
+                }
+            });
         }
 
         function showError(message) {
-            showNotification(message, 'error');
+            Swal.fire({
+                title: 'Hata!',
+                html: message,
+                icon: 'error',
+                position: 'top-end',
+                showConfirmButton: true,
+                timer: 8000, // Hata mesajları biraz daha uzun dursun
+                timerProgressBar: true,
+                toast: true,
+                background: '#f8d7da',
+                iconColor: '#dc3545',
+                customClass: {
+                    popup: 'colored-toast'
+                },
+                showClass: {
+                    popup: 'animate__animated animate__fadeInRight animate__faster'
+                },
+                hideClass: {
+                    popup: 'animate__animated animate__fadeOutRight animate__faster'
+                }
+            });
         }
 
-        function showNotification(message, type) {
-            const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
-            const icon = type === 'success' ? 'bx-check-circle' : 'bx-error-circle';
-
-            const alertHtml = `
-                <div class="alert ${alertClass} alert-dismissible fade show position-fixed notification-toast"
-                     style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;" role="alert">
-                    <i class="bx ${icon} me-2"></i>
-                    ${message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            `;
-
-            $('body').append(alertHtml);
-
-            setTimeout(() => {
-                $('.notification-toast').last().alert('close');
-            }, 4000);
+        function showWarning(message) {
+            Swal.fire({
+                title: 'Uyarı!',
+                html: message,
+                icon: 'warning',
+                position: 'top-end',
+                showConfirmButton: true,
+                timer: 7000,
+                timerProgressBar: true,
+                toast: true,
+                background: '#fff3cd',
+                iconColor: '#ffc107',
+                customClass: {
+                    popup: 'colored-toast'
+                }
+            });
         }
 
-        function showConfirm(title, message, callback) {
-            if (confirm(`${title}\n\n${message}`)) {
-                callback();
-            }
+        function showInfo(message) {
+            Swal.fire({
+                title: 'Bilgi',
+                html: message,
+                icon: 'info',
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 5000,
+                timerProgressBar: true,
+                toast: true,
+                background: '#d1ecf1',
+                iconColor: '#17a2b8',
+                customClass: {
+                    popup: 'colored-toast'
+                }
+            });
+        }
+
+        // Confirmation dialog için
+        function showConfirm(title, message, callback, cancelCallback = null) {
+            Swal.fire({
+                title: title,
+                html: message,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Evet',
+                cancelButtonText: 'Hayır',
+                confirmButtonColor: '#007bff',
+                cancelButtonColor: '#6c757d',
+                focusConfirm: false,
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    if (callback) callback();
+                } else if (result.isDismissed && cancelCallback) {
+                    cancelCallback();
+                }
+            });
         }
 
         // Page load - check selected machine
@@ -639,8 +710,12 @@
             isSelecting = true;
             const originalText = $btn.html();
 
+            // Button state'i güncelle
             $btn.prop('disabled', true)
                 .html('<i class="spinner-border spinner-border-sm me-1"></i> Bağlanıyor...');
+
+            // Diğer butonları da disable et
+            $('.select-machine-btn').prop('disabled', true);
 
             $.ajax({
                 url: '@Url.Action("SelectMachine", "Home")',
@@ -649,42 +724,179 @@
                 data: JSON.stringify({ machineId: machineId.toString() }),
                 success: function(response) {
                     if (response.success) {
-                        showSuccess(response.message);
+                        // Detaylı başarı mesajı - health check + login bilgileri ile
+                        let successMessage = `${machineName} başarıyla seçildi!`;
+
+                        if (response.healthCheck && response.login) {
+                            const healthTime = response.healthCheck.responseTime || '?';
+                            const loginStatus = response.login.success ? '✅' : '❌';
+
+                            successMessage += `<br><small class="d-block mt-1">`;
+                            successMessage += `🔍 Sağlık: ✅ ${healthTime}ms | `;
+                            successMessage += `🔐 Giriş: ${loginStatus} | `;
+                            successMessage += `🔑 Token: ✅ Alındı`;
+                            successMessage += `</small>`;
+                        }
+
+                        showSuccess(successMessage);
                         $('#machineSelectionModal').modal('hide');
                         showSelectedMachineInfo(response.machine);
 
+                        // Sayfa yenilemeden önce kısa bekleme
                         setTimeout(function() {
                             location.reload();
-                        }, 1500);
+                        }, 2000);
                     } else {
-                        showError(response.message);
-                        $btn.prop('disabled', false).html(originalText);
+                        // Detaylı hata mesajı
+                        let errorMessage = response.message || 'Makine seçimi başarısız';
+
+                        // Health check hatası varsa
+                        if (response.healthCheck && !response.healthCheck.healthy) {
+                            errorMessage += `<br><small class="text-muted">`;
+                            errorMessage += `🔍 Sağlık: ❌ ${response.healthCheck.message}`;
+                            if (response.healthCheck.responseTime) {
+                                errorMessage += ` (${response.healthCheck.responseTime}ms)`;
+                            }
+                            errorMessage += `</small>`;
+                        }
+
+                        // Login hatası varsa
+                        if (response.login && !response.login.success) {
+                            errorMessage += `<br><small class="text-muted">`;
+                            errorMessage += `🔐 Giriş: ❌ ${response.login.message}`;
+                            errorMessage += `</small>`;
+                        }
+
+                        showError(errorMessage);
                     }
                 },
                 error: function(xhr, status, error) {
                     console.error('Machine selection failed:', error);
-                    showError('Makine seçimi sırasında bir hata oluştu');
-                    $btn.prop('disabled', false).html(originalText);
+                    showError('Makine seçimi sırasında beklenmeyen hata oluştu');
                 },
                 complete: function() {
+                    // Button state'leri eski haline getir
+                    $btn.prop('disabled', false).html(originalText);
+                    $('.select-machine-btn').prop('disabled', false);
                     isSelecting = false;
                 }
             });
         }
 
+
         function showSelectedMachineInfo(machine) {
             const machineInfo = `
                 <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
-                    <strong><i class="bx bx-server"></i> Seçili Makine:</strong>
-                    ${machine.branchName} (${machine.branchId})
-                    <button type="button" class="btn btn-sm btn-outline-success ms-2" onclick="changeMachine()">
-                        <i class="bx bx-refresh"></i> Değiştir
-                    </button>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong><i class="bx bx-server"></i> Seçili Makine:</strong>
+                            ${machine.branchName} (${machine.branchId})
+                            <br>
+                            <small class="text-muted">
+                                <i class="bx bx-link-external"></i> ${machine.apiAddress}
+                                <span id="connectionStatus" class="badge bg-success ms-2">
+                                    <i class="bx bx-check-circle"></i> Bağlı
+                                </span>
+                            </small>
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-sm btn-outline-success me-2" onclick="checkTokenStatus()">
+                                <i class="bx bx-shield-check"></i> Durum
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="changeMachine()">
+                                <i class="bx bx-refresh"></i> Değiştir
+                            </button>
+                        </div>
+                    </div>
                 </div>
             `;
 
             $('.selected-machine-info').remove();
             $('.content-body').prepend(`<div class="selected-machine-info">${machineInfo}</div>`);
+        }
+
+        function checkTokenStatus() {
+            const $btn = $(event.target);
+            const originalText = $btn.html();
+
+            $btn.prop('disabled', true)
+                .html('<i class="spinner-border spinner-border-sm"></i>');
+
+            $.get('@Url.Action("CheckSelectedMachineStatus", "Home")')
+                .done(function(response) {
+                    if (response.success && response.data) {
+                        const tokenInfo = response.data.token;
+                        const machineInfo = response.data.machine;
+
+                        let statusMessage = `${machineInfo.branchName} Bağlantı Durumu:<br>`;
+
+                        if (tokenInfo.hasValidToken) {
+                            const expiresAt = new Date(tokenInfo.expiresAt).toLocaleString('tr-TR');
+                            statusMessage += `<small class="text-success">✅ Token Geçerli - Süre: ${expiresAt}</small>`;
+
+                            // Connection status badge'i güncelle
+                            $('#connectionStatus')
+                                .removeClass('bg-warning bg-danger')
+                                .addClass('bg-success')
+                                .html('<i class="bx bx-check-circle"></i> Bağlı');
+                        } else {
+                            statusMessage += `<small class="text-warning">⚠️ Token Geçersiz - Yenileme Gerekli</small>`;
+                            statusMessage += `<br><button class="btn btn-sm btn-warning mt-1" onclick="refreshToken()">`;
+                            statusMessage += `<i class="bx bx-refresh"></i> Token Yenile</button>`;
+
+                            // Connection status badge'i güncelle
+                            $('#connectionStatus')
+                                .removeClass('bg-success bg-danger')
+                                .addClass('bg-warning')
+                                .html('<i class="bx bx-time"></i> Token Gerekli');
+                        }
+
+                        showSuccess(statusMessage);
+                    } else {
+                        showError(response.message || 'Durum kontrol edilemedi');
+                    }
+                })
+                .fail(function() {
+                    showError('Bağlantı durumu kontrol edilemedi');
+                })
+                .always(function() {
+                    $btn.prop('disabled', false).html(originalText);
+                });
+        }
+
+        // Token yenileme fonksiyonu - yeni
+        function refreshToken() {
+            const $btn = $(event.target);
+            const originalText = $btn.html();
+
+            $btn.prop('disabled', true)
+                .html('<i class="spinner-border spinner-border-sm"></i> Yenileniyor...');
+
+            $.post('@Url.Action("RefreshExternalApiToken", "Home")')
+                .done(function(response) {
+                    if (response.success) {
+                        showSuccess('Token başarıyla yenilendi!');
+
+                        // Connection status badge'i güncelle
+                        $('#connectionStatus')
+                            .removeClass('bg-warning bg-danger')
+                            .addClass('bg-success')
+                            .html('<i class="bx bx-check-circle"></i> Bağlı');
+
+                        // Success mesajını kapat
+                        setTimeout(function() {
+                            $('.alert-success').not('.selected-machine-info .alert').alert('close');
+                        }, 3000);
+                    } else {
+                        showError(response.message || 'Token yenilenemedi');
+                    }
+                })
+                .fail(function() {
+                    showError('Token yenileme sırasında hata oluştu');
+                })
+                .always(function() {
+                    $btn.prop('disabled', false).html(originalText);
+                });
         }
 
         function changeMachine() {
@@ -753,11 +965,28 @@
         window.changeMachine = changeMachine;
         window.refreshMachines = refreshMachines;
         window.refreshSystemStatus = refreshSystemStatus;
+        window.checkTokenStatus = checkTokenStatus;
+        window.refreshToken = refreshToken;
     </script>
 }
 
 @section Css {
     <style>
+
+        .colored-toast {
+            border-radius: 12px !important;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2) !important;
+            font-weight: 500;
+        }
+
+            .colored-toast .swal2-title {
+                font-size: 16px !important;
+                font-weight: 600 !important;
+            }
+
+            .colored-toast .swal2-icon {
+                margin: 10px auto !important;
+            }
         /* Dashboard Card Animations */
         .card {
             transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;

@@ -1,5 +1,4 @@
-﻿using App.UI.Helper;
-using App.UI.Services;
+﻿using App.UI.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
@@ -9,18 +8,18 @@ namespace App.UI.MiddleWare
     {
 
 
-        public async Task InvokeAsync(HttpContext context, IAuthService authService, ILogger<TokenRefreshMiddleware> logger)
+        public async Task InvokeAsync(HttpContext context, IAuthService authService, ISessionService sessionService, ILogger<TokenRefreshMiddleware> logger)
         {
             // Sadece authenticated kullanıcılar için kontrol yap
             if (context.User.Identity?.IsAuthenticated == true)
             {
-                var session = SessionManager.GetSession();
+                var userSession = sessionService.GetUserSession();
 
                 // Session varsa ve AccessToken süresi kontrol et
-                if (session != null && !string.IsNullOrEmpty(session.AccessToken))
+                if (userSession != null && !string.IsNullOrEmpty(userSession.AccessToken))
                 {
                     // Token'ın süresi kontrol et
-                    double remainingMinutes = SessionManager.GetTokenRemainingTimeInMinutes();
+                    double remainingMinutes = (userSession.ExpiresAt - DateTime.UtcNow).TotalMinutes;
 
                     if (remainingMinutes <= 0)
                     {
@@ -44,6 +43,14 @@ namespace App.UI.MiddleWare
 
                         await authService.RefreshTokenAsync();
                     }
+                }
+                else
+                {
+                    // Session yoksa veya token yoksa logout yap
+                    logger.LogWarning("User session bulunamadı, oturum sonlandırılıyor...");
+                    await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                    context.Response.Redirect("/Authentication/Login");
+                    return;
                 }
             }
 

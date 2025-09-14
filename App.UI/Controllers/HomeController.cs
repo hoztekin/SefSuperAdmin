@@ -1,9 +1,7 @@
 ﻿using App.UI.DTOS;
-using App.UI.Models;
 using App.UI.Services;
 using App.UI.ViewModels;
 using Microsoft.AspNetCore.Mvc;
-using System.Diagnostics;
 
 namespace App.UI.Controllers;
 
@@ -161,17 +159,16 @@ public class HomeController(ILogger<HomeController> logger, IApiService apiServi
 
             logger.LogInformation("Login başarılı: {ApiAddress} - Token alındı", machine.ApiAddress);
 
-            // 3. Token'ı session'da sakla
-            var tokenInfo = new ExternalApiTokenInfo
-            {
-                ApiAddress = machine.ApiAddress,
-                AccessToken = loginResponse.AccessToken,
-                RefreshToken = loginResponse.RefreshToken,
-                ExpiresAt = loginResponse.ExpiresAt != default ? loginResponse.ExpiresAt : DateTime.UtcNow.AddHours(1),
-                CreatedAt = DateTime.UtcNow
-            };
+            // 3. Token'ı session'da sakla (YENİ METHOD)
+            var expiresAt = loginResponse.ExpiresAt != default
+                ? loginResponse.ExpiresAt
+                : DateTime.UtcNow.AddHours(1);
 
-            sessionService.SaveExternalApiToken(machine.ApiAddress, tokenInfo);
+            sessionService.SaveMachineApiToken(
+                machine.ApiAddress,
+                loginResponse.AccessToken,
+                expiresAt,
+                loginResponse.RefreshToken);
 
             // 4. Session'a seçili makineyi kaydet
             sessionService.SaveSelectedMachine(
@@ -204,7 +201,7 @@ public class HomeController(ILogger<HomeController> logger, IApiService apiServi
                 {
                     success = true,
                     message = "Başarıyla giriş yapıldı",
-                    tokenExpires = tokenInfo.ExpiresAt
+                    tokenExpires = expiresAt
                 }
             });
         }
@@ -232,8 +229,9 @@ public class HomeController(ILogger<HomeController> logger, IApiService apiServi
                 return Json(new { success = false, message = "Seçili makine bulunamadı" });
             }
 
-            var hasValidToken = sessionService.HasValidExternalApiToken(selectedMachine.ApiAddress);
-            var tokenInfo = sessionService.GetExternalApiToken(selectedMachine.ApiAddress);
+            // ✅ YENİ: HasValidMachineToken kullan
+            var hasValidToken = sessionService.HasValidMachineToken();
+            var machineToken = sessionService.GetMachineApiToken();
 
             return Json(new
             {
@@ -250,8 +248,8 @@ public class HomeController(ILogger<HomeController> logger, IApiService apiServi
                     token = new
                     {
                         hasValidToken = hasValidToken,
-                        expiresAt = tokenInfo?.ExpiresAt,
-                        isExpired = tokenInfo?.IsExpired ?? true
+                        hasToken = !string.IsNullOrEmpty(machineToken),
+                        // Token expiry bilgisini ayrıca almak istersen GetMachineApiTokenInfo gibi bir method ekleyebiliriz
                     }
                 }
             });
@@ -288,17 +286,15 @@ public class HomeController(ILogger<HomeController> logger, IApiService apiServi
                 });
             }
 
-            // Yeni token'ı kaydet
-            var tokenInfo = new ExternalApiTokenInfo
-            {
-                ApiAddress = selectedMachine.ApiAddress,
-                AccessToken = loginResponse.AccessToken,
-                RefreshToken = loginResponse.RefreshToken,
-                ExpiresAt = loginResponse.ExpiresAt != default ? loginResponse.ExpiresAt : DateTime.UtcNow.AddHours(1),
-                CreatedAt = DateTime.UtcNow
-            };
+            var expiresAt = loginResponse.ExpiresAt != default
+                ? loginResponse.ExpiresAt
+                : DateTime.UtcNow.AddHours(1);
 
-            sessionService.SaveExternalApiToken(selectedMachine.ApiAddress, tokenInfo);
+            sessionService.SaveMachineApiToken(
+                selectedMachine.ApiAddress,
+                loginResponse.AccessToken,
+                expiresAt,
+                loginResponse.RefreshToken);
 
             logger.LogInformation("Token yenilendi: {ApiAddress}", selectedMachine.ApiAddress);
 
@@ -306,7 +302,7 @@ public class HomeController(ILogger<HomeController> logger, IApiService apiServi
             {
                 success = true,
                 message = "Token başarıyla yenilendi",
-                tokenExpires = tokenInfo.ExpiresAt
+                tokenExpires = expiresAt
             });
         }
         catch (Exception ex)
@@ -375,9 +371,4 @@ public class HomeController(ILogger<HomeController> logger, IApiService apiServi
         return View();
     }
 
-    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-    public IActionResult Error()
-    {
-        return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
-    }
 }

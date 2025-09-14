@@ -14,6 +14,8 @@ namespace App.UI.Extensions
                 options.IdleTimeout = TimeSpan.FromHours(2); // 2 saat session timeout
                 options.Cookie.HttpOnly = true;
                 options.Cookie.IsEssential = true;
+                options.Cookie.SameSite = SameSiteMode.Lax;
+                options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
             });
 
             // API Base URL'ini configuration'dan al

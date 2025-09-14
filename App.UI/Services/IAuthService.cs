@@ -22,11 +22,13 @@ namespace App.UI.Services
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly HttpClient _httpClient;
         private readonly ILogger<AuthService> _logger;
+        private readonly ISessionService _sessionService;
 
-        public AuthService(IHttpContextAccessor httpContextAccessor, IHttpClientFactory httpClientFactory, ILogger<AuthService> logger)
+        public AuthService(IHttpContextAccessor httpContextAccessor, ISessionService sessionService, IHttpClientFactory httpClientFactory, ILogger<AuthService> logger)
         {
             _httpContextAccessor = httpContextAccessor;
             _httpClient = httpClientFactory.CreateClient("AuthClient");
+            _sessionService = sessionService;
             _logger = logger;
         }
 
@@ -50,7 +52,16 @@ namespace App.UI.Services
                 }
 
                 // Session'ı kaydet
-                SessionManager.SaveSession(tokenDto.AccessToken, userId, tokenDto.AccessTokenExpiration, roles, tokenDto.RefreshToken);
+                var userInfo = new UserInfoDto { Id = userId };
+
+                _sessionService.SaveUserSession(
+                    accessToken: tokenDto.AccessToken,
+                    refreshToken: tokenDto.RefreshToken,
+                    expiresAt: tokenDto.AccessTokenExpiration,
+                    userInfo: userInfo,
+                    roles: roles ?? new List<string>(),
+                    permissions: new List<string>()
+                );
 
                 // Claims oluştur
                 var claims = new List<Claim>
@@ -96,15 +107,16 @@ namespace App.UI.Services
         {
             try
             {
-                var session = SessionManager.GetSession();
-                if (session != null && !string.IsNullOrEmpty(session.RefreshToken))
+                var userSession = _sessionService.GetUserSession();
+
+                if (userSession != null && !string.IsNullOrEmpty(userSession.RefreshToken))
                 {
                     try
                     {
                         // API'ye refresh token'ı iptal etmesini söyle
                         var refreshTokenDto = new RefreshTokenDto
                         {
-                            Token = session.RefreshToken
+                            Token = userSession.RefreshToken
                         };
 
                         var json = JsonSerializer.Serialize(refreshTokenDto);
@@ -118,8 +130,7 @@ namespace App.UI.Services
                     }
                 }
 
-                // Session'ı temizle
-                SessionManager.ClearSession();
+                _sessionService.ClearUserSession();
 
                 // Cookie'yi temizle
                 await _httpContextAccessor.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
@@ -136,8 +147,10 @@ namespace App.UI.Services
         {
             try
             {
-                var session = SessionManager.GetSession();
-                if (session == null || string.IsNullOrEmpty(session.RefreshToken))
+                // ✅ YENİ: ISessionService kullan
+                var userSession = _sessionService.GetUserSession();
+
+                if (userSession == null || string.IsNullOrEmpty(userSession.RefreshToken))
                 {
                     _logger.LogWarning("RefreshTokenAsync: Session veya refresh token bulunamadı");
                     return false;
@@ -145,7 +158,7 @@ namespace App.UI.Services
 
                 var refreshTokenDto = new RefreshTokenDto
                 {
-                    Token = session.RefreshToken
+                    Token = userSession.RefreshToken
                 };
 
                 var json = JsonSerializer.Serialize(refreshTokenDto, new JsonSerializerOptions
@@ -161,7 +174,7 @@ namespace App.UI.Services
                     _logger.LogWarning("Token yenileme başarısız: {StatusCode}", response.StatusCode);
 
                     // Eğer refresh token da geçersizse session'ı temizle
-                    SessionManager.ClearSession();
+                    _sessionService.ClearUserSession();
                     await _httpContextAccessor.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
                     return false;
                 }
@@ -173,7 +186,7 @@ namespace App.UI.Services
                 if (serviceTokenResponse?.Data == null)
                 {
                     _logger.LogWarning("Token yenileme response'u geçersiz");
-                    SessionManager.ClearSession();
+                    _sessionService.ClearUserSession();
                     await _httpContextAccessor.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
                     return false;
                 }
@@ -199,7 +212,7 @@ namespace App.UI.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "RefreshTokenAsync sırasında hata oluştu");
-                SessionManager.ClearSession();
+                _sessionService.ClearUserSession();
                 await _httpContextAccessor.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
                 return false;
             }
@@ -207,8 +220,7 @@ namespace App.UI.Services
 
         public bool IsAuthenticated()
         {
-            var session = SessionManager.GetSession();
-            return session != null && SessionManager.IsTokenValid();
+            return _sessionService.IsAuthenticated();
         }
     }
 }

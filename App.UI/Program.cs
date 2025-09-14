@@ -1,7 +1,7 @@
 ﻿using App.Shared;
 using App.UI.Extensions;
-using App.UI.Helper;
 using App.UI.MiddleWare;
+using App.UI.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Serilog;
@@ -39,8 +39,9 @@ namespace App.UI
                 options.Events.OnValidatePrincipal = async context =>
                 {
                     // Token geçerliliğini kontrol et
-                    var session = SessionManager.GetSession();
-                    if (session == null || !SessionManager.IsTokenValid())
+                    var sessionService = context.HttpContext.RequestServices.GetRequiredService<ISessionService>();
+                    var userSession = sessionService.GetUserSession();
+                    if (userSession == null || userSession.IsExpired)
                     {
                         // Token geçersizse oturumu sonlandır
                         context.RejectPrincipal();

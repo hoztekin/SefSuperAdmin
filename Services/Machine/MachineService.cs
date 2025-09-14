@@ -8,8 +8,8 @@ using Microsoft.Extensions.Logging;
 
 namespace App.Services.Machine
 {
-    public class MachineService(IMachineRepository machineRepository, 
-                                IUnitOfWork unitOfWork, 
+    public class MachineService(IMachineRepository machineRepository,
+                                IUnitOfWork unitOfWork,
                                 IMapper mapper,
                                 ILogger<MachineService> logger,
                                 IHttpClientFactory httpClientFactory) : IMachineService

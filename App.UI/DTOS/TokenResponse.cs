@@ -7,11 +7,4 @@
         public string Message { get; set; }
         public List<string> ErrorMessage { get; set; }
     }
-
-    public class TokenData
-    {
-        public string AccessToken { get; set; }
-        public DateTime AccessTokenExpiration { get; set; }
-        public string RefreshToken { get; set; }
-    }
 }

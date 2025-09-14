@@ -8,7 +8,7 @@ namespace App.UI.Services
     {
         Task<string> GetTokenAsync();
         Task<bool> RefreshTokenAsync();
-        Task<bool> LoginAsync(string email, string password);
+        Task<bool> LoginAsync(string userName, string password);
         void Logout();
         bool IsAuthenticated();
     }
@@ -17,11 +17,13 @@ namespace App.UI.Services
         private readonly HttpClient _httpClient;
         private readonly JsonSerializerOptions _jsonOptions;
         private readonly ILogger<TokenService> _logger;
+        private readonly ISessionService _sessionService;
 
-        public TokenService(IHttpClientFactory httpClientFactory, ILogger<TokenService> logger)
+        public TokenService(IHttpClientFactory httpClientFactory, ISessionService sessionService, ILogger<TokenService> logger)
         {
             _httpClient = httpClientFactory.CreateClient("TokenClient");
             _logger = logger;
+            _sessionService = sessionService;
             _jsonOptions = new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
@@ -30,10 +32,10 @@ namespace App.UI.Services
 
         public async Task<string> GetTokenAsync()
         {
-            var session = SessionManager.GetSession();
+            var userSession = _sessionService.GetUserSession();
 
             // Oturum yoksa veya token süresi dolmuşsa, yenilemeyi dene
-            if (session == null || !SessionManager.IsTokenValid())
+            if (userSession == null || !_sessionService.IsAuthenticated())
             {
                 _logger.LogInformation("Token geçersiz, yenileme deneniyor...");
                 var refreshSuccess = await RefreshTokenAsync();
@@ -42,16 +44,16 @@ namespace App.UI.Services
                     _logger.LogWarning("Token yenilenemedi");
                     return null;
                 }
-                session = SessionManager.GetSession();
+                userSession = _sessionService.GetUserSession();
             }
 
-            return session?.AccessToken;
+            return userSession?.AccessToken;
         }
 
         public async Task<bool> RefreshTokenAsync()
         {
-            var session = SessionManager.GetSession();
-            if (session == null || string.IsNullOrEmpty(session.RefreshToken))
+            var userSession = _sessionService.GetUserSession();
+            if (userSession == null || string.IsNullOrEmpty(userSession.RefreshToken))
             {
                 _logger.LogWarning("RefreshToken bulunamadı");
                 return false;
@@ -59,7 +61,7 @@ namespace App.UI.Services
 
             try
             {
-                var refreshTokenDto = new { Token = session.RefreshToken };
+                var refreshTokenDto = new { Token = userSession.RefreshToken };
                 var content = new StringContent(
                     JsonSerializer.Serialize(refreshTokenDto, _jsonOptions),
                     System.Text.Encoding.UTF8,
@@ -70,7 +72,8 @@ namespace App.UI.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogWarning("Token yenileme başarısız: {StatusCode}", response.StatusCode);
-                    SessionManager.ClearSession();
+
+                    _sessionService.ClearUserSession();
                     return false;
                 }
 
@@ -86,13 +89,16 @@ namespace App.UI.Services
                 // Token'dan userId ve roller bilgisini al
                 var (userId, roles) = JwtTokenParser.ParseToken(tokenResponse.Data.AccessToken);
 
-                // Yeni oturumu kaydet
-                SessionManager.SaveSession(
-                    tokenResponse.Data.AccessToken,
-                    userId,
-                    tokenResponse.Data.AccessTokenExpiration,
-                    roles,
-                    tokenResponse.Data.RefreshToken);
+                var currentUserInfo = userSession.UserInfo ?? new UserInfoDto { Id = userId };
+
+                _sessionService.SaveUserSession(
+                    accessToken: tokenResponse.Data.AccessToken,
+                    refreshToken: tokenResponse.Data.RefreshToken,
+                    expiresAt: tokenResponse.Data.AccessTokenExpiration,
+                    userInfo: currentUserInfo,
+                    roles: roles ?? new List<string>(),
+                    permissions: userSession.Permissions ?? new List<string>()
+                );
 
                 _logger.LogInformation("Token başarıyla yenilendi");
                 return true;
@@ -100,16 +106,16 @@ namespace App.UI.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Token yenileme hatası");
-                SessionManager.ClearSession();
+                _sessionService.ClearUserSession();
                 return false;
             }
         }
 
-        public async Task<bool> LoginAsync(string email, string password)
+        public async Task<bool> LoginAsync(string userName, string password)
         {
             try
             {
-                var loginDto = new { Email = email, Password = password };
+                var loginDto = new { userName = userName, Password = password };
                 var content = new StringContent(
                     JsonSerializer.Serialize(loginDto, _jsonOptions),
                     System.Text.Encoding.UTF8,
@@ -135,15 +141,22 @@ namespace App.UI.Services
                 // Token'dan userId ve roller bilgisini al
                 var (userId, roles) = JwtTokenParser.ParseToken(tokenResponse.Data.AccessToken);
 
-                // Oturumu kaydet
-                SessionManager.SaveSession(
-                    tokenResponse.Data.AccessToken,
-                    userId,
-                    tokenResponse.Data.AccessTokenExpiration,
-                    roles,
-                    tokenResponse.Data.RefreshToken);
+                var userInfo = new UserInfoDto
+                {
+                    Id = userId,
+                    UserName = userName
+                };
 
-                _logger.LogInformation("Login başarılı: {UserId}", userId);
+                _sessionService.SaveUserSession(
+                    accessToken: tokenResponse.Data.AccessToken,
+                    refreshToken: tokenResponse.Data.RefreshToken,
+                    expiresAt: tokenResponse.Data.AccessTokenExpiration,
+                    userInfo: userInfo,
+                    roles: roles ?? new List<string>(),
+                    permissions: new List<string>()
+                );
+
+                _logger.LogInformation("Login başarılı: {UserId} - {UserName}", userId, userName);
                 return true;
             }
             catch (Exception ex)
@@ -155,13 +168,13 @@ namespace App.UI.Services
 
         public void Logout()
         {
-            SessionManager.ClearSession();
+            _sessionService.ClearUserSession();
             _logger.LogInformation("Logout işlemi tamamlandı");
         }
 
         public bool IsAuthenticated()
         {
-            return SessionManager.GetSession() != null && SessionManager.IsTokenValid();
+            return _sessionService.IsAuthenticated();
         }
     }
 }

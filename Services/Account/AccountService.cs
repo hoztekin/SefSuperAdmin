@@ -21,7 +21,7 @@ namespace App.Services.Account
 
                 if (!result.Succeeded) return ServiceResult.Fail("Parola Hatalı bilgilerinizi kontrol ediniz!");
 
-                var updateSecurityStamp = userManager.UpdateSecurityStampAsync(user);
+                var updateSecurityStamp = await userManager.UpdateSecurityStampAsync(user);
             }
 
             return ServiceResult.Success();

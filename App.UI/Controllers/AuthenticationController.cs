@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace App.UI.Controllers
 {
     [AllowAnonymous]
-    public class AuthenticationController(IApiService apiService, IAuthService authService, ITokenService tokenService) : Controller
+    public class AuthenticationController(IApiService apiService, IAuthService authService, ITokenService tokenService, ISessionService sessionService) : Controller
     {
 
         public IActionResult Register()
@@ -64,13 +64,20 @@ namespace App.UI.Controllers
                     // JWT token'dan kullanıcı bilgilerini çıkar
                     var (userId, roles) = JwtTokenParser.ParseToken(tokenResponse.AccessToken);
 
-                    // Session'ı kaydet
-                    SessionManager.SaveSession(
-                        tokenResponse.AccessToken,
-                        userId,
-                        tokenResponse.AccessTokenExpiration,
-                        roles,
-                        tokenResponse.RefreshToken
+                    // ✅ YENİ: ISessionService kullan (SessionManager yerine)
+                    var userInfo = new UserInfoDto
+                    {
+                        Id = userId,
+                        Email = model.UserName // Login'de kullanılan username/email
+                    };
+
+                    sessionService.SaveUserSession(
+                        accessToken: tokenResponse.AccessToken,
+                        refreshToken: tokenResponse.RefreshToken,
+                        expiresAt: tokenResponse.AccessTokenExpiration,
+                        userInfo: userInfo,
+                        roles: roles ?? new List<string>(),
+                        permissions: new List<string>() 
                     );
 
                     // Cookie authentication için sign-in yap

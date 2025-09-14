@@ -4,9 +4,9 @@ using AutoMapper;
 
 namespace App.UI.Mapping
 {
-    public class PaswordMappingProfile : Profile
+    public class PasswordMappingProfile : Profile
     {
-        public PaswordMappingProfile()
+        public PasswordMappingProfile()
         {
             CreateMap<PasswordChangeViewModel, PasswordChangeDTO>().ReverseMap();
         }

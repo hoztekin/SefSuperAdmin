@@ -19,14 +19,16 @@ namespace App.UI.Services
     {
         private readonly HttpClient _httpClient;
         private readonly ITokenService _tokenService;
+        private readonly ISessionService _sessionService;
         private readonly JsonSerializerOptions _jsonOptions;
         private readonly ILogger<ApiService> _logger;
 
-        public ApiService(HttpClient httpClient, ITokenService tokenService, ILogger<ApiService> logger)
+        public ApiService(HttpClient httpClient, ITokenService tokenService, ISessionService sessionService, ILogger<ApiService> logger)
         {
             _httpClient = httpClient;
             _tokenService = tokenService;
             _logger = logger;
+            _sessionService = sessionService;
             _jsonOptions = new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,
@@ -40,13 +42,13 @@ namespace App.UI.Services
 
             if (requiresAuth)
             {
-                var session = SessionManager.GetSession();
-                if (session != null && !string.IsNullOrEmpty(session.AccessToken))
+                var userSession = _sessionService.GetUserSession();
+
+                if (userSession != null && !string.IsNullOrEmpty(userSession.AccessToken))
                 {
-                    // Token geçerliliği kontrolü
-                    if (SessionManager.IsTokenValid())
+                    if (_sessionService.IsAuthenticated())
                     {
-                        var cleanedToken = JwtTokenParser.CleanToken(session.AccessToken);
+                        var cleanedToken = JwtTokenParser.CleanToken(userSession.AccessToken);
                         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", cleanedToken);
                         _logger.LogDebug("Authorization header eklendi");
                     }
@@ -55,13 +57,13 @@ namespace App.UI.Services
                         // Token süresi dolmuş, yenilemeyi dene
                         _logger.LogInformation("Token süresi dolmuş, yenileme deneniyor...");
                         var refreshed = await _tokenService.RefreshTokenAsync();
+
                         if (refreshed)
                         {
-                            // Yenileme başarılıysa tekrar token al
-                            var newSession = SessionManager.GetSession();
-                            if (newSession != null && !string.IsNullOrEmpty(newSession.AccessToken))
+                            var newUserSession = _sessionService.GetUserSession();
+                            if (newUserSession != null && !string.IsNullOrEmpty(newUserSession.AccessToken))
                             {
-                                var cleanedToken = JwtTokenParser.CleanToken(newSession.AccessToken);
+                                var cleanedToken = JwtTokenParser.CleanToken(newUserSession.AccessToken);
                                 _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", cleanedToken);
                                 _logger.LogInformation("Token yenilendi ve Authorization header eklendi");
                             }

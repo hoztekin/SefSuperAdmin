@@ -2,7 +2,7 @@
 
 namespace App.Services.File
 {
-    internal interface IFileService
+    public interface IFileService
     {
         Task<string> SaveFile(IFormFile file, string folderName);
         void DeleteFile(string filePath);

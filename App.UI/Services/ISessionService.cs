@@ -1,36 +1,93 @@
 ﻿using App.UI.DTOS;
 using System.Text.Json;
-using static App.UI.Helper.SessionManager;
 
 namespace App.UI.Services
 {
+
+    /// <summary>
+    /// İki ana sorumluluk: 
+    /// 1. Ana uygulama user session yönetimi
+    /// 2. Seçili makine ve external API token yönetimi
+    /// </summary>
     public interface ISessionService
     {
-        void SaveAuthSession(AuthResponseDto authResponse);
-        void SaveLoginUsername(string userName);
-        SessionInfo GetCurrentSession();
+        // ========== ANA UYGULAMA SESSION YÖNETİMİ ==========
+        /// <summary>
+        /// Kullanıcı ana uygulamaya login olduktan sonra session'ını kaydeder
+        /// </summary>
+        void SaveUserSession(string accessToken, string refreshToken, DateTime expiresAt,
+                           UserInfoDto userInfo, List<string> roles, List<string> permissions);
+
+        /// <summary>
+        /// Ana uygulama için geçerli session bilgilerini döner
+        /// </summary>
+        UserSessionInfo GetUserSession();
+
+        /// <summary>
+        /// Ana uygulama token'ının geçerliliğini kontrol eder
+        /// </summary>
         bool IsAuthenticated();
+
+        /// <summary>
+        /// Ana uygulama token'ı
+        /// </summary>
+        string GetUserAccessToken();
+
+        /// <summary>
+        /// Kullanıcının belirli bir yetkiye sahip olup olmadığını kontrol eder
+        /// </summary>
         bool HasPermission(string permission);
-        bool HasAnyPermission(params string[] permissions);
+
+        /// <summary>
+        /// Kullanıcının belirli bir role sahip olup olmadığını kontrol eder
+        /// </summary>
         bool HasRole(string role);
-        List<string> GetUserPermissions();
-        UserInfoDto GetCurrentUser();
-        void ClearSession();
-        bool IsTokenExpiring(int minutesThreshold = 5);
-        string GetAccessToken();
-        string GetRefreshToken();
-        ISession GetSession();
-        SelectedMachineInfo GetSelectedMachine();
-        void ClearSelectedMachine();
-        bool HasSelectedMachine();
+
+        /// <summary>
+        /// Tüm session'ı temizler (logout)
+        /// </summary>
+        void ClearUserSession();
+
+        // ========== SEÇİLİ MAKİNE VE EXTERNAL API YÖNETİMİ ==========
+        /// <summary>
+        /// Kullanıcı bir makine seçtikten sonra o makine bilgisini kaydeder
+        /// </summary>
         void SaveSelectedMachine(int machineId, string branchId, string branchName, string apiAddress);
 
-        // Uzaktaki API token yönetimi
-        void SaveExternalApiToken(string apiAddress, ExternalApiTokenInfo tokenInfo);
-        ExternalApiTokenInfo? GetExternalApiToken(string apiAddress);
-        void ClearExternalApiToken(string apiAddress);
-        void ClearAllExternalApiTokens();
-        bool HasValidExternalApiToken(string apiAddress);
+        /// <summary>
+        /// Seçili makine bilgisini döner
+        /// </summary>
+        SelectedMachineInfo GetSelectedMachine();
+
+        /// <summary>
+        /// Seçili makine var mı kontrol eder
+        /// </summary>
+        bool HasSelectedMachine();
+
+        /// <summary>
+        /// Seçili makine bilgisini temizler
+        /// </summary>
+        void ClearSelectedMachine();
+
+        /// <summary>
+        /// Seçili makinenin API'sine istek atıp alınan token'ı kaydeder
+        /// </summary>
+        void SaveMachineApiToken(string apiAddress, string accessToken, DateTime expiresAt, string refreshToken = null);
+
+        /// <summary>
+        /// Seçili makinenin token'ını döner (varsa ve geçerliyse)
+        /// </summary>
+        string GetMachineApiToken();
+
+        /// <summary>
+        /// Seçili makinenin geçerli token'ı var mı kontrol eder
+        /// </summary>
+        bool HasValidMachineToken();
+
+        /// <summary>
+        /// Seçili makinenin token'ını temizler
+        /// </summary>
+        void ClearMachineApiToken();
 
     }
 
@@ -38,388 +95,243 @@ namespace App.UI.Services
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ILogger<SessionService> _logger;
-        private const string SESSION_SELECTED_MACHINE_KEY = "SelectedMachine";
+
+        // Ana uygulama session keys
+        private const string USER_TOKEN_KEY = "UserToken";
+        private const string USER_SESSION_KEY = "UserSession";
+
+        // Seçili makine keys  
         private const string SELECTED_MACHINE_KEY = "SelectedMachine";
-        // Session Keys
-        private const string SESSION_TOKEN_KEY = "AuthToken";
-        private const string SESSION_USER_KEY = "UserInfo";
-        private const string SESSION_STAFFS_KEY = "AuthorizedStaffs";
-        private const string SESSION_ROLES_KEY = "UserRoles";
-        private const string SESSION_PERMISSIONS_KEY = "UserPermissions";
-        private const string SESSION_TOKEN_EXPIRES_KEY = "TokenExpiresAt";
-        private const string SESSION_REFRESH_TOKEN_KEY = "RefreshToken";
-        private const string SESSION_USERNAME_KEY = "Username";
-        private const string EXTERNAL_API_TOKENS_KEY = "external_api_tokens";
+        private const string MACHINE_TOKEN_KEY = "MachineToken";
+
+        private ISession Session => _httpContextAccessor.HttpContext?.Session;
 
         public SessionService(IHttpContextAccessor httpContextAccessor, ILogger<SessionService> logger)
         {
             _httpContextAccessor = httpContextAccessor;
             _logger = logger;
         }
-
-        private ISession Session => _httpContextAccessor.HttpContext?.Session;
-
-        public void SaveSelectedMachine(int machineId, string branchId, string branchName, string apiAddress)
-        {
-            var session = _httpContextAccessor.HttpContext?.Session;
-            if (session != null)
-            {
-                var machineInfo = new SelectedMachineInfo
-                {
-                    MachineId = machineId,
-                    BranchId = branchId,
-                    BranchName = branchName,
-                    ApiAddress = apiAddress,
-                    SelectedAt = DateTime.Now
-                };
-
-                var json = System.Text.Json.JsonSerializer.Serialize(machineInfo);
-                session.SetString(SELECTED_MACHINE_KEY, json);
-            }
-        }
-
-
-        public SelectedMachineInfo? GetSelectedMachine()
-        {
-            var session = _httpContextAccessor.HttpContext?.Session;
-            if (session != null)
-            {
-                var json = session.GetString(SELECTED_MACHINE_KEY);
-                if (!string.IsNullOrEmpty(json))
-                {
-                    return System.Text.Json.JsonSerializer.Deserialize<SelectedMachineInfo>(json);
-                }
-            }
-            return null;
-        }
-
-        public void ClearSelectedMachine()
-        {
-            var session = _httpContextAccessor.HttpContext?.Session;
-            session?.Remove(SELECTED_MACHINE_KEY);
-        }
-
-        public bool HasSelectedMachine()
-        {
-            var selectedMachine = GetSelectedMachine();
-            return selectedMachine != null;
-        }
-
-        public void SaveAuthSession(AuthResponseDto authResponse)
+        // ========== ANA UYGULAMA SESSION YÖNETİMİ ==========
+        public void SaveUserSession(string accessToken, string refreshToken, DateTime expiresAt,
+                                   UserInfoDto userInfo, List<string> roles, List<string> permissions)
         {
             try
             {
-                if (authResponse?.Data?.Token == null)
+                var sessionInfo = new UserSessionInfo
                 {
-                    _logger.LogError("Auth response veya token bilgisi null");
-                    return;
-                }
+                    AccessToken = accessToken,
+                    RefreshToken = refreshToken,
+                    ExpiresAt = expiresAt.ToUniversalTime(),
+                    UserInfo = userInfo,
+                    Roles = roles ?? new List<string>(),
+                    Permissions = permissions ?? new List<string>()
+                };
 
-                var token = authResponse.Data.Token;
-                var userInfo = authResponse.Data.UserInfo;
-                var roles = authResponse.Data.Roles ?? new List<string>();
+                var json = JsonSerializer.Serialize(sessionInfo);
+                Session.SetString(USER_SESSION_KEY, json);
 
-                // Token bilgilerini kaydet
-                Session.SetString(SESSION_TOKEN_KEY, token.AccessToken);
-                Session.SetString(SESSION_REFRESH_TOKEN_KEY, token.RefreshToken ?? "");
-
-                // Token expiration'ı hesapla (şu an + expires_in saniye)
-                var expiresAt = DateTime.UtcNow.AddSeconds(token.ExpiresIn);
-                Session.SetString(SESSION_TOKEN_EXPIRES_KEY, expiresAt.ToString("O"));
-
-                // User bilgilerini kaydet
-                if (userInfo != null)
-                {
-                    Session.SetString(SESSION_USER_KEY, JsonSerializer.Serialize(userInfo));
-                    // Username'i ayrı olarak kaydet (refresh token için gerekli)
-                    Session.SetString(SESSION_USERNAME_KEY, userInfo.Email);
-                }
-
-
-                // Rolleri kaydet
-                Session.SetString(SESSION_ROLES_KEY, JsonSerializer.Serialize(roles));
-
-                // Tüm permissions'ları topla (user + authorized staffs permissions)
-                var allPermissions = new List<string>();
-
-                // User'ın kendi permissions'larını JWT'den çıkarabilirsin
-
-
-                // Duplicate'leri temizle
-                var uniquePermissions = allPermissions.Distinct().ToList();
-                Session.SetString(SESSION_PERMISSIONS_KEY, JsonSerializer.Serialize(uniquePermissions));
-
-                _logger.LogInformation("Auth session başarıyla kaydedildi. User: {UserId}, Roles: {RoleCount}, Permissions: {PermissionCount}",
-                    userInfo?.Id, roles.Count, uniquePermissions.Count);
+                _logger.LogInformation("User session saved for user: {UserId}", userInfo?.Id);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Auth session kaydedilirken hata oluştu");
+                _logger.LogError(ex, "User session kaydedilirken hata");
                 throw;
             }
         }
 
-        public SessionInfo GetCurrentSession()
+        public UserSessionInfo GetUserSession()
         {
             try
             {
-                var token = Session.GetString(SESSION_TOKEN_KEY);
-                if (string.IsNullOrEmpty(token))
-                    return null;
+                var json = Session.GetString(USER_SESSION_KEY);
+                if (string.IsNullOrEmpty(json)) return null;
 
-                var expiresAtStr = Session.GetString(SESSION_TOKEN_EXPIRES_KEY);
-                var refreshToken = Session.GetString(SESSION_REFRESH_TOKEN_KEY);
-
-                if (!DateTime.TryParse(expiresAtStr, out var expiresAt))
-                    return null;
-
-                var userJson = Session.GetString(SESSION_USER_KEY);
-                var rolesJson = Session.GetString(SESSION_ROLES_KEY);
-                var permissionsJson = Session.GetString(SESSION_PERMISSIONS_KEY);
-
-                var userInfo = !string.IsNullOrEmpty(userJson)
-                    ? JsonSerializer.Deserialize<UserInfoDto>(userJson)
-                    : null;
-
-                var roles = !string.IsNullOrEmpty(rolesJson)
-                    ? JsonSerializer.Deserialize<List<string>>(rolesJson)
-                    : new List<string>();
-
-                var permissions = !string.IsNullOrEmpty(permissionsJson)
-                    ? JsonSerializer.Deserialize<List<string>>(permissionsJson)
-                    : new List<string>();
-
-                return new SessionInfo
-                {
-                    AccessToken = token,
-                    RefreshToken = refreshToken,
-                    UserId = userInfo?.Id,
-                    AccessTokenExpiration = expiresAt,
-                    UserInfo = userInfo,
-                    Roles = roles,
-                    Permissions = permissions
-                };
+                var sessionInfo = JsonSerializer.Deserialize<UserSessionInfo>(json);
+                return sessionInfo?.IsExpired == false ? sessionInfo : null;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Session bilgileri okunurken hata oluştu");
+                _logger.LogError(ex, "User session okunurken hata");
                 return null;
             }
         }
 
         public bool IsAuthenticated()
         {
-            var session = GetCurrentSession();
-            return session != null && session.AccessTokenExpiration > DateTime.UtcNow;
+            var session = GetUserSession();
+            return session != null && !session.IsExpired;
+        }
+
+        public string GetUserAccessToken()
+        {
+            var session = GetUserSession();
+            return session?.AccessToken;
         }
 
         public bool HasPermission(string permission)
         {
-            if (string.IsNullOrEmpty(permission))
-                return false;
+            if (string.IsNullOrEmpty(permission)) return false;
 
-            var permissions = GetUserPermissions();
-            return permissions.Contains(permission);
-        }
-
-        public bool HasAnyPermission(params string[] permissions)
-        {
-            if (permissions == null || permissions.Length == 0)
-                return false;
-
-            var userPermissions = GetUserPermissions();
-            return permissions.Any(p => userPermissions.Contains(p));
+            var session = GetUserSession();
+            return session?.Permissions?.Contains(permission) == true;
         }
 
         public bool HasRole(string role)
         {
-            if (string.IsNullOrEmpty(role))
-                return false;
+            if (string.IsNullOrEmpty(role)) return false;
 
-            var session = GetCurrentSession();
+            var session = GetUserSession();
             return session?.Roles?.Contains(role) == true;
         }
 
-        public List<string> GetUserPermissions()
-        {
-            var session = GetCurrentSession();
-            return session?.Permissions ?? new List<string>();
-        }
-
-
-
-        public UserInfoDto GetCurrentUser()
-        {
-            var session = GetCurrentSession();
-            return session?.UserInfo;
-        }
-
-        public void ClearSession()
+        public void ClearUserSession()
         {
             try
             {
-                Session.Remove(SESSION_TOKEN_KEY);
-                Session.Remove(SESSION_REFRESH_TOKEN_KEY);
-                Session.Remove(SESSION_TOKEN_EXPIRES_KEY);
-                Session.Remove(SESSION_USER_KEY);
-                Session.Remove(SESSION_ROLES_KEY);
-                Session.Remove(SESSION_PERMISSIONS_KEY);
-                Session.Remove(SESSION_USERNAME_KEY);
-                Session.Remove(SESSION_SELECTED_MACHINE_KEY);
-
-                _logger.LogInformation("Session temizlendi");
+                Session.Remove(USER_SESSION_KEY);
+                Session.Remove(USER_TOKEN_KEY);
+                _logger.LogInformation("User session cleared");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Session temizlenirken hata oluştu");
+                _logger.LogError(ex, "User session temizlenirken hata");
             }
         }
 
-        public bool IsTokenExpiring(int minutesThreshold = 5)
-        {
-            var session = GetCurrentSession();
-            if (session == null)
-                return true;
-
-            var remainingTime = (session.AccessTokenExpiration - DateTime.UtcNow).TotalMinutes;
-            return remainingTime <= minutesThreshold;
-        }
-
-        public string GetAccessToken()
-        {
-            return Session.GetString(SESSION_TOKEN_KEY);
-        }
-
-        public string GetRefreshToken()
-        {
-            return Session.GetString(SESSION_REFRESH_TOKEN_KEY);
-        }
-        public string GetUsername()
-        {
-            return Session.GetString(SESSION_USERNAME_KEY);
-        }
-
-        public void SaveLoginUsername(string username)
-        {
-            Session.SetString(SESSION_USERNAME_KEY, username);
-        }
-
-        public ISession GetSession()
-        {
-            return Session;
-        }
-
-        public void SaveExternalApiToken(string apiAddress, ExternalApiTokenInfo tokenInfo)
+        // ========== SEÇİLİ MAKİNE VE EXTERNAL API YÖNETİMİ ==========
+        public void SaveSelectedMachine(int machineId, string branchId, string branchName, string apiAddress)
         {
             try
             {
-                var allTokens = GetAllExternalApiTokens();
-
-                // Normalize API address (remove trailing slash)
-                var normalizedAddress = apiAddress.TrimEnd('/');
-
-                allTokens[normalizedAddress] = tokenInfo;
-
-                var json = JsonSerializer.Serialize(allTokens);
-                Session.SetString(EXTERNAL_API_TOKENS_KEY, json);
-
-                _logger.LogInformation("External API token saved: {ApiAddress}", normalizedAddress);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "External API token kaydedilirken hata: {ApiAddress}", apiAddress);
-            }
-        }
-
-        public ExternalApiTokenInfo? GetExternalApiToken(string apiAddress)
-        {
-            try
-            {
-                var allTokens = GetAllExternalApiTokens();
-                var normalizedAddress = apiAddress.TrimEnd('/');
-
-                if (allTokens.TryGetValue(normalizedAddress, out var tokenInfo))
+                var machineInfo = new SelectedMachineInfo
                 {
-                    if (!tokenInfo.IsExpired)
-                    {
-                        return tokenInfo;
-                    }
-                    else
-                    {
-                        _logger.LogWarning("External API token expired: {ApiAddress}", normalizedAddress);
-                        // Expired token'ı temizle
-                        ClearExternalApiToken(normalizedAddress);
-                        return null;
-                    }
-                }
+                    MachineId = machineId,
+                    BranchId = branchId,
+                    BranchName = branchName,
+                    ApiAddress = apiAddress.TrimEnd('/'),
+                    SelectedAt = DateTime.Now
+                };
 
-                return null;
+                var json = JsonSerializer.Serialize(machineInfo);
+                Session.SetString(SELECTED_MACHINE_KEY, json);
+
+                _logger.LogInformation("Machine selected: {MachineId} - {ApiAddress}", machineId, apiAddress);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "External API token alınırken hata: {ApiAddress}", apiAddress);
+                _logger.LogError(ex, "Selected machine kaydedilirken hata");
+            }
+        }
+
+        public SelectedMachineInfo GetSelectedMachine()
+        {
+            try
+            {
+                var json = Session.GetString(SELECTED_MACHINE_KEY);
+                if (string.IsNullOrEmpty(json)) return null;
+
+                return JsonSerializer.Deserialize<SelectedMachineInfo>(json);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Selected machine okunurken hata");
                 return null;
             }
         }
 
-        public void ClearExternalApiToken(string apiAddress)
+        public bool HasSelectedMachine()
+        {
+            return GetSelectedMachine() != null;
+        }
+
+        public void ClearSelectedMachine()
         {
             try
             {
-                var allTokens = GetAllExternalApiTokens();
-                var normalizedAddress = apiAddress.TrimEnd('/');
-
-                if (allTokens.Remove(normalizedAddress))
-                {
-                    var json = JsonSerializer.Serialize(allTokens);
-                    Session.SetString(EXTERNAL_API_TOKENS_KEY, json);
-
-                    _logger.LogInformation("External API token cleared: {ApiAddress}", normalizedAddress);
-                }
+                Session.Remove(SELECTED_MACHINE_KEY);
+                Session.Remove(MACHINE_TOKEN_KEY); // Makine token'ını da temizle
+                _logger.LogInformation("Selected machine cleared");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "External API token temizlenirken hata: {ApiAddress}", apiAddress);
+                _logger.LogError(ex, "Selected machine temizlenirken hata");
             }
         }
 
-        public void ClearAllExternalApiTokens()
+        public void SaveMachineApiToken(string apiAddress, string accessToken, DateTime expiresAt, string refreshToken = null)
         {
             try
             {
-                Session.Remove(EXTERNAL_API_TOKENS_KEY);
-                _logger.LogInformation("All external API tokens cleared");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Tüm external API token'ları temizlenirken hata");
-            }
-        }
-
-        public bool HasValidExternalApiToken(string apiAddress)
-        {
-            var token = GetExternalApiToken(apiAddress);
-            return token != null && !token.IsExpired;
-        }
-
-        private Dictionary<string, ExternalApiTokenInfo> GetAllExternalApiTokens()
-        {
-            try
-            {
-                var json = Session.GetString(EXTERNAL_API_TOKENS_KEY);
-                if (string.IsNullOrEmpty(json))
+                var selectedMachine = GetSelectedMachine();
+                if (selectedMachine?.ApiAddress != apiAddress.TrimEnd('/'))
                 {
-                    return new Dictionary<string, ExternalApiTokenInfo>();
+                    _logger.LogWarning("Machine token saved for different API address than selected machine");
                 }
 
-                return JsonSerializer.Deserialize<Dictionary<string, ExternalApiTokenInfo>>(json)
-                       ?? new Dictionary<string, ExternalApiTokenInfo>();
+                var tokenInfo = new
+                {
+                    ApiAddress = apiAddress.TrimEnd('/'),
+                    AccessToken = accessToken,
+                    RefreshToken = refreshToken,
+                    ExpiresAt = expiresAt.ToUniversalTime()
+                };
+
+                var json = JsonSerializer.Serialize(tokenInfo);
+                Session.SetString(MACHINE_TOKEN_KEY, json);
+
+                _logger.LogInformation("Machine API token saved for: {ApiAddress}", apiAddress);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "External API tokens deserialize hatası");
-                return new Dictionary<string, ExternalApiTokenInfo>();
+                _logger.LogError(ex, "Machine API token kaydedilirken hata");
             }
         }
+
+        public string GetMachineApiToken()
+        {
+            try
+            {
+                var json = Session.GetString(MACHINE_TOKEN_KEY);
+                if (string.IsNullOrEmpty(json)) return null;
+
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+
+                var expiresAt = root.GetProperty("ExpiresAt").GetDateTime();
+                if (DateTime.UtcNow >= expiresAt)
+                {
+                    ClearMachineApiToken();
+                    return null;
+                }
+
+                return root.GetProperty("AccessToken").GetString();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Machine API token okunurken hata");
+                return null;
+            }
+        }
+
+        public bool HasValidMachineToken()
+        {
+            return !string.IsNullOrEmpty(GetMachineApiToken());
+        }
+
+        public void ClearMachineApiToken()
+        {
+            try
+            {
+                Session.Remove(MACHINE_TOKEN_KEY);
+                _logger.LogInformation("Machine API token cleared");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Machine API token temizlenirken hata");
+            }
+        }
+
     }
+
 }
+

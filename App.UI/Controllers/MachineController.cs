@@ -4,7 +4,6 @@ using App.UI.Services;
 using App.UI.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace App.UI.Controllers
 {
@@ -13,11 +12,13 @@ namespace App.UI.Controllers
     {
         private readonly ILogger<MachineController> _logger;
         private readonly IApiService _apiService;
+        private readonly IExternalApiService _externalApiService;
 
-        public MachineController(ILogger<MachineController> logger, IApiService apiService)
+        public MachineController(ILogger<MachineController> logger, IApiService apiService, IExternalApiService externalApiService)
         {
             _logger = logger;
             _apiService = apiService;
+            _externalApiService = externalApiService;
         }
 
         // Makine listesi
@@ -217,23 +218,77 @@ namespace App.UI.Controllers
         {
             try
             {
-                var result = await _apiService.GetAsync<bool>($"api/v1/Machine/test-connection?apiAddress={Uri.EscapeDataString(request.ApiAddress)}");
-
-                return Json(new
+                if (string.IsNullOrEmpty(request?.ApiAddress))
                 {
-                    success = true,
-                    connected = result,
-                    message = result ? "API adresine başarıyla bağlanıldı" : "API adresine bağlanılamadı"
-                });
+                    return Json(new
+                    {
+                        success = false,
+                        connected = false,
+                        message = "API adresi gerekli",
+                        responseTime = 0
+                    });
+                }
+
+                _logger.LogInformation("API health check başlatıldı: {ApiAddress}", request.ApiAddress);
+
+                // ✅ YENİ: Direkt hedef API'nin health endpoint'ine istek at
+                var healthResponse = await _externalApiService.CheckHealthAsync(request.ApiAddress);
+
+                if (healthResponse.IsHealthy)
+                {
+                    _logger.LogInformation("API health check başarılı: {ApiAddress} - {ResponseTime}ms",
+                        request.ApiAddress, healthResponse.ResponseTime);
+
+                    return Json(new
+                    {
+                        success = true,
+                        connected = true,
+                        message = $"API başarıyla yanıt verdi ({healthResponse.ResponseTime}ms)",
+                        responseTime = healthResponse.ResponseTime,
+                        details = new
+                        {
+                            healthy = true,
+                            endpoint = $"{request.ApiAddress.TrimEnd('/')}/health",
+                            status = healthResponse.Message ?? "Healthy"
+                        }
+                    });
+                }
+                else
+                {
+                    _logger.LogWarning("API health check başarısız: {ApiAddress} - {Message}",
+                        request.ApiAddress, healthResponse.Message);
+
+                    return Json(new
+                    {
+                        success = true, // İstek başarılı ama API sağlıksız
+                        connected = false,
+                        message = $"API yanıt vermiyor: {healthResponse.Message}",
+                        responseTime = healthResponse.ResponseTime,
+                        details = new
+                        {
+                            healthy = false,
+                            endpoint = $"{request.ApiAddress.TrimEnd('/')}/health",
+                            status = healthResponse.Message ?? "Unhealthy"
+                        }
+                    });
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "API bağlantı testi sırasında hata oluştu. ApiAddress: {ApiAddress}", request.ApiAddress);
+                _logger.LogError(ex, "API health check sırasında hata oluştu. ApiAddress: {ApiAddress}", request?.ApiAddress);
+
                 return Json(new
                 {
                     success = false,
                     connected = false,
-                    message = "Bağlantı testi sırasında hata oluştu"
+                    message = "Bağlantı testi sırasında beklenmeyen bir hata oluştu",
+                    responseTime = 0,
+                    details = new
+                    {
+                        healthy = false,
+                        endpoint = $"{request?.ApiAddress?.TrimEnd('/')}/health",
+                        error = ex.Message
+                    }
                 });
             }
         }

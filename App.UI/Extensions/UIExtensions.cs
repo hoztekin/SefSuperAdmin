@@ -125,49 +125,24 @@ namespace App.UI.Extensions
                 // Expiration Settings
                 options.ExpireTimeSpan = TimeSpan.FromDays(1);
                 options.SlidingExpiration = true;
-
-                // Token Validation Event
-                options.Events.OnValidatePrincipal = ValidateUserToken;
             });
 
             return services;
         }
-
-        private static async Task ValidateUserToken(CookieValidatePrincipalContext context)
-        {
-            try
-            {
-                // Token geçerliliğini kontrol et
-                var sessionService = context.HttpContext.RequestServices.GetRequiredService<ISessionService>();
-                var userSession = sessionService.GetUserSession();
-
-                if (userSession == null || userSession.IsExpired)
-                {
-                    context.RejectPrincipal();
-                    await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                    logger.LogInformation("User session expired, signing out user");
-                }
-            }
-            catch (Exception ex)
-            {
-                // Hata durumunda oturumu sonlandır
-                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                logger.LogError(ex, "Error validating user token");
-
-                context.RejectPrincipal();
-                await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            }
-        }
+           
 
         private static void AddAuthorizationServices(this IServiceCollection services)
         {
             services.AddAuthorization(options =>
             {
-                options.DefaultPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
-                    .RequireAuthenticatedUser()
-                    .Build();
+                //options.DefaultPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+                //    .RequireAuthenticatedUser()
+                //    .Build();
+                options.AddPolicy("AdminOnly", policy =>   policy.RequireRole("Admin", "SuperAdmin"));
 
+                options.AddPolicy("SuperAdminOnly", policy => policy.RequireRole("SuperAdmin"));
+
+                options.AddPolicy("UserOrAdmin", policy => policy.RequireAuthenticatedUser());
             });
         }
         #endregion

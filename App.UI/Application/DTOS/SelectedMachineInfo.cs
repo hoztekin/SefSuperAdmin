@@ -7,5 +7,6 @@
         public string BranchName { get; set; } = string.Empty;
         public string ApiAddress { get; set; } = string.Empty;
         public DateTime SelectedAt { get; set; }
+        public DateTime? LastHealthCheck { get; set; }
     }
 }

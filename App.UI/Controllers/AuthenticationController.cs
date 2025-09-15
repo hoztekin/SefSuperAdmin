@@ -85,15 +85,18 @@ namespace App.UI.Controllers
                     // Cookie authentication için sign-in yap
                     await authService.SignInAsync(tokenResponse);
 
-                    this.SetSuccessMessage("Giriş başarılı!");
+                    //this.SetSuccessMessage("Giriş başarılı!");
 
-                    // Return URL kontrolü
-                    if (!string.IsNullOrEmpty(ReturnUrl) && Url.IsLocalUrl(ReturnUrl))
+                    if (roles != null && (roles.Contains("SuperAdmin")))
                     {
-                        return LocalRedirect(ReturnUrl);
+                        // Admin kullanıcıları SuperAdmin dashboard'ına yönlendir
+                        return RedirectToAction("Index", "SuperAdmin");
                     }
-
-                    return RedirectToAction("Index", "Home");
+                    else
+                    {
+                        // Normal kullanıcıları Home'a yönlendir
+                        return RedirectToAction("Index", "Home");
+                    }
                 }
                 else
                 {

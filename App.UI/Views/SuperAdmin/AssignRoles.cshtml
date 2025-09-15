@@ -1,0 +1,237 @@
+﻿@model UserRoleAssignViewModel
+
+@{
+    ViewData["Title"] = "Rol Atama";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2><i class="fas fa-user-tag"></i> Rol Atama</h2>
+                    <p class="text-muted">@Model.User.UserName kullanıcısına rol atayın</p>
+                </div>
+                <div>
+                    <a asp-action="Users" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Kullanıcı Listesine Dön
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-user"></i> Kullanıcı Bilgileri
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Kullanıcı Adı:</strong><br>
+                            <span class="text-primary">@Model.User.UserName</span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Email:</strong><br>
+                            @Model.User.EMail
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Kayıt Tarihi:</strong><br>
+                            @if (Model.User.CreatedDate.HasValue)
+                            {
+                                @Model.User.CreatedDate.Value.ToString("dd.MM.yyyy HH:mm")
+                            }
+                            else
+                            {
+                                <span class="text-muted">-</span>
+                            }
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Email Onayı:</strong><br>
+                            @if (Model.User.EmailConfirmed)
+                            {
+                                <span class="badge badge-success"><i class="fas fa-check"></i> Onaylı</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-warning"><i class="fas fa-clock"></i> Bekliyor</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-info-circle"></i> Mevcut Roller
+                    </h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.UserRoles.Any(r => r.Exist))
+                    {
+                        @foreach (var role in Model.UserRoles.Where(r => r.Exist))
+                        {
+                            <span class="badge badge-success mb-1">
+                                <i class="fas fa-check"></i> @role.RoleName
+                            </span>
+                    
+                            <br>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted">Henüz rol atanmamış</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-edit"></i> Rol Düzenleme
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form asp-action="AssignRoles" asp-route-userId="@Model.User.Id" method="post">
+                        <div class="row">
+                            @for (int i = 0; i < Model.UserRoles.Count; i++)
+                            {
+                                <div class="col-md-4 mb-3">
+                                    <div class="card role-card @(Model.UserRoles[i].Exist ? "border-success" : "border-light")">
+                                        <div class="card-body text-center">
+                                            <input type="hidden" asp-for="@Model.UserRoles[i].UserId" />
+                                            <input type="hidden" asp-for="@Model.UserRoles[i].RoleId" />
+                                            <input type="hidden" asp-for="@Model.UserRoles[i].RoleName" />
+
+                                            <div class="custom-control custom-switch custom-control-lg">
+                                                <input type="checkbox"
+                                                       class="custom-control-input role-checkbox"
+                                                       id="role_@i"
+                                                       asp-for="@Model.UserRoles[i].Exist"
+                                                       onchange="toggleRoleCard(this, @i)">
+                                                <label class="custom-control-label" for="role_@i">
+                                                    <strong>@Model.UserRoles[i].RoleName</strong>
+                                                </label>
+                                            </div>
+
+                                            <div class="mt-2">
+                                                @switch (Model.UserRoles[i].RoleName)
+                                                {
+                                                    case "SuperAdmin":
+                                                        <i class="fas fa-crown fa-2x text-warning"></i>
+                                                        <p class="text-muted small mt-1">Tüm sistemlere tam erişim</p>
+                                                        break;
+                                                    case "Admin":
+                                                        <i class="fas fa-user-shield fa-2x text-primary"></i>
+                                                        <p class="text-muted small mt-1">Sistem yöneticisi</p>
+                                                        break;
+                                                    case "Destek":
+                                                        <i class="fas fa-headset fa-2x text-info"></i>
+                                                        <p class="text-muted small mt-1">Destek personeli</p>
+                                                        break;
+                                                    default:
+                                                        <i class="fas fa-user fa-2x text-secondary"></i>
+                                                        <p class="text-muted small mt-1">Kullanıcı rolü</p>
+                                                        break;
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <hr>
+
+                        <div class="row">
+                            <div class="col-12 text-center">
+                                <button type="submit" class="btn btn-success btn-lg mr-3">
+                                    <i class="fas fa-save"></i> Rolleri Kaydet
+                                </button>
+                                <a asp-action="Users" class="btn btn-secondary btn-lg">
+                                    <i class="fas fa-times"></i> İptal
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleRoleCard(checkbox, index) {
+        var card = $(checkbox).closest('.role-card');
+
+        if (checkbox.checked) {
+            card.removeClass('border-light').addClass('border-success');
+            card.find('.card-body').addClass('bg-light');
+        } else {
+            card.removeClass('border-success').addClass('border-light');
+            card.find('.card-body').removeClass('bg-light');
+        }
+    }
+
+    // Sayfa yüklendiğinde mevcut duruma göre kartları düzenle
+    $(document).ready(function() {
+        $('.role-checkbox').each(function(index) {
+            toggleRoleCard(this, index);
+        });
+    });
+
+    // Form submit öncesi onay
+    $('form').on('submit', function(e) {
+        var selectedRoles = [];
+        $('.role-checkbox:checked').each(function() {
+            var roleCard = $(this).closest('.role-card');
+            var roleName = $(this).closest('.card-body').find('strong').text();
+            selectedRoles.push(roleName);
+        });
+
+        var message = selectedRoles.length > 0
+            ? `Seçili roller (${selectedRoles.join(', ')}) kullanıcıya atanacak. Onaylıyor musunuz?`
+            : 'Kullanıcının tüm rolleri kaldırılacak. Onaylıyor musunuz?';
+
+        if (!confirm(message)) {
+            e.preventDefault();
+        }
+    });
+</script>
+
+<style>
+    .role-card {
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+        .role-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+    .custom-control-lg .custom-control-label {
+        font-size: 1.1rem;
+        padding-top: 0.1rem;
+    }
+
+    .custom-control-lg .custom-control-input {
+        height: 1.5rem;
+        width: 3rem;
+    }
+</style>

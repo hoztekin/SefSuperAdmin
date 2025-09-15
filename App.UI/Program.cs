@@ -61,12 +61,13 @@ namespace App.UI
             app.UseAuthentication();
             app.UseSession();
 
-            // Custom Middleware
-            app.UseMiddleware<TokenRefreshMiddleware>();
-
             // Authorization
             app.UseAuthorization();
 
+            // Custom Middleware
+            app.UseMiddleware<TokenRefreshMiddleware>();
+
+          
             // Static Assets & Routes
             app.MapStaticAssets();
             ConfigureRoutes(app);

@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace App.UI.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = "SuperAdminOnly")]
     public class MachineController(IMachineAppService machineAppService) : Controller
     {
         // Makine listesi

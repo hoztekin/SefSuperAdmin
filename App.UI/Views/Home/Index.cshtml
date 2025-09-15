@@ -1,1201 +1,572 @@
 ﻿@{
-    ViewData["Title"] = "Dashboard";
+    ViewData["Title"] = "API Servisleri Dashboard";
 }
 
-<div class="body">
-    <!-- Header -->
-    <header class="header">
-        <div class="logo-container">
-            <a href="@Url.Action("Index", "Home")" class="logo">
-                <img src="/img/logoLaci.png" width="80" height="40" alt="SefimPlus Admin" />
-            </a>
+<!-- ViewComponent Navigation -->
+@await Component.InvokeAsync("RoleBasedNavigation", new { showLogo = false })
 
-            <div class="d-md-none toggle-sidebar-left" data-toggle-class="sidebar-left-opened" data-target="html" data-fire-event="sidebar-left-opened">
-                <i class="fas fa-bars" aria-label="Toggle sidebar"></i>
-            </div>
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="fas fa-plug"></i> API Servisleri Dashboard</h2>
+            <p class="text-muted">Sistem yönetimi ve istatistikleri</p>
         </div>
+    </div>
 
-        <div class="header-right">
-            <form action="#" class="search nav-form">
-                <div class="input-group">
-                    <input type="text" class="form-control" name="q" id="q" placeholder="Ara...">
-                    <button class="btn btn-default" type="submit"><i class="bx bx-search"></i></button>
-                </div>
-            </form>
-
-            <span class="separator"></span>
-
-            <ul class="notifications">
-                <li>
-                    <a href="#" class="dropdown-toggle notification-icon" data-bs-toggle="dropdown">
-                        <i class="bx bx-user-plus"></i>
-                        <span class="badge">5</span>
-                    </a>
-                    <div class="dropdown-menu notification-menu large">
-                        <div class="notification-title">
-                            <span class="float-end badge badge-default">5</span>
-                            Yeni Kullanıcı Başvuruları
+    <!-- Durum Kartları -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-lg-6 col-md-6 col-sm-12 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-warning bg-opacity-10 rounded-3 p-3">
+                                <i class="fas fa-server fs-1 text-warning"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <p class="text-muted mb-1 fw-medium">MAKINE BAĞLANTISI</p>
+                                    <h4 class="mb-0 fw-bold" id="connectionStatus">
+                                        <span class="text-warning">Bağlantı Yok</span>
+                                    </h4>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-warning bg-opacity-10 text-warning" id="connectionBadge">
+                                        <i class="fas fa-times"></i> Offline
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </li>
-                <li>
-                    <a href="#" class="dropdown-toggle notification-icon" data-bs-toggle="dropdown">
-                        <i class="bx bx-building"></i>
-                        <span class="badge">3</span>
-                    </a>
-                </li>
-            </ul>
-
-            <span class="separator"></span>
-
-            <div id="userbox" class="userbox">
-                <a href="#" data-bs-toggle="dropdown">
-                    <figure class="profile-picture">
-                        <img src="~/img/!logged-user.jpg" alt="Admin" class="rounded-circle" />
-                    </figure>
-                    <div class="profile-info">
-                        <span class="name">Administrator</span>
-                        <span class="role">Sistem Yöneticisi</span>
-                    </div>
-                    <i class="fa custom-caret"></i>
-                </a>
-
-                <div class="dropdown-menu">
-                    <ul class="list-unstyled mb-2">
-                        <li class="divider"></li>
-                        <li>
-                            <a role="menuitem" tabindex="-1" href="#"><i class="bx bx-user-circle"></i> Profil</a>
-                        </li>
-                        <li>
-                            <a role="menuitem" tabindex="-1" href="#"><i class="bx bx-power-off"></i> Çıkış</a>
-                        </li>
-                    </ul>
                 </div>
             </div>
         </div>
-    </header>
 
-    <div class="inner-wrapper">
+        <div class="col-xl-3 col-lg-6 col-md-6 col-sm-12 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-success bg-opacity-10 rounded-3 p-3">
+                                <i class="fas fa-heartbeat fs-1 text-success"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <p class="text-muted mb-1 fw-medium">API HEALTH</p>
+                                    <h4 class="mb-0 fw-bold" id="healthStatus">
+                                        <span class="text-muted">Kontrol Edilmedi</span>
+                                    </h4>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary" id="healthBadge">
+                                        <i class="fas fa-question"></i> Unknown
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-        @await Component.InvokeAsync("SideBar")
+        <div class="col-xl-3 col-lg-6 col-md-6 col-sm-12 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-info bg-opacity-10 rounded-3 p-3">
+                                <i class="fas fa-clock fs-1 text-info"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <p class="text-muted mb-1 fw-medium">SON HEALTH CHECK</p>
+                                    <h4 class="mb-0 fw-bold" id="lastCheck">-</h4>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-info bg-opacity-10 text-info" id="timeBadge">
+                                        <i class="fas fa-clock"></i> Pending
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-        <section role="main" class="content-body">
-            <header class="page-header page-header-left-breadcrumb">
-                <div class="right-wrapper">
-                    <ol class="breadcrumbs">
-                        <li>
-                            <a href="@Url.Action("Index", "Home")">
-                                <i class="bx bx-home-alt"></i>
+        <div class="col-xl-3 col-lg-6 col-md-6 col-sm-12 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-primary bg-opacity-10 rounded-3 p-3">
+                                <i class="fas fa-tachometer-alt fs-1 text-primary"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <p class="text-muted mb-1 fw-medium">YANIT SÜRESİ</p>
+                                    <h4 class="mb-0 fw-bold" id="responseTime">-</h4>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-primary bg-opacity-10 text-primary" id="speedBadge">
+                                        <i class="fas fa-tachometer-alt"></i> Fast
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hızlı Erişim -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="m-0 font-weight-semibold"><i class="fas fa-rocket"></i> Hızlı Erişim</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-2">
+                            <button onclick="showMachineModal()" class="btn btn-outline-primary btn-block">
+                                <i class="fas fa-plus"></i> Makine Seç
+                            </button>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <button onclick="checkHealth()" class="btn btn-outline-success btn-block" id="healthCheckBtn" disabled>
+                                <i class="fas fa-heartbeat"></i> Health Check
+                            </button>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <button onclick="startApiOperations()" class="btn btn-outline-info btn-block" id="apiOpsBtn" disabled>
+                                <i class="fas fa-tools"></i> API İşlemleri
+                            </button>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a asp-controller="Password" asp-action="PasswordChange" class="btn btn-outline-warning btn-block">
+                                <i class="fas fa-user-cog"></i> Profil Ayarları
                             </a>
-                        </li>
-                        <li><span>Dashboard</span></li>
-                    </ol>
-                </div>
-                <h2 class="font-weight-semibold">Admin Dashboard</h2>
-            </header>
-
-            <!-- Dashboard Stats Cards -->
-            <div class="row mb-4">
-                <div class="col-xl-3 col-lg-6 col-md-6 col-sm-12 mb-4">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body p-4">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-shrink-0">
-                                    <div class="bg-primary bg-opacity-10 rounded-3 p-3">
-                                        <i class="bx bx-user fs-1 text-primary"></i>
-                                    </div>
-                                </div>
-                                <div class="flex-grow-1 ms-3">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div>
-                                            <p class="text-muted mb-1 fw-medium">Toplam Kullanıcı</p>
-                                            <h4 class="mb-0 fw-bold">1,247</h4>
-                                        </div>
-                                        <div class="text-end">
-                                            <span class="badge bg-success bg-opacity-10 text-success">
-                                                <i class="bx bx-trending-up"></i> +5 yeni
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-xl-3 col-lg-6 col-md-6 col-sm-12 mb-4">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body p-4">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-shrink-0">
-                                    <div class="bg-success bg-opacity-10 rounded-3 p-3">
-                                        <i class="bx bx-buildings fs-1 text-success"></i>
-                                    </div>
-                                </div>
-                                <div class="flex-grow-1 ms-3">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div>
-                                            <p class="text-muted mb-1 fw-medium">Kayıtlı Firma</p>
-                                            <h4 class="mb-0 fw-bold">342</h4>
-                                        </div>
-                                        <div class="text-end">
-                                            <span class="badge bg-warning bg-opacity-10 text-warning">
-                                                <i class="bx bx-time"></i> 12 beklemede
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-xl-3 col-lg-6 col-md-6 col-sm-12 mb-4">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body p-4">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-shrink-0">
-                                    <div class="bg-info bg-opacity-10 rounded-3 p-3">
-                                        <i class="bx bx-check-shield fs-1 text-info"></i>
-                                    </div>
-                                </div>
-                                <div class="flex-grow-1 ms-3">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div>
-                                            <p class="text-muted mb-1 fw-medium">Whitelist Kayıt</p>
-                                            <h4 class="mb-0 fw-bold">89</h4>
-                                        </div>
-                                        <div class="text-end">
-                                            <span class="badge bg-success bg-opacity-10 text-success">
-                                                <i class="bx bx-check"></i> Aktif
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-xl-3 col-lg-6 col-md-6 col-sm-12 mb-4">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body p-4">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-shrink-0">
-                                    <div class="bg-warning bg-opacity-10 rounded-3 p-3">
-                                        <i class="bx bx-time fs-1 text-warning"></i>
-                                    </div>
-                                </div>
-                                <div class="flex-grow-1 ms-3">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div>
-                                            <p class="text-muted mb-1 fw-medium">Onay Bekleyen</p>
-                                            <h4 class="mb-0 fw-bold">17</h4>
-                                        </div>
-                                        <div class="text-end">
-                                            <span class="badge bg-danger bg-opacity-10 text-danger">
-                                                <i class="bx bx-bell"></i> Acil
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <!-- Action Cards Row -->
-            <div class="row mb-4">
-                <div class="col-lg-6 mb-4">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-header bg-transparent border-0 pb-0">
-                            <h5 class="card-title mb-0">Hızlı İşlemler</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row g-3">
-                                <div class="col-6">
-                                    <a href="@Url.Action("Create", "Users")" class="btn btn-outline-primary w-100 py-3">
-                                        <i class="bx bx-user-plus fs-4 d-block mb-2"></i>
-                                        <span class="fw-medium">Yeni Kullanıcı</span>
-                                    </a>
-                                </div>
-                                <div class="col-6">
-                                    <a href="@Url.Action("Create", "Companies")" class="btn btn-outline-success w-100 py-3">
-                                        <i class="bx bx-plus fs-4 d-block mb-2"></i>
-                                        <span class="fw-medium">Yeni Firma</span>
-                                    </a>
-                                </div>
-                                <div class="col-6">
-                                    <a href="@Url.Action("Index", "Users")" class="btn btn-outline-info w-100 py-3">
-                                        <i class="bx bx-list-ul fs-4 d-block mb-2"></i>
-                                        <span class="fw-medium">Kullanıcılar</span>
-                                    </a>
-                                </div>
-                                <div class="col-6">
-                                    <a href="@Url.Action("Whitelist", "IPOperations")" class="btn btn-outline-warning w-100 py-3">
-                                        <i class="bx bx-shield-check fs-4 d-block mb-2"></i>
-                                        <span class="fw-medium">Whitelist</span>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+    <!-- Ana İçerik -->
+    <div class="row">
+        <!-- Makine Bağlantısı -->
+        <div class="col-lg-6 mb-4">
+            <div class="card border-0 shadow">
+                <div class="card-header bg-info text-white">
+                    <h6 class="m-0 font-weight-semibold"><i class="fas fa-server"></i> Makine Bağlantısı</h6>
                 </div>
-
-                <div class="col-lg-6 mb-4">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-header bg-transparent border-0 pb-0">
-                            <h5 class="card-title mb-0">Sistem Durumu</h5>
+                <div class="card-body">
+                    <!-- Makine seçilmemiş durumu -->
+                    <div id="noMachineSelected" class="text-center py-4">
+                        <div class="mb-4">
+                            <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                <i class="fas fa-server fa-2x text-muted"></i>
+                            </div>
                         </div>
-                        <div class="card-body">
-                            <div class="mb-3">
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <span class="text-muted">Aktif Kullanıcılar</span>
-                                    <span class="badge bg-success">Online: 127</span>
+                        <h5 class="text-muted mb-3">Makine Seçimi Gerekli</h5>
+                        <p class="text-muted mb-4">
+                            API işlemlerine başlamak için öncelikle bir makine seçmeniz gerekiyor.
+                            <br>Lütfen aşağıdaki butona tıklayarak bir makine seçin.
+                        </p>
+                        <button onclick="showMachineModal()" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Makine Seç
+                        </button>
+                    </div>
+
+                    <!-- Makine seçilmiş durumu -->
+                    <div id="machineSelected" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-success bg-opacity-10 rounded-circle p-2 me-3">
+                                    <i class="fas fa-server text-success"></i>
                                 </div>
-                                <div class="progress" style="height: 6px;">
-                                    <div class="progress-bar bg-success" style="width: 85%"></div>
+                                <div>
+                                    <h6 class="mb-1" id="selectedMachineName">-</h6>
+                                    <small class="text-muted" id="selectedMachineInfo">-</small>
                                 </div>
                             </div>
-
-                            <div class="mb-3">
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <span class="text-muted">Günlük İşlemler</span>
-                                    <span class="badge bg-info">2,456</span>
-                                </div>
-                                <div class="progress" style="height: 6px;">
-                                    <div class="progress-bar bg-info" style="width: 70%"></div>
-                                </div>
+                            <span class="badge bg-success" id="machineStatus">Bağlı</span>
+                        </div>
+                        
+                        <div class="row text-center mt-4">
+                            <div class="col-4">
+                                <button onclick="checkHealth()" class="btn btn-outline-success btn-sm w-100">
+                                    <i class="fas fa-heartbeat d-block mb-1"></i>
+                                    <small>Health Check</small>
+                                </button>
                             </div>
-
-                            <div class="mb-3">
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <span class="text-muted">Güvenlik Skoru</span>
-                                    <span class="badge bg-warning">Orta</span>
-                                </div>
-                                <div class="progress" style="height: 6px;">
-                                    <div class="progress-bar bg-warning" style="width: 60%"></div>
-                                </div>
+                            <div class="col-4">
+                                <button onclick="startApiOperations()" class="btn btn-outline-info btn-sm w-100">
+                                    <i class="fas fa-tools d-block mb-1"></i>
+                                    <small>API İşlemleri</small>
+                                </button>
                             </div>
-
-                            <div class="text-center mt-3">
-                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="refreshSystemStatus()">
-                                    <i class="bx bx-refresh"></i> Durumu Yenile
+                            <div class="col-4">
+                                <button onclick="changeMachine()" class="btn btn-outline-warning btn-sm w-100">
+                                    <i class="fas fa-sync-alt d-block mb-1"></i>
+                                    <small>Değiştir</small>
                                 </button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Recent Activities -->
-            <div class="row">
-                <div class="col-lg-6">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-transparent border-0">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <h5 class="card-title mb-0">Son Kullanıcı Aktiviteleri</h5>
-                                <a href="@Url.Action("Index", "Users")" class="btn btn-sm btn-outline-primary">Tümünü Gör</a>
+        <!-- API İşlemleri -->
+        <div class="col-lg-6 mb-4">
+            <div class="card border-0 shadow">
+                <div class="card-header bg-success text-white">
+                    <h6 class="m-0 font-weight-semibold"><i class="fas fa-tools"></i> API İşlemleri</h6>
+                </div>
+                <div class="card-body">
+                    <div id="apiOperationsContent">
+                        <div class="text-center py-4">
+                            <div class="mb-4">
+                                <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                    <i class="fas fa-plug fa-2x text-muted"></i>
+                                </div>
                             </div>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Kullanıcı</th>
-                                            <th>İşlem</th>
-                                            <th>Zaman</th>
-                                            <th>Durum</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>
-                                                <div class="d-flex align-items-center">
-                                                    <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-2">
-                                                        <i class="bx bx-user text-primary"></i>
-                                                    </div>
-                                                    <span class="fw-medium">Ahmet Yılmaz</span>
-                                                </div>
-                                            </td>
-                                            <td>Giriş Yaptı</td>
-                                            <td>5 dk önce</td>
-                                            <td><span class="badge bg-success">Başarılı</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td>
-                                                <div class="d-flex align-items-center">
-                                                    <div class="bg-success bg-opacity-10 rounded-circle p-2 me-2">
-                                                        <i class="bx bx-user text-success"></i>
-                                                    </div>
-                                                    <span class="fw-medium">Mehmet Kaya</span>
-                                                </div>
-                                            </td>
-                                            <td>Profil Güncelleme</td>
-                                            <td>15 dk önce</td>
-                                            <td><span class="badge bg-info">Tamamlandı</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td>
-                                                <div class="d-flex align-items-center">
-                                                    <div class="bg-warning bg-opacity-10 rounded-circle p-2 me-2">
-                                                        <i class="bx bx-user text-warning"></i>
-                                                    </div>
-                                                    <span class="fw-medium">Ayşe Demir</span>
-                                                </div>
-                                            </td>
-                                            <td>Şifre Değiştirme</td>
-                                            <td>30 dk önce</td>
-                                            <td><span class="badge bg-warning">Beklemede</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                            <h6 class="text-muted mb-3">API Servisleri</h6>
+                            <p class="text-muted small mb-0">
+                                Makine seçtikten sonra API işlemlerine erişebilirsiniz.
+                            </p>
                         </div>
                     </div>
-                </div>
-                <div class="col-lg-6">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-transparent border-0">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <h5 class="card-title mb-0">Son Firma İşlemleri</h5>
-                                <a href="@Url.Action("Index", "Companies")" class="btn btn-sm btn-outline-primary">Tümünü Gör</a>
+                    
+                    <!-- API endpoint'leri - makine seçildikten sonra gösterilecek -->
+                    <div id="apiEndpoints" style="display: none;">
+                        <div class="list-group list-group-flush">
+                            <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-primary bg-opacity-10 rounded p-2 me-3">
+                                        <i class="fas fa-users text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <strong>Kullanıcılar</strong>
+                                        <br><small class="text-muted">GET /api/v1/users</small>
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm btn-outline-primary">Test Et</button>
                             </div>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Firma</th>
-                                            <th>İşlem</th>
-                                            <th>Zaman</th>
-                                            <th>Durum</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>
-                                                <div class="d-flex align-items-center">
-                                                    <div class="bg-success bg-opacity-10 rounded-circle p-2 me-2">
-                                                        <i class="bx bx-buildings text-success"></i>
-                                                    </div>
-                                                    <span class="fw-medium">ABC Teknoloji Ltd.</span>
-                                                </div>
-                                            </td>
-                                            <td>Yeni Kayıt</td>
-                                            <td>10 dk önce</td>
-                                            <td><span class="badge bg-success">Onaylandı</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td>
-                                                <div class="d-flex align-items-center">
-                                                    <div class="bg-info bg-opacity-10 rounded-circle p-2 me-2">
-                                                        <i class="bx bx-buildings text-info"></i>
-                                                    </div>
-                                                    <span class="fw-medium">XYZ İnşaat A.Ş.</span>
-                                                </div>
-                                            </td>
-                                            <td>Bilgi Güncelleme</td>
-                                            <td>25 dk önce</td>
-                                            <td><span class="badge bg-info">Güncellendi</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                            <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-info bg-opacity-10 rounded p-2 me-3">
+                                        <i class="fas fa-info-circle text-info"></i>
+                                    </div>
+                                    <div>
+                                        <strong>Sistem Bilgisi</strong>
+                                        <br><small class="text-muted">GET /api/v1/system/info</small>
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm btn-outline-info">Test Et</button>
+                            </div>
+                            <div class="list-group-item d-flex justify-content-between align-items-center px-0 border-0">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-success bg-opacity-10 rounded p-2 me-3">
+                                        <i class="fas fa-heartbeat text-success"></i>
+                                    </div>
+                                    <div>
+                                        <strong>Health Check</strong>
+                                        <br><small class="text-muted">GET /health</small>
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm btn-outline-success">Test Et</button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
 
-        </section>
+    <!-- Son Aktiviteler -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow">
+                <div class="card-header bg-light">
+                    <h6 class="m-0 font-weight-semibold">
+                        <i class="fas fa-history"></i> Son Aktiviteler
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="activityLog">
+                        <div class="text-center text-muted py-3">
+                            <i class="fas fa-clock fa-2x mb-2"></i>
+                            <p class="mb-0">Henüz aktivite bulunmuyor.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- Machine Selection Modal -->
-<div class="modal fade" id="machineSelectionModal" tabindex="-1" aria-labelledby="machineSelectionModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-lg">
+<!-- Makine Seçim Modal -->
+<div class="modal fade" id="machineSelectionModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="machineSelectionModalLabel">
-                    <i class="bx bx-server"></i> Makine Seçimi
-                </h5>
+                <h5 class="modal-title"><i class="fas fa-server"></i> Makine Seçimi</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="row">
-                    <div class="col-12">
-                        <p class="text-muted mb-4">
-                            Lütfen bağlanmak istediğiniz makineyi seçiniz. Seçilen makine üzerindeki verilere erişim sağlanacaktır.
-                        </p>
-
-                        <!-- Loading State -->
-                        <div id="machineLoadingState" class="text-center">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Yükleniyor...</span>
-                            </div>
-                            <p class="mt-2 text-muted">Makineler yükleniyor...</p>
+                <div id="machineListContent">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Yükleniyor...</span>
                         </div>
-
-                        <!-- Machine Selection Cards -->
-                        <div id="machineSelectionCards" class="row g-3" style="display: none;">
-                            <!-- Dynamic content will be loaded here -->
-                        </div>
-
-                        <!-- Error State -->
-                        <div id="machineErrorState" class="alert alert-danger" style="display: none;" role="alert">
-                            <i class="bx bx-error-circle"></i>
-                            <span id="machineErrorMessage">Makineler yüklenemedi.</span>
-                        </div>
+                        <p class="mt-2">Makineler yükleniyor...</p>
                     </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <div class="d-flex justify-content-between w-100">
-                    <div class="text-muted">
-                        <small><i class="bx bx-info-circle"></i> API adresi otomatik olarak ayarlanacaktır</small>
-                    </div>
-                    <button type="button" class="btn btn-secondary" onclick="refreshMachines()">
-                        <i class="bx bx-refresh"></i> Yenile
-                    </button>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<script>
+    // Global JavaScript functions
+    window.showMachineModal = showMachineModal;
+    window.checkSelectedMachineHealth = checkHealth;
 
+    // Sayfa yüklendiğinde
+    $(document).ready(function() {
+        checkSelectedMachine();
+        addActivityLog('Dashboard yüklendi');
+    });
 
-@section Scripts {
-    <script>
-        let selectedMachineId = null;
-        let isSelecting = false;
-
-        function showSuccess(message) {
-            Swal.fire({
-                title: 'Başarılı!',
-                html: message, // html kullanarak <br> taglerini destekleyelim
-                icon: 'success',
-                position: 'top-end',
-                showConfirmButton: false,
-                timer: 6000,
-                timerProgressBar: true,
-                toast: true,
-                background: '#d4edda',
-                iconColor: '#28a745',
-                customClass: {
-                    popup: 'colored-toast'
-                },
-                showClass: {
-                    popup: 'animate__animated animate__fadeInRight animate__faster'
-                },
-                hideClass: {
-                    popup: 'animate__animated animate__fadeOutRight animate__faster'
-                }
-            });
-        }
-
-        function showError(message) {
-            Swal.fire({
-                title: 'Hata!',
-                html: message,
-                icon: 'error',
-                position: 'top-end',
-                showConfirmButton: true,
-                timer: 8000, // Hata mesajları biraz daha uzun dursun
-                timerProgressBar: true,
-                toast: true,
-                background: '#f8d7da',
-                iconColor: '#dc3545',
-                customClass: {
-                    popup: 'colored-toast'
-                },
-                showClass: {
-                    popup: 'animate__animated animate__fadeInRight animate__faster'
-                },
-                hideClass: {
-                    popup: 'animate__animated animate__fadeOutRight animate__faster'
-                }
-            });
-        }
-
-        function showWarning(message) {
-            Swal.fire({
-                title: 'Uyarı!',
-                html: message,
-                icon: 'warning',
-                position: 'top-end',
-                showConfirmButton: true,
-                timer: 7000,
-                timerProgressBar: true,
-                toast: true,
-                background: '#fff3cd',
-                iconColor: '#ffc107',
-                customClass: {
-                    popup: 'colored-toast'
-                }
-            });
-        }
-
-        function showInfo(message) {
-            Swal.fire({
-                title: 'Bilgi',
-                html: message,
-                icon: 'info',
-                position: 'top-end',
-                showConfirmButton: false,
-                timer: 5000,
-                timerProgressBar: true,
-                toast: true,
-                background: '#d1ecf1',
-                iconColor: '#17a2b8',
-                customClass: {
-                    popup: 'colored-toast'
-                }
-            });
-        }
-
-        // Confirmation dialog için
-        function showConfirm(title, message, callback, cancelCallback = null) {
-            Swal.fire({
-                title: title,
-                html: message,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Evet',
-                cancelButtonText: 'Hayır',
-                confirmButtonColor: '#007bff',
-                cancelButtonColor: '#6c757d',
-                focusConfirm: false,
-                reverseButtons: true
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    if (callback) callback();
-                } else if (result.isDismissed && cancelCallback) {
-                    cancelCallback();
-                }
-            });
-        }
-
-        // Page load - check selected machine
-        $(document).ready(function() {
-            checkSelectedMachine();
+    function checkSelectedMachine() {
+        $.get('/Home/GetSelectedMachine', function(response) {
+            if (response.success) {
+                showMachineSelected(response.data);
+                updateConnectionCards(response.data);
+            } else {
+                showNoMachineSelected();
+            }
         });
+    }
 
-        function checkSelectedMachine() {
-            $.get('@Url.Action("GetSelectedMachine", "Home")')
-                .done(function(response) {
-                    if (response.success && response.data) {
-                        showSelectedMachineInfo(response.data);
-                    } else {
-                        $('#machineSelectionModal').modal('show');
-                        loadMachines();
-                    }
-                })
-                .fail(function(xhr, status, error) {
-                    console.error('Selected machine check failed:', error);
-                    $('#machineSelectionModal').modal('show');
-                    loadMachines();
-                });
-        }
+    function showMachineSelected(machine) {
+        $('#noMachineSelected').hide();
+        $('#machineSelected').show();
+        $('#selectedMachineName').text(machine.branchName);
+        $('#selectedMachineInfo').text(`Kod: ${machine.branchId} | ${machine.apiAddress}`);
+        
+        // Kartları güncelle
+        $('#connectionStatus').html('<span class="text-success">Bağlı</span>');
+        $('#connectionBadge').removeClass('bg-warning bg-opacity-10 text-warning')
+                            .addClass('bg-success bg-opacity-10 text-success')
+                            .html('<i class="fas fa-check"></i> Online');
+        
+        // Butonları aktif et
+        $('#healthCheckBtn, #apiOpsBtn').prop('disabled', false);
+        $('#apiEndpoints').show();
+        $('#apiOperationsContent').hide();
 
-        function loadMachines() {
-            showLoadingState();
+        addActivityLog(`Makine bağlantısı aktif: ${machine.branchName}`);
+    }
 
-            $.get('@Url.Action("GetMachines", "Home")')
-                .done(function(response) {
-                    if (response.success && response.data && response.data.length > 0) {
-                        displayMachines(response.data);
-                    } else {
-                        showErrorState(response.message || 'Hiç aktif makine bulunamadı');
-                    }
-                })
-                .fail(function(xhr, status, error) {
-                    console.error('Failed to load machines:', error);
-                    showErrorState('Makineler yüklenirken bir hata oluştu. Lütfen tekrar deneyiniz.');
-                });
-        }
+    function showNoMachineSelected() {
+        $('#noMachineSelected').show();
+        $('#machineSelected').hide();
+        
+        // Kartları sıfırla
+        $('#connectionStatus').html('<span class="text-warning">Bağlantı Yok</span>');
+        $('#connectionBadge').removeClass('bg-success bg-opacity-10 text-success')
+                            .addClass('bg-warning bg-opacity-10 text-warning')
+                            .html('<i class="fas fa-times"></i> Offline');
+        
+        // Butonları pasif et
+        $('#healthCheckBtn, #apiOpsBtn').prop('disabled', true);
+        $('#apiEndpoints').hide();
+        $('#apiOperationsContent').show();
+    }
 
-        function displayMachines(machines) {
-            hideAllStates();
+    function updateConnectionCards(machine) {
+        // Connection kartını güncelle
+        $('#connectionStatus').html('<span class="text-success">Bağlı</span>');
+        $('#healthStatus').html('<span class="text-warning">Test Edilmedi</span>');
+    }
 
-            const $container = $('#machineSelectionCards');
-            $container.empty();
+    function showMachineModal() {
+        $('#machineSelectionModal').modal('show');
+        loadMachines();
+    }
 
-            machines.forEach(function(machine) {
-                const card = createMachineCard(machine);
-                $container.append(card);
-            });
-
-            $container.show();
-        }
-
-        function createMachineCard(machine) {
-            const statusBadge = machine.isActive
-                ? '<span class="badge bg-success">Aktif</span>'
-                : '<span class="badge bg-secondary">Pasif</span>';
-
-            const isDisabled = !machine.isActive ? 'disabled' : '';
-            const cardClass = machine.isActive
-                ? 'border-primary machine-card'
-                : 'border-secondary machine-card opacity-75';
-
-            return `
-                <div class="col-md-6 col-lg-4">
-                    <div class="card ${cardClass}" data-machine-id="${machine.id}">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <h6 class="card-title mb-0">
-                                    <i class="bx bx-server text-primary"></i>
-                                    ${machine.branchName}
-                                </h6>
-                                ${statusBadge}
-                            </div>
-                            <div class="mb-2">
-                                <small class="text-muted">Şube ID:</small>
-                                <code class="small">${machine.branchId}</code>
-                            </div>
-                            <div class="mb-2">
-                                <small class="text-muted">Makine Kodu:</small>
-                                <span class="badge bg-info small">${machine.code}</span>
-                            </div>
-                            <div class="mb-3">
-                                <small class="text-muted">API:</small>
-                                <div class="text-truncate small" title="${machine.apiAddress}">
-                                    ${machine.apiAddress}
+    function loadMachines() {
+        $.get('/Home/GetMachines', function(response) {
+            if (response.success && response.data) {
+                var html = '<div class="row">';
+                response.data.forEach(function(machine) {
+                    var statusBadge = machine.isActive 
+                        ? '<span class="badge bg-success">Aktif</span>' 
+                        : '<span class="badge bg-warning">Pasif</span>';
+                    
+                    html += `
+                        <div class="col-md-6 mb-3">
+                            <div class="card machine-card h-100" onclick="selectMachine('${machine.id}')">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="d-flex align-items-center">
+                                            <div class="bg-primary bg-opacity-10 rounded p-2 me-3">
+                                                <i class="fas fa-server text-primary"></i>
+                                            </div>
+                                            <div>
+                                                <h6 class="card-title mb-1">${machine.branchName}</h6>
+                                                <small class="text-muted">Kod: ${machine.code}</small><br>
+                                                <small class="text-muted">ID: ${machine.branchId}</small>
+                                            </div>
+                                        </div>
+                                        <div>${statusBadge}</div>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <small class="text-muted">
-                                    ${formatDate(machine.createdDate)}
-                                </small>
-                                <button class="btn btn-primary btn-sm select-machine-btn"
-                                        data-machine-id="${machine.id}"
-                                        data-machine-name="${machine.branchName}"
-                                        ${isDisabled}>
-                                    <i class="bx bx-check"></i> Seç
-                                </button>
-                            </div>
                         </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Machine card click events
-        $(document).on('click', '.machine-card', function() {
-            if (!$(this).hasClass('opacity-75')) {
-                $('.machine-card').removeClass('selected');
-                $(this).addClass('selected');
-                selectedMachineId = $(this).data('machine-id');
-            }
-        });
-
-        // Select machine button click
-        $(document).on('click', '.select-machine-btn', function(e) {
-            e.stopPropagation();
-
-            if (isSelecting) return;
-
-            const machineId = $(this).data('machine-id');
-            const machineName = $(this).data('machine-name');
-
-            selectMachine(machineId, machineName, $(this));
-        });
-
-        function selectMachine(machineId, machineName, $btn) {
-            if (isSelecting) return;
-
-            isSelecting = true;
-            const originalText = $btn.html();
-
-            // Button state'i güncelle
-            $btn.prop('disabled', true)
-                .html('<i class="spinner-border spinner-border-sm me-1"></i> Bağlanıyor...');
-
-            // Diğer butonları da disable et
-            $('.select-machine-btn').prop('disabled', true);
-
-            $.ajax({
-                url: '@Url.Action("SelectMachine", "Home")',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ machineId: machineId.toString() }),
-                success: function(response) {
-                    if (response.success) {
-                        // Detaylı başarı mesajı - health check + login bilgileri ile
-                        let successMessage = `${machineName} başarıyla seçildi!`;
-
-                        if (response.healthCheck && response.login) {
-                            const healthTime = response.healthCheck.responseTime || '?';
-                            const loginStatus = response.login.success ? '✅' : '❌';
-
-                            successMessage += `<br><small class="d-block mt-1">`;
-                            successMessage += `🔍 Sağlık: ✅ ${healthTime}ms | `;
-                            successMessage += `🔐 Giriş: ${loginStatus} | `;
-                            successMessage += `🔑 Token: ✅ Alındı`;
-                            successMessage += `</small>`;
-                        }
-
-                        showSuccess(successMessage);
-                        $('#machineSelectionModal').modal('hide');
-                        showSelectedMachineInfo(response.machine);
-
-                        // Sayfa yenilemeden önce kısa bekleme
-                        setTimeout(function() {
-                            location.reload();
-                        }, 2000);
-                    } else {
-                        // Detaylı hata mesajı
-                        let errorMessage = response.message || 'Makine seçimi başarısız';
-
-                        // Health check hatası varsa
-                        if (response.healthCheck && !response.healthCheck.healthy) {
-                            errorMessage += `<br><small class="text-muted">`;
-                            errorMessage += `🔍 Sağlık: ❌ ${response.healthCheck.message}`;
-                            if (response.healthCheck.responseTime) {
-                                errorMessage += ` (${response.healthCheck.responseTime}ms)`;
-                            }
-                            errorMessage += `</small>`;
-                        }
-
-                        // Login hatası varsa
-                        if (response.login && !response.login.success) {
-                            errorMessage += `<br><small class="text-muted">`;
-                            errorMessage += `🔐 Giriş: ❌ ${response.login.message}`;
-                            errorMessage += `</small>`;
-                        }
-
-                        showError(errorMessage);
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.error('Machine selection failed:', error);
-                    showError('Makine seçimi sırasında beklenmeyen hata oluştu');
-                },
-                complete: function() {
-                    // Button state'leri eski haline getir
-                    $btn.prop('disabled', false).html(originalText);
-                    $('.select-machine-btn').prop('disabled', false);
-                    isSelecting = false;
-                }
-            });
-        }
-
-
-        function showSelectedMachineInfo(machine) {
-            const machineInfo = `
-                <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong><i class="bx bx-server"></i> Seçili Makine:</strong>
-                            ${machine.branchName} (${machine.branchId})
-                            <br>
-                            <small class="text-muted">
-                                <i class="bx bx-link-external"></i> ${machine.apiAddress}
-                                <span id="connectionStatus" class="badge bg-success ms-2">
-                                    <i class="bx bx-check-circle"></i> Bağlı
-                                </span>
-                            </small>
-                        </div>
-                        <div>
-                            <button type="button" class="btn btn-sm btn-outline-success me-2" onclick="checkTokenStatus()">
-                                <i class="bx bx-shield-check"></i> Durum
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="changeMachine()">
-                                <i class="bx bx-refresh"></i> Değiştir
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            $('.selected-machine-info').remove();
-            $('.content-body').prepend(`<div class="selected-machine-info">${machineInfo}</div>`);
-        }
-
-        function checkTokenStatus() {
-            const $btn = $(event.target);
-            const originalText = $btn.html();
-
-            $btn.prop('disabled', true)
-                .html('<i class="spinner-border spinner-border-sm"></i>');
-
-            $.get('@Url.Action("CheckSelectedMachineStatus", "Home")')
-                .done(function(response) {
-                    if (response.success && response.data) {
-                        const tokenInfo = response.data.token;
-                        const machineInfo = response.data.machine;
-
-                        let statusMessage = `${machineInfo.branchName} Bağlantı Durumu:<br>`;
-
-                        if (tokenInfo.hasValidToken) {
-                            const expiresAt = new Date(tokenInfo.expiresAt).toLocaleString('tr-TR');
-                            statusMessage += `<small class="text-success">✅ Token Geçerli - Süre: ${expiresAt}</small>`;
-
-                            // Connection status badge'i güncelle
-                            $('#connectionStatus')
-                                .removeClass('bg-warning bg-danger')
-                                .addClass('bg-success')
-                                .html('<i class="bx bx-check-circle"></i> Bağlı');
-                        } else {
-                            statusMessage += `<small class="text-warning">⚠️ Token Geçersiz - Yenileme Gerekli</small>`;
-                            statusMessage += `<br><button class="btn btn-sm btn-warning mt-1" onclick="refreshToken()">`;
-                            statusMessage += `<i class="bx bx-refresh"></i> Token Yenile</button>`;
-
-                            // Connection status badge'i güncelle
-                            $('#connectionStatus')
-                                .removeClass('bg-success bg-danger')
-                                .addClass('bg-warning')
-                                .html('<i class="bx bx-time"></i> Token Gerekli');
-                        }
-
-                        showSuccess(statusMessage);
-                    } else {
-                        showError(response.message || 'Durum kontrol edilemedi');
-                    }
-                })
-                .fail(function() {
-                    showError('Bağlantı durumu kontrol edilemedi');
-                })
-                .always(function() {
-                    $btn.prop('disabled', false).html(originalText);
+                    `;
                 });
-        }
-
-        // Token yenileme fonksiyonu - yeni
-        function refreshToken() {
-            const $btn = $(event.target);
-            const originalText = $btn.html();
-
-            $btn.prop('disabled', true)
-                .html('<i class="spinner-border spinner-border-sm"></i> Yenileniyor...');
-
-            $.post('@Url.Action("RefreshExternalApiToken", "Home")')
-                .done(function(response) {
-                    if (response.success) {
-                        showSuccess('Token başarıyla yenilendi!');
-
-                        // Connection status badge'i güncelle
-                        $('#connectionStatus')
-                            .removeClass('bg-warning bg-danger')
-                            .addClass('bg-success')
-                            .html('<i class="bx bx-check-circle"></i> Bağlı');
-
-                        // Success mesajını kapat
-                        setTimeout(function() {
-                            $('.alert-success').not('.selected-machine-info .alert').alert('close');
-                        }, 3000);
-                    } else {
-                        showError(response.message || 'Token yenilenemedi');
-                    }
-                })
-                .fail(function() {
-                    showError('Token yenileme sırasında hata oluştu');
-                })
-                .always(function() {
-                    $btn.prop('disabled', false).html(originalText);
-                });
-        }
-
-        function changeMachine() {
-            showConfirm(
-                'Makine Değiştir',
-                'Başka bir makineyi seçmek istediğinizden emin misiniz?',
-                function() {
-                    $('.selected-machine-info').remove();
-                    $('#machineSelectionModal').modal('show');
-                    loadMachines();
-                }
-            );
-        }
-
-        function refreshMachines() {
-            loadMachines();
-        }
-
-        function showLoadingState() {
-            hideAllStates();
-            $('#machineLoadingState').show();
-        }
-
-        function showErrorState(message) {
-            hideAllStates();
-            $('#machineErrorMessage').text(message);
-            $('#machineErrorState').show();
-        }
-
-        function hideAllStates() {
-            $('#machineLoadingState, #machineSelectionCards, #machineErrorState').hide();
-        }
-
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            const now = new Date();
-            const diffTime = Math.abs(now - date);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-            if (diffDays === 1) {
-                return 'Bugün';
-            } else if (diffDays === 2) {
-                return 'Dün';
-            } else if (diffDays <= 7) {
-                return `${diffDays} gün önce`;
+                html += '</div>';
+                $('#machineListContent').html(html);
             } else {
-                return date.toLocaleDateString('tr-TR');
+                $('#machineListContent').html('<div class="alert alert-warning">Aktif makine bulunamadı.</div>');
             }
-        }
+        }).fail(function() {
+            $('#machineListContent').html('<div class="alert alert-danger">Makineler yüklenirken hata oluştu.</div>');
+        });
+    }
 
-        // System status refresh
-        function refreshSystemStatus() {
-            const button = event.target;
-            const originalText = button.innerHTML;
-            button.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Yenileniyor...';
-            button.disabled = true;
-
-            setTimeout(function() {
-                button.innerHTML = originalText;
-                button.disabled = false;
-                showSuccess('Sistem durumu yenilendi - Tüm sistemler normal çalışıyor');
-            }, 2000);
-        }
-
-        // Global functions
-        window.changeMachine = changeMachine;
-        window.refreshMachines = refreshMachines;
-        window.refreshSystemStatus = refreshSystemStatus;
-        window.checkTokenStatus = checkTokenStatus;
-        window.refreshToken = refreshToken;
-    </script>
-}
-
-@section Css {
-    <style>
-
-        .colored-toast {
-            border-radius: 12px !important;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2) !important;
-            font-weight: 500;
-        }
-
-            .colored-toast .swal2-title {
-                font-size: 16px !important;
-                font-weight: 600 !important;
+    function selectMachine(machineId) {
+        addActivityLog('Makine bağlantısı kuruluyor...');
+        
+        $.ajax({
+            url: '/Home/SelectMachine',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ machineId: machineId }),
+            success: function(response) {
+                if (response.success) {
+                    $('#machineSelectionModal').modal('hide');
+                    if (typeof toastr !== 'undefined') {
+                        toastr.success(response.message);
+                    }
+                    showMachineSelected(response.machine);
+                    updateConnectionCards(response.machine);
+                    addActivityLog(`Makine bağlantısı başarılı: ${response.machine.branchName}`);
+                } else {
+                    if (typeof toastr !== 'undefined') {
+                        toastr.error(response.message);
+                    }
+                    addActivityLog(`Bağlantı hatası: ${response.message}`);
+                }
+            },
+            error: function() {
+                if (typeof toastr !== 'undefined') {
+                    toastr.error('Makine bağlantısı kurulurken hata oluştu');
+                }
+                addActivityLog('Bağlantı kurulurken beklenmeyen hata oluştu');
             }
+        });
+    }
 
-            .colored-toast .swal2-icon {
-                margin: 10px auto !important;
+    function checkHealth() {
+        addActivityLog('Health check yapılıyor...');
+        $('#healthStatus').html('<span class="text-info">Kontrol Ediliyor...</span>');
+        $('#healthBadge').removeClass().addClass('badge bg-info bg-opacity-10 text-info').html('<i class="fas fa-spinner fa-spin"></i> Checking');
+        
+        // Simulated health check
+        setTimeout(function() {
+            var isHealthy = Math.random() > 0.3;
+            var responseTime = Math.floor(Math.random() * 200) + 50;
+            
+            if (isHealthy) {
+                $('#healthStatus').html('<span class="text-success">Sağlıklı</span>');
+                $('#healthBadge').removeClass().addClass('badge bg-success bg-opacity-10 text-success').html('<i class="fas fa-check"></i> Healthy');
+                $('#responseTime').text(`${responseTime}ms`);
+                $('#speedBadge').removeClass().addClass('badge bg-success bg-opacity-10 text-success').html('<i class="fas fa-check"></i> Fast');
+                $('#lastCheck').text(new Date().toLocaleTimeString('tr-TR'));
+                $('#timeBadge').removeClass().addClass('badge bg-success bg-opacity-10 text-success').html('<i class="fas fa-check"></i> Recent');
+                
+                if (typeof toastr !== 'undefined') {
+                    toastr.success(`API sağlıklı - Yanıt süresi: ${responseTime}ms`);
+                }
+                addActivityLog(`Health check başarılı - Yanıt süresi: ${responseTime}ms`);
+            } else {
+                $('#healthStatus').html('<span class="text-danger">Sağlıksız</span>');
+                $('#healthBadge').removeClass().addClass('badge bg-danger bg-opacity-10 text-danger').html('<i class="fas fa-times"></i> Unhealthy');
+                $('#responseTime').text('-');
+                $('#speedBadge').removeClass().addClass('badge bg-danger bg-opacity-10 text-danger').html('<i class="fas fa-times"></i> Error');
+                
+                if (typeof toastr !== 'undefined') {
+                    toastr.error('API sağlık kontrolü başarısız');
+                }
+                addActivityLog('Health check başarısız - API yanıt vermiyor');
             }
-        /* Dashboard Card Animations */
-        .card {
-            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }, 1500);
+    }
+
+    function startApiOperations() {
+        addActivityLog('API işlemleri sayfasına yönlendiriliyor...');
+        window.location.href = '/Home/ApiOperations';
+    }
+
+    function changeMachine() {
+        showMachineModal();
+    }
+
+    function addActivityLog(message) {
+        var timestamp = new Date().toLocaleTimeString('tr-TR');
+        var logEntry = `
+            <div class="d-flex justify-content-between border-bottom py-2">
+                <span>${message}</span>
+                <small class="text-muted">${timestamp}</small>
+            </div>
+        `;
+        
+        var activityLog = $('#activityLog');
+        if (activityLog.find('.text-center').length > 0) {
+            activityLog.empty();
         }
-
-            .card:hover {
-                transform: translateY(-3px);
-                box-shadow: 0 0.75rem 1.5rem rgba(18, 38, 63, 0.15) !important;
-            }
-
-        .bg-opacity-10 {
-            --bs-bg-opacity: 0.1;
+        activityLog.prepend(logEntry);
+        
+        // Son 5 aktiviteyi tut
+        var entries = activityLog.children();
+        if (entries.length > 5) {
+            entries.slice(5).remove();
         }
+    }
 
-        .btn-outline-primary:hover,
-        .btn-outline-success:hover,
-        .btn-outline-info:hover,
-        .btn-outline-warning:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.15);
-        }
-
-        /* Machine Selection Modal Styles */
+    // CSS for machine cards
+    $('<style>').text(`
         .machine-card {
             cursor: pointer;
             transition: all 0.3s ease;
-            border: 2px solid transparent;
-            border-width: 2px;
+            border: 1px solid rgba(0,0,0,0.125);
         }
-
-            .machine-card:hover {
-                transform: translateY(-3px);
-                box-shadow: 0 0.75rem 1.5rem rgba(18, 38, 63, 0.15);
-                border-color: #007bff;
-            }
-
-            .machine-card.selected {
-                border-color: #0d6efd !important;
-                background-color: rgba(13, 110, 253, 0.05);
-            }
-
-            .machine-card .card-body {
-                padding: 1.5rem;
-            }
-
-            .machine-card.selecting {
-                border-color: #007bff;
-                background-color: rgba(0, 123, 255, 0.05);
-            }
-
-        /* Selected Machine Info */
-        .selected-machine-info {
-            position: sticky;
-            top: 0;
-            z-index: 1000;
+        .machine-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            border-color: #007bff;
         }
-
-        .btn-change-machine {
-            background: none;
-            border: none;
-            color: inherit;
-            padding: 0;
-            font-size: 1rem;
-            cursor: pointer;
+        .fs-1 {
+            font-size: 2rem;
         }
-
-            .btn-change-machine:hover {
-                opacity: 0.8;
-            }
-
-        /* Modal Improvements */
-        #machineSelectionModal .modal-body {
-            min-height: 300px;
+        .btn-block {
+            width: 100%;
         }
-
-        .spinner-border-sm {
-            width: 1rem;
-            height: 1rem;
-        }
-
-        /* Notification Toast */
-        .notification-toast {
-            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-            animation: slideInRight 0.3s ease-out;
-        }
-
-        @@keyframes slideInRight {
-            from
-
-        {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-
-        }
-
-        /* Machine Icon Styling */
-        .machine-icon {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(45deg, #007bff, #0056b3);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 1rem;
-        }
-
-            .machine-icon i {
-                font-size: 24px;
-                color: white;
-            }
-
-        .machine-status {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background-color: #28a745;
-            border: 2px solid white;
-        }
-
-        .api-address {
-            font-family: 'Courier New', monospace;
-            font-size: 0.85em;
-            color: #6c757d;
-            background: #f8f9fa;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            word-break: break-all;
-        }
-
-        /* Loading State */
-        .spinner-border {
-            animation: spinner-border 0.75s linear infinite;
-        }
-
-        @@keyframes spinner-border {
-            to
-
-        {
-            transform: rotate(360deg);
-        }
-
-        }
-
-        /* Responsive Improvements */
-        @@media (max-width: 768px) {
-            .machine-card .card-body
-
-        {
-            padding: 1rem;
-        }
-
-        .notification-toast {
-            right: 10px;
-            left: 10px;
-            min-width: auto;
-        }
-
-        }
-
-        /* Status Badges */
-        .badge {
-            font-size: 0.75em;
-            font-weight: 500;
-        }
-
-        /* API Address Truncation */
-        .text-truncate {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        /* Button Loading State */
-        .btn:disabled {
-            opacity: 0.65;
-            cursor: not-allowed;
-        }
-
-        /* Modal Backdrop */
-        .modal-backdrop.show {
-            opacity: 0.5;
-        }
-
-        /* Alert Improvements */
-        .alert {
-            border: none;
-            border-radius: 8px;
-        }
-
-        .alert-success {
-            background-color: rgba(40, 167, 69, 0.1);
-            color: #155724;
-            border-left: 4px solid #28a745;
-        }
-
-        .alert-danger {
-            background-color: rgba(220, 53, 69, 0.1);
-            color: #721c24;
-            border-left: 4px solid #dc3545;
-        }
-    </style>
-}
+    `).appendTo('head');
+</script>

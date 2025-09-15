@@ -1,0 +1,249 @@
+﻿@model SuperAdminDashboardViewModel
+
+@{
+    ViewData["Title"] = "Sistem Admin Dashboard";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="fas fa-tachometer-alt"></i> Sistem Admin Dashboard</h2>
+            <p class="text-muted">Sistem yönetimi ve istatistikleri</p>
+        </div>
+    </div>
+
+    <!-- İstatistik Kartları -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Toplam Kullanıcı
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalUsers</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Toplam Makine
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalMachines</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-server fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Aktif Makineler
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.ActiveMachines</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-play-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Toplam Rol
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalRoles</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-tag fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hızlı Erişim Butonları -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="m-0 font-weight-bold"><i class="fas fa-rocket"></i> Hızlı Erişim</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-2">
+                            <a asp-action="Users" class="btn btn-outline-primary btn-block">
+                                <i class="fas fa-users"></i> Kullanıcı Yönetimi
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a asp-controller="Machine" asp-action="Index" class="btn btn-outline-success btn-block">
+                                <i class="fas fa-server"></i> Makine Yönetimi
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a asp-controller="Machine" asp-action="Create" class="btn btn-outline-info btn-block">
+                                <i class="fas fa-plus"></i> Yeni Makine Ekle
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <button onclick="refreshStats()" class="btn btn-outline-warning btn-block">
+                                <i class="fas fa-sync-alt"></i> İstatistikleri Yenile
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Son Kullanıcılar ve Makineler -->
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h6 class="m-0 font-weight-bold"><i class="fas fa-user-plus"></i> Son Kullanıcılar</h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.RecentUsers.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Kullanıcı Adı</th>
+                                        <th>Email</th>
+                                        <th>İşlem</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var user in Model.RecentUsers)
+                                    {
+                                        <tr>
+                                            <td>@user.UserName</td>
+                                            <td>@user.EMail</td>
+                                            <td>
+                                                <a asp-action="AssignRoles" asp-route-userId="@user.Id"
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-user-tag"></i> Rol Ata
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="text-center">
+                            <a asp-action="Users" class="btn btn-sm btn-primary">Tümünü Görüntüle</a>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted text-center">Henüz kullanıcı bulunmuyor.</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h6 class="m-0 font-weight-bold"><i class="fas fa-server"></i> Son Makineler</h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.RecentMachines.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Şube Adı</th>
+                                        <th>Kod</th>
+                                        <th>Durum</th>
+                                        <th>İşlem</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var machine in Model.RecentMachines)
+                                    {
+                                        <tr>
+                                            <td>@machine.BranchName</td>
+                                            <td>@machine.Code</td>
+                                            <td>
+                                                @if (machine.IsActive)
+                                                {
+                                                    <span class="badge badge-success">Aktif</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge badge-danger">Pasif</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <a asp-controller="Machine" asp-action="Edit" asp-route-id="@machine.Id"
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-edit"></i> Düzenle
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="text-center">
+                            <a asp-controller="Machine" asp-action="Index" class="btn btn-sm btn-success">Tümünü Görüntüle</a>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted text-center">Henüz makine bulunmuyor.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts{
+
+    <script>
+        function refreshStats() {
+            $.get('@Url.Action("GetSystemStats")', function(response) {
+                if (response.success) {
+          
+                    location.reload();
+                } else {
+                    toastr.error('İstatistikler güncellenirken hata oluştu');
+                }
+            });
+        }
+    </script>
+
+
+}

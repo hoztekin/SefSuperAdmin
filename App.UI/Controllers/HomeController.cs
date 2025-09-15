@@ -2,28 +2,88 @@
 using App.UI.Infrastructure.Http;
 using App.UI.Infrastructure.Storage;
 using App.UI.Presentation.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace App.UI.Controllers;
 
+[Authorize]
 public class HomeController(ILogger<HomeController> logger, IApiService apiService, ISessionService sessionService, IExternalApiService externalApiService) : Controller
 {
     public IActionResult Index()
     {
-        // Dashboard için statik veriler (sonra API'den çekilecek)
-        var dashboardModel = new DashboardViewModel
-        {
-            TotalUsers = 1247,
-            TotalCompanies = 342,
-            ActiveBranches = 156,
-            IpOperations = 89,
-            PendingApprovals = 17,
-            OnlineUsers = 127,
-            DailyOperations = 2456,
-            SecurityScore = 60
-        };
+        return View();
+    }
 
-        return View(dashboardModel);
+    // Normal kullanıcılar için dashboard
+    private IActionResult UserDashboard()
+    {
+        try
+        {
+            var selectedMachine = sessionService.GetSelectedMachine();
+
+            var dashboardModel = new UserDashboardViewModel
+            {
+                SelectedMachine = selectedMachine,
+                HasSelectedMachine = selectedMachine != null,
+                UserName = User.Identity.Name,
+                LastHealthCheck = selectedMachine?.LastHealthCheck
+            };
+
+            return View("UserDashboard", dashboardModel);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "User dashboard yüklenirken hata oluştu");
+            return View("UserDashboard", new UserDashboardViewModel { UserName = User.Identity.Name });
+        }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ApiOperations()
+    {
+        var selectedMachine = sessionService.GetSelectedMachine();
+
+        if (selectedMachine == null)
+        {
+            TempData["WarningMessage"] = "Önce bir makine seçmeniz gerekiyor.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        try
+        {
+            // Seçili makinenin health check'ini yap
+            var healthResponse = await externalApiService.CheckHealthAsync(selectedMachine.ApiAddress);
+
+            var model = new ApiOperationsViewModel
+            {
+                SelectedMachine = selectedMachine,
+                HealthStatus = healthResponse,
+                AvailableEndpoints = GetAvailableEndpoints() // API'nin sunduğu endpoint'ler
+            };
+
+            return View(model);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "API operations sayfası yüklenirken hata oluştu");
+            TempData["ErrorMessage"] = "API bilgileri yüklenirken bir hata oluştu.";
+            return RedirectToAction(nameof(Index));
+        }
+
+
+    }
+
+    // External API'nin sunduğu endpoint'leri döndür
+    private List<ApiEndpoint> GetAvailableEndpoints()
+    {
+        return new List<ApiEndpoint>
+            {
+                new ApiEndpoint { Name = "Kullanıcılar", Path = "/api/v1/users", Method = "GET", Description = "Tüm kullanıcıları listele" },
+                new ApiEndpoint { Name = "Yeni Kullanıcı", Path = "/api/v1/users", Method = "POST", Description = "Yeni kullanıcı oluştur" },
+                new ApiEndpoint { Name = "Sistem Bilgisi", Path = "/api/v1/system/info", Method = "GET", Description = "Sistem bilgilerini getir" },
+                new ApiEndpoint { Name = "Health Check", Path = "/health", Method = "GET", Description = "Sistem sağlık durumu" }
+            };
     }
 
     // Aktif makineleri getir (Modal için)

@@ -2,6 +2,8 @@
 using App.UI.Infrastructure.ExternalApi;
 using App.UI.Infrastructure.Http;
 using App.UI.Infrastructure.Storage;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Reflection;
 
 namespace App.UI.Extensions
@@ -10,9 +12,12 @@ namespace App.UI.Extensions
     {
         public static IServiceCollection AddServicesUI(this IServiceCollection services, IConfiguration configuration)
         {
-
             // Infrastructure Layer
             services.AddInfrastructureServices(configuration);
+
+            // Authentication & Authorization
+            services.AddAuthenticationServices();
+            services.AddAuthorizationServices();
 
             // Application Layer
             services.AddApplicationServices();
@@ -20,7 +25,7 @@ namespace App.UI.Extensions
             // Presentation Layer
             services.AddPresentationServices();
 
-            return services;          
+            return services;
         }
         #region Infrastructure Services
         private static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
@@ -95,13 +100,83 @@ namespace App.UI.Extensions
         }
         #endregion
 
+        #region Authentication Services
+        private static IServiceCollection AddAuthenticationServices(this IServiceCollection services)
+        {
+
+            services.AddAuthentication(options =>
+            {
+                options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+            })
+            .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
+            {
+                // Cookie Settings
+                options.LoginPath = new PathString("/Authentication/Login");
+                options.LogoutPath = new PathString("/Authentication/Logout");
+                options.AccessDeniedPath = new PathString("/Authentication/AccessDenied");
+
+                options.Cookie.Name = "AppAuthCookie";
+                options.Cookie.HttpOnly = true;
+                options.Cookie.SameSite = SameSiteMode.Lax;
+                options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+
+                // Expiration Settings
+                options.ExpireTimeSpan = TimeSpan.FromDays(1);
+                options.SlidingExpiration = true;
+
+                // Token Validation Event
+                options.Events.OnValidatePrincipal = ValidateUserToken;
+            });
+
+            return services;
+        }
+
+        private static async Task ValidateUserToken(CookieValidatePrincipalContext context)
+        {
+            try
+            {
+                // Token geçerliliğini kontrol et
+                var sessionService = context.HttpContext.RequestServices.GetRequiredService<ISessionService>();
+                var userSession = sessionService.GetUserSession();
+
+                if (userSession == null || userSession.IsExpired)
+                {
+                    context.RejectPrincipal();
+                    await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                    logger.LogInformation("User session expired, signing out user");
+                }
+            }
+            catch (Exception ex)
+            {
+                // Hata durumunda oturumu sonlandır
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                logger.LogError(ex, "Error validating user token");
+
+                context.RejectPrincipal();
+                await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            }
+        }
+
+        private static void AddAuthorizationServices(this IServiceCollection services)
+        {
+            services.AddAuthorization(options =>
+            {
+                options.DefaultPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+                    .RequireAuthenticatedUser()
+                    .Build();
+
+            });
+        }
+        #endregion
+
         #region Application Services
         private static IServiceCollection AddApplicationServices(this IServiceCollection services)
         {
 
-            //services.AddScoped<IMachineAppService, MachineAppService>();
-
-
+            services.AddScoped<IMachineAppService, MachineAppService>();
             services.AddLegacyServices();
 
             return services;
@@ -123,7 +198,6 @@ namespace App.UI.Extensions
         {
             // AutoMapper
             services.AddAutoMapper(Assembly.GetExecutingAssembly());
-
             return services;
         }
         #endregion

@@ -1,9 +1,6 @@
 ﻿using App.Shared;
 using App.UI.Extensions;
-using App.UI.Infrastructure.Storage;
 using App.UI.MiddleWare;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Serilog;
 
 namespace App.UI
@@ -36,83 +33,6 @@ namespace App.UI
 
             // UI Layer Services (Infrastructure + Application + Presentation)
             services.AddServicesUI(configuration);
-
-            // Authentication & Authorization
-            ConfigureAuthentication(services);
-            ConfigureAuthorization(services);
-        }
-
-        private static void ConfigureAuthentication(IServiceCollection services)
-        {
-            services.AddAuthentication(options =>
-            {
-                options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-                options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-            })
-            .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
-            {
-                // Cookie Settings
-                options.LoginPath = new PathString("/Authentication/Login");
-                options.LogoutPath = new PathString("/Authentication/Logout");
-                options.AccessDeniedPath = new PathString("/Authentication/AccessDenied");
-
-                options.Cookie.Name = "AppAuthCookie";
-                options.Cookie.HttpOnly = true;
-                options.Cookie.SameSite = SameSiteMode.Lax;
-                options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
-
-                // Expiration Settings
-                options.ExpireTimeSpan = TimeSpan.FromDays(1);
-                options.SlidingExpiration = true;
-
-                // Token Validation Event
-                options.Events.OnValidatePrincipal = ValidateUserToken;
-            });
-        }
-
-        private static void ConfigureAuthorization(IServiceCollection services)
-        {
-            services.AddAuthorization(options =>
-            {
-                options.DefaultPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
-                    .RequireAuthenticatedUser()
-                    .Build();
-
-                // TODO: Özel authorization policy'leri buraya eklenebilir
-                // options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
-                // options.AddPolicy("ManagerOrAdmin", policy => policy.RequireRole("Manager", "Admin"));
-            });
-        }
-
-        private static async Task ValidateUserToken(CookieValidatePrincipalContext context)
-        {
-            try
-            {
-                // Token geçerliliğini kontrol et
-                var sessionService = context.HttpContext.RequestServices.GetRequiredService<ISessionService>();
-                var userSession = sessionService.GetUserSession();
-
-                if (userSession == null || userSession.IsExpired)
-                {
-                    // Token geçersizse oturumu sonlandır
-                    context.RejectPrincipal();
-                    await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-
-                    // Log the event
-                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                    logger.LogInformation("User session expired, signing out user");
-                }
-            }
-            catch (Exception ex)
-            {
-                // Hata durumunda oturumu sonlandır
-                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                logger.LogError(ex, "Error validating user token");
-
-                context.RejectPrincipal();
-                await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            }
         }
         #endregion
 

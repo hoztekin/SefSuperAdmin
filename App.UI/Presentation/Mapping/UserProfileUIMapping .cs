@@ -2,7 +2,7 @@
 using App.UI.DTOS;
 using AutoMapper;
 
-namespace App.UI.Mapping
+namespace App.UI.Presentation.Mapping
 {
     public class UserProfileUIMapping : Profile
     {

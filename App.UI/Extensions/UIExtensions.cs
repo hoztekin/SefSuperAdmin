@@ -1,4 +1,5 @@
 ﻿using App.UI.Services;
+using System.Configuration;
 using System.Reflection;
 
 namespace App.UI.Extensions
@@ -7,6 +8,22 @@ namespace App.UI.Extensions
     {
         public static IServiceCollection AddServicesUI(this IServiceCollection services)
         {
+
+            // Infrastructure Services
+            services.AddInfrastructureServices(configuration);
+
+            // Application Services  
+            services.AddApplicationServices();
+
+            // Presentation Services
+            services.AddPresentationServices();
+
+            return services;
+
+
+
+
+
             services.AddHttpContextAccessor();
 
             services.AddSession(options =>
@@ -78,6 +95,60 @@ namespace App.UI.Extensions
 
             return services;
         }
+
+        private static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
+        {
+            // HTTP Clients
+            services.AddHttpClient<IApiHttpClient, ApiHttpClient>(client =>
+            {
+                client.BaseAddress = new Uri(GetApiBaseUrl(configuration));
+                client.Timeout = TimeSpan.FromSeconds(30);
+            });
+
+            services.AddHttpClient<IExternalApiClient, ExternalApiClient>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(30);
+            });
+
+            // Storage & Session
+            services.AddSession(options =>
+            {
+                options.IdleTimeout = TimeSpan.FromHours(2);
+                options.Cookie.HttpOnly = true;
+                options.Cookie.IsEssential = true;
+            });
+
+            services.AddScoped<ISessionManager, SessionManager>();
+            services.AddScoped<ITokenStorage, CookieTokenStorage>();
+
+            return services;
+        }
+
+        private static IServiceCollection AddApplicationServices(this IServiceCollection services)
+        {
+            // Application Services (Business logic wrappers)
+            services.AddScoped<IMachineAppService, MachineAppService>();
+            services.AddScoped<IUserAppService, UserAppService>();
+            services.AddScoped<IRoleAppService, RoleAppService>();
+            services.AddScoped<IAuthAppService, AuthAppService>();
+            services.AddScoped<IAccountAppService, AccountAppService>();
+
+            return services;
+        }
+
+        private static IServiceCollection AddPresentationServices(this IServiceCollection services)
+        {
+            // AutoMapper
+            services.AddAutoMapper(Assembly.GetExecutingAssembly());
+
+            // View Services
+            services.AddScoped<IViewModelMapper, ViewModelMapper>();
+            services.AddScoped<IPermissionService, PermissionService>();
+            services.AddScoped<INavigationService, NavigationService>();
+
+            return services;
+        }
+
 
         private static string GetApiBaseUrl()
         {

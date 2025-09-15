@@ -1,4 +1,4 @@
-﻿namespace App.UI.ViewModels
+﻿namespace App.UI.Presentation.ViewModels
 {
     public class SelectMachineRequest
     {

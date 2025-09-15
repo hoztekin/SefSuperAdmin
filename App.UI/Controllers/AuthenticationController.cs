@@ -77,7 +77,7 @@ namespace App.UI.Controllers
                         expiresAt: tokenResponse.AccessTokenExpiration,
                         userInfo: userInfo,
                         roles: roles ?? new List<string>(),
-                        permissions: new List<string>() 
+                        permissions: new List<string>()
                     );
 
                     // Cookie authentication için sign-in yap

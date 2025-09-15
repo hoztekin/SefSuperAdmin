@@ -19,6 +19,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Infrastructure\Http\" />
+    <Folder Include="Infrastructure\ExternalApiClient\" />
+    <Folder Include="Infrastructure\Storage\" />
     <Folder Include="wwwroot\img\category\" />
     <Folder Include="wwwroot\img\product\" />
   </ItemGroup>

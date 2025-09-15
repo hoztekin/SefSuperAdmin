@@ -1,6 +1,5 @@
-﻿using App.UI.DTOS;
+﻿using App.UI.Presentation.ViewModels;
 using App.UI.Services;
-using App.UI.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 
 namespace App.UI.Controllers;
@@ -229,7 +228,6 @@ public class HomeController(ILogger<HomeController> logger, IApiService apiServi
                 return Json(new { success = false, message = "Seçili makine bulunamadı" });
             }
 
-            // ✅ YENİ: HasValidMachineToken kullan
             var hasValidToken = sessionService.HasValidMachineToken();
             var machineToken = sessionService.GetMachineApiToken();
 

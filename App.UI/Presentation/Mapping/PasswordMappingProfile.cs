@@ -1,8 +1,8 @@
 ﻿using App.Services.Account.Dtos;
-using App.UI.ViewModels;
+using App.UI.Presentation.ViewModels;
 using AutoMapper;
 
-namespace App.UI.Mapping
+namespace App.UI.Presentation.Mapping
 {
     public class PasswordMappingProfile : Profile
     {

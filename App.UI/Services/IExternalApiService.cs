@@ -41,8 +41,7 @@ namespace App.UI.Services
                 httpClient.Timeout = TimeSpan.FromSeconds(10);
 
                 // Health check endpoint'ini dene
-                //var healthUrl = $"{apiAddress.TrimEnd('/')}/health";
-                var healthUrl = $"http://app-api:8080/health";
+                var healthUrl = $"{apiAddress.TrimEnd('/')}/health";
 
                 _logger.LogInformation("Health check başlatılıyor: {HealthUrl}", healthUrl);
 

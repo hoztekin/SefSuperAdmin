@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace App.UI.ViewModels;
+namespace App.UI.Presentation.ViewModels;
 
 public class PasswordChangeViewModel
 {

@@ -44,7 +44,7 @@ namespace App.UI.Application.Services
             try
             {
                 // JWT token'dan kullanıcı bilgilerini çıkar
-                var (userId, roles) = JwtTokenParser.ParseToken(tokenDto.AccessToken);
+                var (userId, roles, username) = JwtTokenParser.ParseToken(tokenDto.AccessToken);
 
                 if (string.IsNullOrEmpty(userId))
                 {
@@ -68,7 +68,7 @@ namespace App.UI.Application.Services
                 var claims = new List<Claim>
                 {
                     new Claim(ClaimTypes.NameIdentifier, userId),
-                    new Claim(ClaimTypes.Name, userId),
+                    new Claim(ClaimTypes.Name, !string.IsNullOrEmpty(username) ? username : userId),
                     new Claim("AccessToken", tokenDto.AccessToken),
                     new Claim("AccessTokenExpiration", tokenDto.AccessTokenExpiration.ToString("O"))
                 };

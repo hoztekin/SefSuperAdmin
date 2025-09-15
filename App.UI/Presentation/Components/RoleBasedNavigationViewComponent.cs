@@ -24,7 +24,8 @@ namespace App.UI.Presentation.Components
                 IsAdmin = User.IsInRole("Admin") || User.IsInRole("SuperAdmin"),
                 IsSuperAdmin = User.IsInRole("SuperAdmin"),
                 CssClass = cssClass,
-                ShowLogo = showLogo
+                ShowLogo = showLogo,
+                UserRoles = GetUserRoles()
             };
 
             // Seçili makine bilgisi varsa ekle
@@ -39,10 +40,28 @@ namespace App.UI.Presentation.Components
                 catch
                 {
                     viewModel.HasSelectedMachine = false;
+                    viewModel.SelectedMachineName = "";
                 }
             }
 
             return View(viewModel);
+        }
+
+        private List<string> GetUserRoles()
+        {
+            if (User?.Identity?.IsAuthenticated != true)
+                return new List<string>();
+
+            // User'ı ClaimsPrincipal'a cast et
+            if (User is ClaimsPrincipal claimsPrincipal)
+            {
+                return claimsPrincipal.Claims
+                    .Where(c => c.Type == ClaimTypes.Role)
+                    .Select(c => c.Value)
+                    .ToList();
+            }
+
+            return new List<string>();
         }
     }
 }

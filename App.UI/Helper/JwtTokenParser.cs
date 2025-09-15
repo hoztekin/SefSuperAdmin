@@ -5,13 +5,14 @@ namespace App.UI.Helper
 {
     public static class JwtTokenParser
     {
-        public static (string userId, List<string> roles) ParseToken(string token)
+        public static (string userId, List<string> roles, string username) ParseToken(string token)
         {
             try
             {
+
                 var parts = token.Split('.');
                 if (parts.Length != 3)
-                    return ("", new List<string>());
+                    return ("", new List<string>(), "");
 
                 // Decode the payload
                 var payloadBase64 = parts[1];
@@ -54,6 +55,22 @@ namespace App.UI.Helper
                     userId = subProperty.GetString();
                 }
 
+                //  Extract username
+                string username = "";
+                if (root.TryGetProperty("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name", out var nameProperty))
+                {
+                    username = nameProperty.GetString();
+                    Console.WriteLine($"Found username in 'name': {username}");
+                }
+                else if (root.TryGetProperty("name", out var nameCompactProperty))
+                {
+                    username = nameCompactProperty.GetString();
+                }
+                else if (root.TryGetProperty("unique_name", out var uniqueNameProperty))
+                {
+                    username = uniqueNameProperty.GetString();
+                }
+
                 // Extract roles
                 var roles = new List<string>();
                 if (root.TryGetProperty("http://schemas.microsoft.com/ws/2008/06/identity/claims/role", out var roleClaimProperty))
@@ -86,12 +103,12 @@ namespace App.UI.Helper
                     }
                 }
 
-                return (userId, roles);
+                return (userId, roles, username);
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error parsing JWT token: {ex.Message}");
-                return ("", new List<string>());
+                return ("", new List<string>(), "");
             }
         }
 

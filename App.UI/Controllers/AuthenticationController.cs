@@ -64,7 +64,7 @@ namespace App.UI.Controllers
                 if (tokenResponse != null && !string.IsNullOrEmpty(tokenResponse.AccessToken))
                 {
                     // JWT token'dan kullanıcı bilgilerini çıkar
-                    var (userId, roles) = JwtTokenParser.ParseToken(tokenResponse.AccessToken);
+                    var (userId, roles, username) = JwtTokenParser.ParseToken(tokenResponse.AccessToken);
 
                     // ✅ YENİ: ISessionService kullan (SessionManager yerine)
                     var userInfo = new UserInfoDto

@@ -87,7 +87,7 @@ namespace App.UI.Infrastructure.Storage
                 }
 
                 // Token'dan userId ve roller bilgisini al
-                var (userId, roles) = JwtTokenParser.ParseToken(tokenResponse.Data.AccessToken);
+                var (userId, roles, username) = JwtTokenParser.ParseToken(tokenResponse.Data.AccessToken);
 
                 var currentUserInfo = userSession.UserInfo ?? new UserInfoDto { Id = userId };
 
@@ -139,7 +139,7 @@ namespace App.UI.Infrastructure.Storage
                 }
 
                 // Token'dan userId ve roller bilgisini al
-                var (userId, roles) = JwtTokenParser.ParseToken(tokenResponse.Data.AccessToken);
+                var (userId, roles, username) = JwtTokenParser.ParseToken(tokenResponse.Data.AccessToken);
 
                 var userInfo = new UserInfoDto
                 {

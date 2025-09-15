@@ -1,26 +1,29 @@
 ﻿@model RoleBasedNavigationViewModel
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary @Model.CssClass">
+<!-- Modern Navigation Bar - Fixed Version -->
+<nav class="navbar navbar-expand-lg navbar-dark @Model.CssClass" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
     <div class="container-fluid">
         @if (Model.ShowLogo)
         {
-            <a class="navbar-brand" asp-controller="Home" asp-action="Index">
-                <img src="~/img/logo.png" height="40" alt="Logo" />
+            <a class="navbar-brand d-flex align-items-center" asp-controller="Home" asp-action="Index">
+                <img src="~/img/logo.png" height="40" alt="Logo" class="me-2" />
+                <span class="fw-bold text-white">@("API Dashboard")</span>
             </a>
         }
 
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarRoleBasedNav">
+        <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarRoleBasedNav" aria-controls="navbarRoleBasedNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
 
         <div class="collapse navbar-collapse" id="navbarRoleBasedNav">
-            <ul class="navbar-nav me-auto">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                 @if (Model.IsAuthenticated)
                 {
                     <!-- Ana Sayfa - Herkese görünür -->
                     <li class="nav-item">
-                        <a class="nav-link" asp-controller="Home" asp-action="Index">
-                            <i class="fas fa-home"></i> Ana Sayfa
+                        <a class="nav-link rounded-pill mx-1 px-3 py-2 transition-all text-white fw-semibold" asp-controller="Home" asp-action="Index">
+                            <i class="fas fa-home me-1"></i>
+                            <span>@("Ana Sayfa")</span>
                         </a>
                     </li>
 
@@ -28,30 +31,35 @@
                     {
                         <!-- SİSTEM ADMİN MENÜSÜ -->
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="sistemAdminDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-cogs"></i> Sistem Yönetimi
+                            <a class="nav-link dropdown-toggle rounded-pill mx-1 px-3 py-2 transition-all text-white fw-semibold" href="#" id="sistemAdminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-cogs me-1"></i>
+                                <span>@("Sistem Yönetimi")</span>
                             </a>
-                            <ul class="dropdown-menu">
+                            <ul class="dropdown-menu shadow-lg border-0" style="border-radius: 15px; margin-top: 10px;">
                                 <li>
-                                    <a class="dropdown-item" asp-controller="SistemAdmin" asp-action="Index">
-                                        <i class="fas fa-tachometer-alt"></i> Admin Dashboard
+                                    <a class="dropdown-item rounded-pill mx-2 my-1 px-3 py-2 transition-all text-dark fw-medium" asp-controller="SuperAdmin" asp-action="Index">
+                                        <i class="fas fa-tachometer-alt text-primary me-2"></i>
+                                        @("Admin Dashboard")
                                     </a>
                                 </li>
-                                <li><hr class="dropdown-divider"></li>
+                                <li><hr class="dropdown-divider mx-2"></li>
                                 <li>
-                                    <a class="dropdown-item" asp-controller="SistemAdmin" asp-action="Users">
-                                        <i class="fas fa-users"></i> Kullanıcı Yönetimi
+                                    <a class="dropdown-item rounded-pill mx-2 my-1 px-3 py-2 transition-all text-dark fw-medium" asp-controller="SuperAdmin" asp-action="Users">
+                                        <i class="fas fa-users text-info me-2"></i>
+                                        @("Kullanıcı Yönetimi")
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item" asp-controller="Machine" asp-action="Index">
-                                        <i class="fas fa-server"></i> Makine Yönetimi
+                                    <a class="dropdown-item rounded-pill mx-2 my-1 px-3 py-2 transition-all text-dark fw-medium" asp-controller="Machine" asp-action="Index">
+                                        <i class="fas fa-server text-success me-2"></i>
+                                        @("Makine Yönetimi")
                                     </a>
                                 </li>
-                                <li><hr class="dropdown-divider"></li>
+                                <li><hr class="dropdown-divider mx-2"></li>
                                 <li>
-                                    <a class="dropdown-item" asp-controller="SistemAdmin" asp-action="GetSystemStats">
-                                        <i class="fas fa-chart-bar"></i> Sistem İstatistikleri
+                                    <a class="dropdown-item rounded-pill mx-2 my-1 px-3 py-2 transition-all text-dark fw-medium" asp-controller="SuperAdmin" asp-action="GetSystemStats">
+                                        <i class="fas fa-chart-bar text-warning me-2"></i>
+                                        @("Sistem İstatistikleri")
                                     </a>
                                 </li>
                             </ul>
@@ -61,30 +69,45 @@
                     {
                         <!-- NORMAL KULLANICI MENÜSÜ -->
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="apiServicesDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-plug"></i> API Servisleri
+                            <a class="nav-link dropdown-toggle rounded-pill mx-1 px-3 py-2 transition-all text-white fw-semibold" href="#" id="apiServicesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-plug me-1"></i>
+                                <span>@("API Servisleri")</span>
                             </a>
-                            <ul class="dropdown-menu">
+                            <ul class="dropdown-menu shadow-lg border-0" style="border-radius: 15px; margin-top: 10px;">
                                 <li>
-                                    <a class="dropdown-item" href="#" onclick="showMachineModal()">
-                                        <i class="fas fa-network-wired"></i> Makine Bağlantısı
+                                    <a class="dropdown-item rounded-pill mx-2 my-1 px-3 py-2 transition-all text-dark fw-medium" href="javascript:void(0)" onclick="showMachineModal()">
+                                        <i class="fas fa-network-wired text-primary me-2"></i>
+                                        @("Makine Bağlantısı")
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item" href="#" onclick="checkSelectedMachineHealth()">
-                                        <i class="fas fa-heartbeat"></i> Health Check
+                                    <a class="dropdown-item rounded-pill mx-2 my-1 px-3 py-2 transition-all text-dark fw-medium" href="javascript:void(0)" onclick="checkSelectedMachineHealth()">
+                                        <i class="fas fa-heartbeat text-danger me-2"></i>
+                                        @("Health Check")
                                     </a>
                                 </li>
                                 @if (Model.HasSelectedMachine)
                                 {
+                                    <li><hr class="dropdown-divider mx-2"></li>
                                     <li>
-                                        <hr class="dropdown-divider">
-                                        <h6 class="dropdown-header">
-                                            <i class="fas fa-server text-success"></i> @Model.SelectedMachineName
+                                        <h6 class="dropdown-header text-center py-2 text-white fw-bold" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border-radius: 10px; margin: 0 8px;">
+                                            <i class="fas fa-server me-2"></i>@(Model.SelectedMachineName)
                                         </h6>
-                                        <a class="dropdown-item" asp-controller="Home" asp-action="ApiOperations">
-                                            <i class="fas fa-tools"></i> API İşlemleri
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item rounded-pill mx-2 my-1 px-3 py-2 transition-all text-dark fw-medium" asp-controller="Home" asp-action="ApiOperations">
+                                            <i class="fas fa-tools text-warning me-2"></i>
+                                            @("API İşlemleri")
                                         </a>
+                                    </li>
+                                }
+                                else
+                                {
+                                    <li><hr class="dropdown-divider mx-2"></li>
+                                    <li>
+                                        <h6 class="dropdown-header text-center py-2 text-muted fw-medium">
+                                            <i class="fas fa-server me-2"></i>@("Makine Seçilmemiş")
+                                        </h6>
                                     </li>
                                 }
                             </ul>
@@ -94,52 +117,93 @@
             </ul>
 
             <!-- Sağ taraf - Kullanıcı menüsü -->
-            <ul class="navbar-nav">
+            <ul class="navbar-nav ms-auto">
                 @if (Model.IsAuthenticated)
                 {
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-user-circle"></i> @Model.UserName
-                            @if (Model.IsAdmin)
-                            {
-                                <span class="badge badge-warning ml-1">Admin</span>
-                            }
+                        <a class="nav-link dropdown-toggle d-flex align-items-center rounded-pill px-3 py-2 transition-all text-white fw-semibold"
+                           href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-circle me-2">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div class="d-none d-md-block">
+                                    <small class="text-white opacity-75">Hoş geldiniz,</small>
+                                    <div class="fw-semibold text-white">@(Model.UserName)</div>
+                                </div>
+                                @if (Model.IsAdmin)
+                                {
+                                    <span class="badge bg-warning text-dark ms-2 rounded-pill fw-bold">
+                                        @if (Model.IsSuperAdmin)
+                                        {
+                                            <i class="fas fa-crown me-1"></i>
+                                            @("Super")
+                                        }
+                                        else
+                                        {
+                                            <i class="fas fa-shield-alt me-1"></i>
+                                            @("Admin")
+                                        }
+                                    </span>
+                                }
+                            </div>
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><h6 class="dropdown-header">Rol(ler):</h6></li>
-                            @foreach (var role in Model.UserRoles)
+                        <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="border-radius: 15px; margin-top: 10px; min-width: 280px;">
+                            <li>
+                                <div class="dropdown-header text-center py-3" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 10px 10px 0 0; margin: -8px -8px 8px -8px;">
+                                    <div class="avatar-circle-large mb-2">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <div class="fw-bold text-white">@(Model.UserName)</div>
+                                    <small class="text-white opacity-75">@(string.Join(", ", Model.UserRoles ?? new List<string>()))</small>
+                                </div>
+                            </li>
+
+                            @if (Model.UserRoles != null && Model.UserRoles.Any())
                             {
                                 <li>
-                                    <span class="dropdown-item-text">
-                                        <small>
+                                    <h6 class="dropdown-header text-dark fw-semibold">
+                                        <i class="fas fa-tags me-1"></i>@("Aktif Roller:")
+                                    </h6>
+                                </li>
+                                @foreach (var role in Model.UserRoles)
+                                {
+                                    <li>
+                                        <span class="dropdown-item-text px-3">
                                             @if (role == "SuperAdmin")
                                             {
-                                                <i class="fas fa-crown text-warning"></i> 
-                                                @role
+                                                <span class="badge bg-warning text-dark rounded-pill fw-semibold">
+                                                    <i class="fas fa-crown me-1"></i>@(role)
+                                                </span>
                                             }
                                             else if (role == "Admin")
                                             {
-                                                <i class="fas fa-user-shield text-primary"></i> 
-                                                @role
+                                                <span class="badge bg-primary text-white rounded-pill fw-semibold">
+                                                    <i class="fas fa-user-shield me-1"></i>@(role)
+                                                </span>
                                             }
                                             else
                                             {
-                                                <i class="fas fa-tag text-info"></i> 
-                                                @role
+                                                <span class="badge bg-info text-white rounded-pill fw-semibold">
+                                                    <i class="fas fa-tag me-1"></i>@(role)
+                                                </span>
                                             }
-                                        </small>
-                                    </span>
-                                </li>
+                                        </span>
+                                    </li>
+                                }
+                                <li><hr class="dropdown-divider mx-2"></li>
                             }
-                            <li><hr class="dropdown-divider"></li>
+
                             <li>
-                                <a class="dropdown-item" asp-controller="Password" asp-action="PasswordChange">
-                                    <i class="fas fa-key"></i> Şifre Değiştir
+                                <a class="dropdown-item rounded-pill mx-2 my-1 px-3 py-2 transition-all text-dark fw-medium" asp-controller="Password" asp-action="PasswordChange">
+                                    <i class="fas fa-key text-secondary me-2"></i>
+                                    @("Şifre Değiştir")
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item" asp-controller="Authentication" asp-action="Logout">
-                                    <i class="fas fa-sign-out-alt"></i> Çıkış
+                                <a class="dropdown-item rounded-pill mx-2 my-1 px-3 py-2 transition-all text-danger fw-medium" asp-controller="Authentication" asp-action="Logout">
+                                    <i class="fas fa-sign-out-alt me-2"></i>
+                                    @("Çıkış Yap")
                                 </a>
                             </li>
                         </ul>
@@ -148,13 +212,15 @@
                 else
                 {
                     <li class="nav-item">
-                        <a class="nav-link" asp-controller="Authentication" asp-action="Login">
-                            <i class="fas fa-sign-in-alt"></i> Giriş
+                        <a class="nav-link rounded-pill mx-1 px-3 py-2 transition-all text-white fw-semibold" asp-controller="Authentication" asp-action="Login">
+                            <i class="fas fa-sign-in-alt me-1"></i>
+                            <span>@("Giriş")</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" asp-controller="Authentication" asp-action="Register">
-                            <i class="fas fa-user-plus"></i> Kayıt
+                        <a class="nav-link rounded-pill mx-1 px-3 py-2 btn btn-outline-light transition-all text-white fw-semibold" asp-controller="Authentication" asp-action="Register">
+                            <i class="fas fa-user-plus me-1"></i>
+                            <span>@("Kayıt Ol")</span>
                         </a>
                     </li>
                 }
@@ -163,44 +229,247 @@
     </div>
 </nav>
 
-<!-- JavaScript for dynamic menu behavior -->
+<!-- jQuery ve Bootstrap JS - CRITICAL -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Modern Styling -->
+<style>
+    .transition-all {
+        transition: all 0.3s ease;
+    }
+
+    .nav-link:hover {
+        background-color: rgba(255, 255, 255, 0.15) !important;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+
+    .dropdown-item:hover {
+        background-color: rgba(102, 126, 234, 0.1) !important;
+        transform: translateX(5px);
+    }
+
+    .avatar-circle {
+        width: 32px;
+        height: 32px;
+        background: rgba(255, 255, 255, 0.2);
+        border: 2px solid rgba(255, 255, 255, 0.4);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        color: white;
+    }
+
+    .avatar-circle-large {
+        width: 60px;
+        height: 60px;
+        background: rgba(255, 255, 255, 0.2);
+        border: 3px solid rgba(255, 255, 255, 0.4);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        margin: 0 auto;
+        color: white;
+    }
+
+    .dropdown-menu {
+        animation: fadeInDown 0.3s ease;
+        border: 1px solid rgba(0,0,0,0.1);
+    }
+
+    @@keyframes fadeInDown {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    .navbar-brand {
+        transition: all 0.3s ease;
+    }
+
+        .navbar-brand:hover {
+            transform: scale(1.05);
+        }
+
+    .badge {
+        animation: pulse 2s infinite;
+    }
+
+    @@keyframes pulse {
+        0%
+
+    {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.8;
+    }
+
+    100% {
+        opacity: 1;
+    }
+
+    }
+
+    /* Modern scrollbar for dropdown menus */
+    .dropdown-menu {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+        .dropdown-menu::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .dropdown-menu::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.1);
+            border-radius: 10px;
+        }
+
+        .dropdown-menu::-webkit-scrollbar-thumb {
+            background: rgba(102, 126, 234, 0.6);
+            border-radius: 10px;
+        }
+
+    /* Improved text contrast */
+    .text-white {
+        color: #ffffff !important;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    }
+
+    .fw-semibold {
+        font-weight: 600;
+    }
+
+    .fw-bold {
+        font-weight: 700;
+    }
+
+    /* Responsive improvements */
+    @@media (max-width: 991.98px) {
+        .navbar-nav .nav-link
+
+    {
+        text-align: center;
+        margin: 2px 0;
+    }
+
+    .dropdown-menu {
+        border-radius: 10px;
+        margin-top: 5px;
+    }
+
+    }
+</style>
+
 <script>
-    // Sayfa yüklendiğinde seçili makine varsa menüyü güncelle
     $(document).ready(function() {
+        console.log('Navigation loaded successfully');
+
+        // Navigation enhancement
         updateSelectedMachineMenu();
+
+        // Initialize Bootstrap tooltips if needed
+        $('[data-bs-toggle="tooltip"]').tooltip();
+
+        // Smooth dropdown animations
+        $('.dropdown').on('show.bs.dropdown', function() {
+            $(this).find('.dropdown-menu').addClass('animate__animated animate__fadeInDown animate__faster');
+        });
+
+        $('.dropdown').on('hide.bs.dropdown', function() {
+            $(this).find('.dropdown-menu').removeClass('animate__animated animate__fadeInDown animate__faster');
+        });
+
+        // Add smooth scrolling and modern interactions
+        $('.nav-link, .dropdown-item').hover(
+            function() {
+                $(this).css('box-shadow', '0 4px 15px rgba(0,0,0,0.1)');
+            },
+            function() {
+                $(this).css('box-shadow', 'none');
+            }
+        );
     });
 
     function updateSelectedMachineMenu() {
         if (!@Json.Serialize(Model.IsAdmin)) {
-            $.get('@Url.Action("GetSelectedMachine", "Home")', function(response) {
-                if (response.success) {
-                    // Menüyü güncelle
-                    $('.dropdown-header').html(`<i class="fas fa-server text-success"></i> ${response.data.branchName}`);
-                } else {
-                    // Seçili makine yok
-                    $('.dropdown-header').html('<i class="fas fa-server text-muted"></i> Makine Seçilmemiş');
-                }
-            }).fail(function() {
-                console.log('Seçili makine kontrol edilemedi');
-            });
+            $.get('@Url.Action("GetSelectedMachine", "Home")')
+                .done(function(response) {
+                    const header = $('.dropdown-header').filter(':contains("Makine")').first();
+                    if (response.success && header.length) {
+                        header.html('<i class="fas fa-server text-success me-2"></i>' + response.data.branchName);
+                    } else if (header.length) {
+                        header.html('<i class="fas fa-server text-muted me-2"></i>@("Makine Seçilmemiş")');
+                    }
+                })
+                .fail(function(error) {
+                    console.warn('@("Seçili makine kontrol edilemedi:")', error);
+                });
         }
     }
 
     function showMachineModal() {
-        // Bu fonksiyon ana view'da tanımlanmalı veya global olmalı
         if (typeof window.showMachineModal === 'function') {
             window.showMachineModal();
+        } else if (typeof showMachineSelectionModal === 'function') {
+            showMachineSelectionModal();
         } else {
-            toastr.warning('Makine seçim modalı bulunamadı');
+            showNotification('@("Makine seçim modalı yükleniyor...")', 'info');
+            console.info('@("Makine modal fonksiyonu bulunamadı. Alternatif yöntemler deneniyor...")');
         }
     }
 
     function checkSelectedMachineHealth() {
-        // Bu fonksiyon ana view'da tanımlanmalı veya global olmalı
         if (typeof window.checkSelectedMachineHealth === 'function') {
             window.checkSelectedMachineHealth();
+        } else if (typeof checkMachineHealth === 'function') {
+            checkMachineHealth();
         } else {
-            toastr.info('Health check fonksiyonu bulunamadı');
+            showNotification('@("Health check başlatılıyor...")', 'info');
+            console.info('@("Health check fonksiyonu bulunamadı. Alternatif yöntemler deneniyor...")');
+        }
+    }
+
+    // Utility function for notifications
+    function showNotification(message, type) {
+        type = type || 'info';
+
+        if (typeof toastr !== 'undefined') {
+            toastr[type](message);
+        } else if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: type,
+                title: message,
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true
+            });
+        } else {
+            console.log(type.toUpperCase() + ': ' + message);
+            // Fallback browser notification
+            if (window.Notification && Notification.permission === 'granted') {
+                new Notification(message);
+            } else {
+                alert(message);
+            }
         }
     }
 </script>

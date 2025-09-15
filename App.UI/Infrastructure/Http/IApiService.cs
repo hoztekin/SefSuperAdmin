@@ -1,11 +1,12 @@
-﻿using App.UI.DTOS;
+﻿using App.UI.Application.DTOS;
 using App.UI.Helper;
+using App.UI.Infrastructure.Storage;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace App.UI.Services
+namespace App.UI.Infrastructure.Http
 {
     public interface IApiService
     {
@@ -93,7 +94,7 @@ namespace App.UI.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "GET isteği sırasında hata oluştu: {Endpoint}", endpoint);
-                return default(T);
+                return default;
             }
         }
 
@@ -111,7 +112,7 @@ namespace App.UI.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "POST isteği sırasında hata oluştu: {Endpoint}", endpoint);
-                return default(T);
+                return default;
             }
         }
 
@@ -129,7 +130,7 @@ namespace App.UI.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "PUT isteği sırasında hata oluştu: {Endpoint}", endpoint);
-                return default(T);
+                return default;
             }
         }
 
@@ -157,7 +158,7 @@ namespace App.UI.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "DELETE isteği sırasında hata oluştu: {Endpoint}", endpoint);
-                return default(T);
+                return default;
             }
         }
 
@@ -175,12 +176,12 @@ namespace App.UI.Services
                     _logger.LogWarning("401 Unauthorized alındı, token problemi olabilir");
                 }
 
-                return default(T);
+                return default;
             }
 
             if (string.IsNullOrEmpty(responseContent))
             {
-                return default(T);
+                return default;
             }
 
             try
@@ -201,13 +202,13 @@ namespace App.UI.Services
                 else
                 {
                     _logger.LogWarning("API başarısız sonuç döndürdü: {Message}", serviceResult?.Message);
-                    return default(T);
+                    return default;
                 }
             }
             catch (JsonException ex)
             {
                 _logger.LogError(ex, "JSON Deserialize hatası: {Content}", responseContent.Substring(0, Math.Min(responseContent.Length, 500)));
-                return default(T);
+                return default;
             }
         }
 

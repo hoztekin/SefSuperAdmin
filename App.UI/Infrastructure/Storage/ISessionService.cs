@@ -1,7 +1,7 @@
-﻿using App.UI.DTOS;
+﻿using App.UI.Application.DTOS;
 using System.Text.Json;
 
-namespace App.UI.Services
+namespace App.UI.Infrastructure.Storage
 {
 
     /// <summary>

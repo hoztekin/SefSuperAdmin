@@ -1,5 +1,5 @@
 ﻿using App.Services.Users;
-using App.UI.DTOS;
+using App.UI.Application.DTOS;
 using AutoMapper;
 
 namespace App.UI.Presentation.Mapping

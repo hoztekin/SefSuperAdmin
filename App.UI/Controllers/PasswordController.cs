@@ -1,6 +1,6 @@
-﻿using App.UI.Helper;
+﻿using App.UI.Application.Services;
+using App.UI.Helper;
 using App.UI.Presentation.ViewModels;
-using App.UI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;

@@ -1,5 +1,7 @@
-﻿using App.UI.Presentation.ViewModels;
-using App.UI.Services;
+﻿using App.UI.Infrastructure.ExternalApi;
+using App.UI.Infrastructure.Http;
+using App.UI.Infrastructure.Storage;
+using App.UI.Presentation.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 
 namespace App.UI.Controllers;

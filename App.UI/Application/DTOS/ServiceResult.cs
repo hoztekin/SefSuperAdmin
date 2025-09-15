@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace App.UI.DTOS
+namespace App.UI.Application.DTOS
 {
     public class ServiceResult<T>
     {

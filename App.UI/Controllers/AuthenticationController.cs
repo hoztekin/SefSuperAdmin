@@ -1,8 +1,10 @@
 ﻿using App.Services.Authentications.Login;
 using App.Services.Users.Create;
-using App.UI.DTOS;
+using App.UI.Application.DTOS;
+using App.UI.Application.Services;
 using App.UI.Helper;
-using App.UI.Services;
+using App.UI.Infrastructure.Http;
+using App.UI.Infrastructure.Storage;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 namespace App.UI.Controllers

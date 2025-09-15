@@ -1,8 +1,8 @@
-﻿using App.UI.DTOS;
+﻿using App.UI.Application.DTOS;
 using App.UI.Helper;
 using System.Text.Json;
 
-namespace App.UI.Services
+namespace App.UI.Infrastructure.Storage
 {
     public interface ITokenService
     {
@@ -115,7 +115,7 @@ namespace App.UI.Services
         {
             try
             {
-                var loginDto = new { userName = userName, Password = password };
+                var loginDto = new { userName, Password = password };
                 var content = new StringContent(
                     JsonSerializer.Serialize(loginDto, _jsonOptions),
                     System.Text.Encoding.UTF8,

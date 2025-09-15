@@ -1,5 +1,6 @@
-﻿using App.UI.DTOS;
-namespace App.UI.Services
+﻿using App.UI.Application.DTOS;
+using App.UI.Infrastructure.Http;
+namespace App.UI.Application.Services
 {
     public interface IMemberService
     {

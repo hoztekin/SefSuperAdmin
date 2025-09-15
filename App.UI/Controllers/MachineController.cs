@@ -1,7 +1,8 @@
-﻿using App.UI.DTOS;
+﻿using App.UI.Application.DTOS;
 using App.UI.Helper;
+using App.UI.Infrastructure.ExternalApi;
+using App.UI.Infrastructure.Http;
 using App.UI.Presentation.ViewModels;
-using App.UI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

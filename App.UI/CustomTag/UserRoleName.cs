@@ -1,4 +1,4 @@
-﻿using App.UI.Services;
+﻿using App.UI.Application.Services;
 using Microsoft.AspNetCore.Razor.TagHelpers;
 
 namespace App.UI.CustomTag

@@ -1,8 +1,9 @@
 ﻿using App.Services.Account.Dtos;
+using App.UI.Infrastructure.Http;
 using App.UI.Presentation.ViewModels;
 using AutoMapper;
 
-namespace App.UI.Services
+namespace App.UI.Application.Services
 {
     public interface IAccountService
     {

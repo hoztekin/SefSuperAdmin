@@ -1,13 +1,14 @@
 ﻿using App.Services.Authentications.DTOs;
-using App.UI.DTOS;
+using App.UI.Application.DTOS;
 using App.UI.Helper;
+using App.UI.Infrastructure.Storage;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
 using System.Text.Json;
 using TokenDto = App.Services.Authentications.DTOs.TokenDto;
 
-namespace App.UI.Services
+namespace App.UI.Application.Services
 {
     public interface IAuthService
     {

@@ -1,6 +1,7 @@
-﻿using App.UI.DTOS;
+﻿using App.UI.Application.DTOS;
+using App.UI.Infrastructure.Http;
 
-namespace App.UI.Services
+namespace App.UI.Application.Services
 {
     public interface IRoleService
     {

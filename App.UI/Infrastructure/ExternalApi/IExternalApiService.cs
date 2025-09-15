@@ -1,10 +1,10 @@
-﻿using App.UI.DTOS;
+﻿using App.UI.Application.DTOS;
 using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 
-namespace App.UI.Services
+namespace App.UI.Infrastructure.ExternalApi
 {
     public interface IExternalApiService
     {
@@ -229,12 +229,12 @@ namespace App.UI.Services
                 }
 
                 _logger.LogWarning("External API GET başarısız: {Url} - {StatusCode}", fullUrl, response.StatusCode);
-                return default(T);
+                return default;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "External API GET hatası: {ApiAddress}/{Endpoint}", apiAddress, endpoint);
-                return default(T);
+                return default;
             }
         }
 
@@ -259,12 +259,12 @@ namespace App.UI.Services
                 }
 
                 _logger.LogWarning("External API POST başarısız: {Url} - {StatusCode}", fullUrl, response.StatusCode);
-                return default(T);
+                return default;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "External API POST hatası: {ApiAddress}/{Endpoint}", apiAddress, endpoint);
-                return default(T);
+                return default;
             }
         }
     }

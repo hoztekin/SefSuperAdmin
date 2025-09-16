@@ -10,11 +10,6 @@ namespace App.UI.Controllers
     [Authorize]
     public class PasswordController(IAccountService accountService) : Controller
     {
-        public IActionResult PasswordChange()
-        {
-            return View();
-        }
-
         [HttpPost]
         public async Task<IActionResult> PasswordChange(PasswordChangeViewModel passwordChangeViewModel)
         {
@@ -32,10 +27,10 @@ namespace App.UI.Controllers
             {
                 passwordChangeViewModel.UserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-
                 var result = await accountService.PasswordChangeAsync(passwordChangeViewModel);
 
-                if (result.IsSuccess) 
+                // Artık result null gelmeyecek, her zaman ServiceResult olacak
+                if (result != null && result.IsSuccess)
                 {
                     if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
                     {
@@ -47,13 +42,21 @@ namespace App.UI.Controllers
                 }
                 else
                 {
+                    // Hata mesajlarını daha detaylı yakala
+                    var errorMessage = result?.ErrorMessage?.FirstOrDefault() ?? "Şifre değiştirilemedi";
+
                     if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
                     {
-                        return Json(new { success = false, message = result.ErrorMessage.FirstOrDefault() ?? "Şifre değiştirilemedi" });
+                        return Json(new
+                        {
+                            success = false,
+                            message = errorMessage,
+                            statusCode = (int)result?.Status
+                        });
                     }
 
-                    ModelState.AddModelError("", result.ErrorMessage.FirstOrDefault() ?? "Şifre değiştirilemedi");
-                    this.SetErrorMessage(result.ErrorMessage.FirstOrDefault() ?? "Parolanız değiştirilirken bir hata oluştu");
+                    ModelState.AddModelError("", errorMessage);
+                    this.SetErrorMessage(errorMessage);
                     return View(passwordChangeViewModel);
                 }
             }

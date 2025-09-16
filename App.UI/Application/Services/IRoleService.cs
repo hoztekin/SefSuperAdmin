@@ -5,74 +5,74 @@ namespace App.UI.Application.Services
 {
     public interface IRoleService
     {
-        Task<List<RoleDto>> GetAllRolesAsync();
-        Task<RoleDto> GetRoleByIdAsync(string id);
-        Task CreateRoleAsync(RoleDto roleDto);
-        Task UpdateRoleAsync(RoleDto roleDto);
-        Task DeleteRoleAsync(string id);
-        Task<List<RoleAssignDtoUI>> GetUserRolesAsync(string userId);
-        Task AssignRolesToUserAsync(List<RoleAssignDtoUI> roles, string userId);
-        Task<UserAppDtoUI> GetUserByIdAsync(string userId);
+        Task<ServiceResult<List<RoleDto>>> GetAllRolesAsync();
+        Task<ServiceResult<RoleDto>> GetRoleByIdAsync(string id);
+        Task<ServiceResult> CreateRoleAsync(RoleDto roleDto);
+        Task<ServiceResult> UpdateRoleAsync(RoleDto roleDto);
+        Task<ServiceResult> DeleteRoleAsync(string id);
+        Task<ServiceResult<List<RoleAssignDtoUI>>> GetUserRolesAsync(string userId);
+        Task<ServiceResult> AssignRolesToUserAsync(List<RoleAssignDtoUI> roles, string userId);
+        Task<ServiceResult<UserAppDtoUI>> GetUserByIdAsync(string userId);
     }
 
     public class RoleService(IApiService apiService) : IRoleService
     {
-        public async Task<List<RoleDto>> GetAllRolesAsync()
+        public async Task<ServiceResult<List<RoleDto>>> GetAllRolesAsync()
         {
             try
             {
-                var result = await apiService.GetAsync<List<RoleDto>>("api/v1/Role");
-                return result ?? new List<RoleDto>();
+                var result = await apiService.GetServiceResultAsync<List<RoleDto>>("api/v1/Role");
+                return result;
             }
             catch (Exception ex)
             {
-                return new List<RoleDto>();
+                return ServiceResult<List<RoleDto>>.Fail($"Roller yüklenirken hata oluştu: {ex.Message}");
             }
         }
 
-        public async Task<RoleDto> GetRoleByIdAsync(string id)
+        public async Task<ServiceResult<RoleDto>> GetRoleByIdAsync(string id)
         {
-            return await apiService.GetAsync<RoleDto>($"api/v1/Role/{id}");
+            return await apiService.GetServiceResultAsync<RoleDto>($"api/v1/Role/{id}");
         }
 
-        public async Task CreateRoleAsync(RoleDto roleDto)
+        public async Task<ServiceResult> CreateRoleAsync(RoleDto roleDto)
         {
-            var response = await apiService.PostAsync<ServiceResult<RoleDto>>("api/v1/Role", roleDto);
+            return await apiService.PostServiceResultAsync("api/v1/Role", roleDto);
         }
 
-        public async Task UpdateRoleAsync(RoleDto roleDto)
+        public async Task<ServiceResult> UpdateRoleAsync(RoleDto roleDto)
         {
-            await apiService.PutAsync<RoleDto>($"api/v1/Role/{roleDto.RoleId}", roleDto);
+            return await apiService.PutServiceResultAsync($"api/v1/Role/{roleDto.RoleId}", roleDto);
         }
 
-        public async Task DeleteRoleAsync(string id)
+        public async Task<ServiceResult> DeleteRoleAsync(string id)
         {
             var data = new { id };
-            await apiService.DeleteAsync<ServiceResult<object>>($"api/v1/Role/{id}", data);
+            return await apiService.DeleteServiceResultAsync($"api/v1/Role/{id}", data);
         }
 
-        public async Task<List<RoleAssignDtoUI>> GetUserRolesAsync(string userId)
+        public async Task<ServiceResult<List<RoleAssignDtoUI>>> GetUserRolesAsync(string userId)
         {
             try
             {
                 var request = new GetUserRolesRequest(userId);
-                var result = await apiService.PostAsync<List<RoleAssignDtoUI>>("api/v1/Role/user-roles", request);
-                return result ?? new List<RoleAssignDtoUI>();
+                var result = await apiService.PostServiceResultAsync<List<RoleAssignDtoUI>>("api/v1/Role/user-roles", request);
+                return result;
             }
             catch (Exception ex)
             {
-                return new List<RoleAssignDtoUI>();
+                return ServiceResult<List<RoleAssignDtoUI>>.Fail($"Kullanıcı rolleri yüklenirken hata oluştu: {ex.Message}");
             }
         }
 
-        public async Task AssignRolesToUserAsync(List<RoleAssignDtoUI> roles, string userId)
+        public async Task<ServiceResult> AssignRolesToUserAsync(List<RoleAssignDtoUI> roles, string userId)
         {
-            await apiService.PostAsync<List<RoleAssignDtoUI>>($"api/v1/Role/assign/{userId}", roles);
+            return await apiService.PostServiceResultAsync($"api/v1/Role/assign/{userId}", roles);
         }
 
-        public async Task<UserAppDtoUI> GetUserByIdAsync(string userId)
+        public async Task<ServiceResult<UserAppDtoUI>> GetUserByIdAsync(string userId)
         {
-            return await apiService.GetAsync<UserAppDtoUI>($"api/v1/User/{userId}");
+            return await apiService.GetServiceResultAsync<UserAppDtoUI>($"api/v1/User/{userId}");
         }
     }
 }

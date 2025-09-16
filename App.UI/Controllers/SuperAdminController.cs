@@ -22,7 +22,9 @@ namespace App.UI.Controllers
             {
                 var members = await memberService.GetAllMembersAsync();
                 var machines = await machineAppService.GetAllAsync();
-                var roles = await roleService.GetAllRolesAsync();
+                var rolesResult = await roleService.GetAllRolesAsync();
+
+                var roles = rolesResult?.Data ?? new List<RoleDto>();
 
                 var dashboardModel = new SuperAdminDashboardViewModel
                 {
@@ -73,19 +75,22 @@ namespace App.UI.Controllers
 
             try
             {
-                var user = await roleService.GetUserByIdAsync(userId);
-                if (user == null)
+                var userResult = await roleService.GetUserByIdAsync(userId);
+                if (userResult == null || !userResult.IsSuccess || userResult.Data == null)
                 {
                     this.SetErrorMessage("Kullanıcı bulunamadı");
                     return RedirectToAction(nameof(Users));
                 }
 
-                var userRoles = await roleService.GetUserRolesAsync(userId);
-                var allRoles = await roleService.GetAllRolesAsync();
+                var userRolesResult = await roleService.GetUserRolesAsync(userId);
+                var allRolesResult = await roleService.GetAllRolesAsync();
+
+                var userRoles = userRolesResult?.Data ?? new List<RoleAssignDtoUI>();
+                var allRoles = allRolesResult?.Data ?? new List<RoleDto>();
 
                 var viewModel = new UserRoleAssignViewModel
                 {
-                    User = user,
+                    User = userResult.Data,
                     UserRoles = userRoles,
                     AllRoles = allRoles
                 };
@@ -99,7 +104,6 @@ namespace App.UI.Controllers
                 return RedirectToAction(nameof(Users));
             }
         }
-
         // Kullanıcıya rol atama işlemi
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -117,21 +121,36 @@ namespace App.UI.Controllers
 
             try
             {
-                await roleService.AssignRolesToUserAsync(roles, userId);
+                var result = await roleService.AssignRolesToUserAsync(roles, userId);
 
-                // AJAX isteği ise JSON response döndür
-                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                if (result != null && result.IsSuccess)
                 {
-                    return Json(new
+                    // AJAX isteği ise JSON response döndür
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
                     {
-                        success = true,
-                        message = "Roller başarıyla atandı",
-                        redirectTo = Url.Action("Users", "SuperAdmin")
-                    });
-                }
+                        return Json(new
+                        {
+                            success = true,
+                            message = "Roller başarıyla atandı",
+                            redirectTo = Url.Action("Users", "SuperAdmin")
+                        });
+                    }
 
-                this.SetSuccessMessage("Roller başarıyla atandı");
-                return RedirectToAction(nameof(Users));
+                    this.SetSuccessMessage("Roller başarıyla atandı");
+                    return RedirectToAction(nameof(Users));
+                }
+                else
+                {
+                    var errorMessage = result?.Message ?? "Rol atama başarısız";
+
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    {
+                        return Json(new { success = false, message = errorMessage });
+                    }
+
+                    this.SetErrorMessage(errorMessage);
+                    return RedirectToAction(nameof(AssignRoles), new { userId });
+                }
             }
             catch (Exception ex)
             {
@@ -312,7 +331,9 @@ namespace App.UI.Controllers
             {
                 var users = await memberService.GetAllMembersAsync();
                 var machines = await machineAppService.GetAllAsync();
-                var roles = await roleService.GetAllRolesAsync();
+                var rolesResult = await roleService.GetAllRolesAsync();
+
+                var roles = rolesResult?.Data ?? new List<RoleDto>();
 
                 var stats = new
                 {

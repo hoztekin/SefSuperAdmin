@@ -170,43 +170,73 @@
     </div>
 </div>
 
-<!-- Kullanıcı Düzenleme Modal -->
-<div class="modal fade" id="editUserModal" tabindex="-1">
+<!-- Kullanıcı Ekleme Modal - YENİ TASARIM -->
+<div class="modal fade" id="addUserModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header bg-warning text-dark">
-                <h5 class="modal-title"><i class="fas fa-user-edit"></i> Kullanıcı Düzenle</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus"></i> Yeni Kullanıcı Ekle
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form id="editUserForm">
+            <form id="addUserForm">
                 <div class="modal-body">
-                    <input type="hidden" id="editUserId" name="userId">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        Güvenlik için güçlü bir şifre seçin.
+                    </div>
+
                     <div class="mb-3">
-                        <label for="editUserName" class="form-label">Kullanıcı Adı</label>
-                        <input type="text" class="form-control" id="editUserName" name="userName" required>
+                        <label for="userName" class="form-label">
+                            <i class="fas fa-user"></i> Kullanıcı Adı *
+                        </label>
+                        <input type="text" class="form-control form-control-lg" id="userName" name="userName" required autocomplete="off">
                         <div class="invalid-feedback"></div>
                     </div>
+
                     <div class="mb-3">
-                        <label for="editEmail" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="editEmail" name="email" required>
+                        <label for="email" class="form-label">
+                            <i class="fas fa-envelope"></i> Email *
+                        </label>
+                        <input type="email" class="form-control form-control-lg" id="email" name="email" required autocomplete="off">
                         <div class="invalid-feedback"></div>
                     </div>
+
                     <div class="mb-3">
-                        <label for="editPassword" class="form-label">Yeni Şifre (Opsiyonel)</label>
-                        <input type="password" class="form-control" id="editPassword" name="password">
+                        <label for="password" class="form-label">
+                            <i class="fas fa-lock"></i> Şifre *
+                        </label>
+                        <div class="input-group">
+                            <input type="password" class="form-control form-control-lg" id="password" name="password" required autocomplete="new-password">
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
                         <div class="invalid-feedback"></div>
-                        <div class="form-text">Şifreyi değiştirmek istemiyorsanız boş bırakın.</div>
+                        <div class="form-text">En az 6 karakter olmalıdır.</div>
                     </div>
+
                     <div class="mb-3">
-                        <label for="editConfirmPassword" class="form-label">Yeni Şifre Tekrar</label>
-                        <input type="password" class="form-control" id="editConfirmPassword" name="confirmPassword">
+                        <label for="confirmPassword" class="form-label">
+                            <i class="fas fa-lock"></i> Şifre Tekrar *
+                        </label>
+                        <div class="input-group">
+                            <input type="password" class="form-control form-control-lg" id="confirmPassword" name="confirmPassword" required autocomplete="new-password">
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('confirmPassword', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
                         <div class="invalid-feedback"></div>
+                        <div class="valid-feedback">Şifreler eşleşiyor!</div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                    <button type="submit" class="btn btn-warning">
-                        <i class="fas fa-save"></i> Güncelle
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> İptal
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Kullanıcıyı Kaydet
                     </button>
                 </div>
             </form>
@@ -214,42 +244,74 @@
     </div>
 </div>
 
-<!-- Kullanıcı Ekleme Modal -->
-<div class="modal fade" id="addUserModal" tabindex="-1">
+<!-- Kullanıcı Düzenleme Modal - YENİ TASARIM -->
+<div class="modal fade" id="editUserModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title"><i class="fas fa-user-plus"></i> Yeni Kullanıcı Ekle</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-edit"></i> Kullanıcı Düzenle
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form id="addUserForm">
+            <form id="editUserForm">
                 <div class="modal-body">
+                    <input type="hidden" id="editUserId" name="userId">
+
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Şifreyi değiştirmek istemiyorsanız boş bırakın.
+                    </div>
+
                     <div class="mb-3">
-                        <label for="userName" class="form-label">Kullanıcı Adı</label>
-                        <input type="text" class="form-control" id="userName" name="userName" required>
+                        <label for="editUserName" class="form-label">
+                            <i class="fas fa-user"></i> Kullanıcı Adı *
+                        </label>
+                        <input type="text" class="form-control form-control-lg" id="editUserName" name="userName" required>
                         <div class="invalid-feedback"></div>
                     </div>
+
                     <div class="mb-3">
-                        <label for="email" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="email" name="email" required>
+                        <label for="editEmail" class="form-label">
+                            <i class="fas fa-envelope"></i> Email *
+                        </label>
+                        <input type="email" class="form-control form-control-lg" id="editEmail" name="email" required>
                         <div class="invalid-feedback"></div>
                     </div>
+
                     <div class="mb-3">
-                        <label for="password" class="form-label">Şifre</label>
-                        <input type="password" class="form-control" id="password" name="password" required>
+                        <label for="editPassword" class="form-label">
+                            <i class="fas fa-lock"></i> Yeni Şifre (Opsiyonel)
+                        </label>
+                        <div class="input-group">
+                            <input type="password" class="form-control form-control-lg" id="editPassword" name="password" autocomplete="new-password">
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('editPassword', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
                         <div class="invalid-feedback"></div>
-                        <div class="form-text">En az 6 karakter olmalıdır.</div>
                     </div>
+
                     <div class="mb-3">
-                        <label for="confirmPassword" class="form-label">Şifre Tekrar</label>
-                        <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
+                        <label for="editConfirmPassword" class="form-label">
+                            <i class="fas fa-lock"></i> Yeni Şifre Tekrar
+                        </label>
+                        <div class="input-group">
+                            <input type="password" class="form-control form-control-lg" id="editConfirmPassword" name="confirmPassword" autocomplete="new-password">
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('editConfirmPassword', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
                         <div class="invalid-feedback"></div>
+                        <div class="valid-feedback">Şifreler eşleşiyor!</div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                    <button type="submit" class="btn btn-success">
-                        <i class="fas fa-save"></i> Kaydet
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> İptal
+                    </button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-save"></i> Güncelle
                     </button>
                 </div>
             </form>
@@ -280,21 +342,38 @@
     </div>
 </div>
 
-@section Scripts {
+@section Scripts{
+
     <script>
-        $(document).ready(function() {
-            // DataTable kullanarak tablo fonksiyonalitesi
+         $(document).ready(function() {
+            // DataTables sadece tablo varsa yükle
+            if ($('#usersTable').length > 0) {
+                // DataTables CSS ve JS'i dinamik yükle
+                if (!$.fn.DataTable) {
+                    $('head').append('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.24/css/dataTables.bootstrap5.min.css">');
+                    $.getScript('https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.24/js/jquery.dataTables.min.js', function() {
+                        $.getScript('https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.24/js/dataTables.bootstrap5.min.js', function() {
+                            initDataTable();
+                        });
+                    });
+                } else {
+                    initDataTable();
+                }
+            }
+        });
+
+        function initDataTable() {
             $('#usersTable').DataTable({
                 "language": {
                     "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Turkish.json"
                 },
                 "pageLength": 25,
-                "order": [[ 3, "desc" ]], // Kayıt tarihine göre sırala
+                "order": [[ 3, "desc" ]],
                 "columnDefs": [
-                    { "orderable": false, "targets": 5 } // İşlemler kolonunu sıralama dışı bırak
+                    { "orderable": false, "targets": 5 }
                 ]
             });
-        });
+        }
 
         function refreshUserList() {
             location.reload();
@@ -302,100 +381,281 @@
 
         function showAddUserModal() {
             $('#addUserModal').modal('show');
-            // Formu temizle
             $('#addUserForm')[0].reset();
-            $('#addUserForm .is-invalid').removeClass('is-invalid');
+            $('#addUserForm .is-invalid, #addUserForm .is-valid').removeClass('is-invalid is-valid');
         }
 
         function showEditUserModal(userId, userName, email) {
             $('#editUserModal').modal('show');
-
-            // Formu temizle ve doldur
             $('#editUserForm')[0].reset();
-            $('#editUserForm .is-invalid').removeClass('is-invalid');
+            $('#editUserForm .is-invalid, #editUserForm .is-valid').removeClass('is-invalid is-valid');
 
             $('#editUserId').val(userId);
             $('#editUserName').val(userName);
             $('#editEmail').val(email);
         }
 
-        function deleteUser(userId, userName) {
-            Swal.fire({
-                title: 'Kullanıcıyı Sil',
-                html: `<strong>"${userName}"</strong> kullanıcısını silmek istediğinize emin misiniz?<br><br><small class="text-muted">Bu işlem geri alınamaz!</small>`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: '<i class="fas fa-trash"></i> Evet, Sil!',
-                cancelButtonText: '<i class="fas fa-times"></i> İptal',
-                reverseButtons: true
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Loading göster
-                    Swal.fire({
-                        title: 'Siliniyor...',
-                        html: 'Kullanıcı silme işlemi gerçekleştiriliyor',
-                        allowOutsideClick: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
-                    });
+        // Şifre görünürlük toggle - window scope'a ekle
+        window.togglePassword = function(fieldId, button) {
+  
+            const field = document.getElementById(fieldId);
 
-                    fetch(`@Url.Action("DeleteUser", "SuperAdmin")?userId=${userId}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            Swal.fire({
-                                title: 'Başarılı!',
-                                text: 'Kullanıcı başarıyla silindi.',
-                                icon: 'success',
-                                confirmButtonColor: '#28a745'
-                            }).then(() => {
-                                location.reload();
-                            });
-                        } else {
-                            Swal.fire({
-                                title: 'Hata!',
-                                text: 'Kullanıcı silinirken hata oluştu: ' + data.message,
-                                icon: 'error',
-                                confirmButtonColor: '#d33'
-                            });
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
+            if (!field) {
+
+                return;
+            }
+
+            const icon = button.querySelector('i');
+
+            if (!icon) {
+     
+                return;
+            }
+
+            if (field.type === 'password') {
+                field.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+
+            } else {
+                field.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+
+            }
+        }
+
+        // Real-time şifre eşleştirme kontrolü
+        function setupPasswordMatching(passwordId, confirmPasswordId) {
+            const passwordField = document.getElementById(passwordId);
+            const confirmField = document.getElementById(confirmPasswordId);
+
+            function checkMatch() {
+                const password = passwordField.value;
+                const confirm = confirmField.value;
+
+                if (confirm === '') {
+                    confirmField.classList.remove('is-valid', 'is-invalid');
+                    return;
+                }
+
+                if (password === confirm && password !== '') {
+                    confirmField.classList.remove('is-invalid');
+                    confirmField.classList.add('is-valid');
+                } else {
+                    confirmField.classList.remove('is-valid');
+                    confirmField.classList.add('is-invalid');
+                    const feedbackElement = confirmField.parentElement.parentElement.querySelector('.invalid-feedback');
+                    if (feedbackElement) {
+                        feedbackElement.textContent = 'Şifreler eşleşmiyor!';
+                    }
+                }
+            }
+
+            passwordField.addEventListener('input', checkMatch);
+            confirmField.addEventListener('input', checkMatch);
+        }
+
+        // Modal açıldığında setup yap
+        $('#addUserModal').on('shown.bs.modal', function () {
+           setTimeout(() => {
+            setupPasswordMatching('password', 'confirmPassword');
+            }, 50);
+            $('#userName').focus();
+        });
+
+        $('#editUserModal').on('shown.bs.modal', function () {
+            setupPasswordMatching('editPassword', 'editConfirmPassword');
+            $('#editUserName').focus();
+        });
+
+        // Field hata gösterme fonksiyonu
+        function showFieldError(fieldId, message) {
+            const field = $('#' + fieldId);
+            field.addClass('is-invalid');
+            field.removeClass('is-valid');
+
+            let feedbackElement;
+            if (field.parent().hasClass('input-group')) {
+                feedbackElement = field.parent().parent().find('.invalid-feedback');
+            } else {
+                feedbackElement = field.siblings('.invalid-feedback');
+            }
+            feedbackElement.text(message);
+        }
+
+        // KULLANICI EKLEME - DÜZELTME
+        $('#addUserForm').on('submit', async function(e) {
+            e.preventDefault();
+
+
+
+            // Küçük bir gecikme ekle - browser'ın autocomplete'i tamamlaması için
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Form verilerini al - native DOM API kullan
+            const form = document.getElementById('addUserForm');
+            const formData = new FormData(form);
+
+            const userName = formData.get('userName') || document.getElementById('userName').value;
+            const email = formData.get('email') || document.getElementById('email').value;
+            const password = formData.get('password') || document.getElementById('password').value;
+            const confirmPassword = formData.get('confirmPassword') || document.getElementById('confirmPassword').value;
+
+
+            // Tüm validation'ları temizle
+            $('#addUserForm .is-invalid, #addUserForm .is-valid').removeClass('is-invalid is-valid');
+
+            // Validasyon
+            let hasError = false;
+
+            if (!userName || userName.trim() === '') {
+                showFieldError('userName', 'Kullanıcı adı gerekli!');
+                hasError = true;
+            }
+
+            if (!email || email.trim() === '') {
+                showFieldError('email', 'Email gerekli!');
+                hasError = true;
+            }
+
+            if (!password || password.length === 0) {
+                showFieldError('password', 'Şifre gerekli!');
+                hasError = true;
+            } else if (password.length < 4) {  // Validator'a göre minimum 4
+                showFieldError('password', 'Şifre en az 4 karakter olmalıdır!');
+                hasError = true;
+            }
+
+            if (!confirmPassword || confirmPassword.length === 0) {
+                showFieldError('confirmPassword', 'Şifre tekrar gerekli!');
+                hasError = true;
+            }
+
+            // Şifre eşleştirme kontrolü
+            if (password && confirmPassword && password !== confirmPassword) {
+
+                showFieldError('confirmPassword', 'Şifreler eşleşmiyor!');
+                Swal.fire({
+                    title: 'Validasyon Hatası!',
+                    text: 'Şifreler eşleşmiyor!',
+                    icon: 'warning',
+                    confirmButtonColor: '#ffc107'
+                });
+                hasError = true;
+            }
+
+            if (hasError) {
+
+                return;
+            }
+
+            const submitData = {
+                UserName: userName.trim(),
+                EMail: email.trim(),
+                Password: password,
+                ConfirmPassword: confirmPassword
+            };
+
+
+
+            try {
+                const submitBtn = $(this).find('button[type="submit"]');
+                const originalText = submitBtn.html();
+                submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Kaydediliyor...').prop('disabled', true);
+
+                // CSRF token al
+                let token = $('input[name="__RequestVerificationToken"]').val();
+                if (!token) {
+                    token = $('meta[name="RequestVerificationToken"]').attr('content');
+                }
+
+                const response = await fetch('/SuperAdmin/CreateUser', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token || ''
+                    },
+                    body: JSON.stringify(submitData)
+                });
+
+
+
+                if (response.ok) {
+                    const data = await response.json();
+   
+
+                    if (data.success) {
+                        $('#addUserModal').modal('hide');
                         Swal.fire({
-                            title: 'Bağlantı Hatası!',
-                            text: 'Server ile bağlantı kurulamadı.',
+                            title: 'Başarılı!',
+                            text: 'Kullanıcı başarıyla eklendi!',
+                            icon: 'success',
+                            confirmButtonColor: '#28a745'
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Hata!',
+                            text: 'Kullanıcı eklenirken hata oluştu: ' + (data.message || 'Bilinmeyen hata'),
                             icon: 'error',
                             confirmButtonColor: '#d33'
                         });
+                    }
+                } else {
+ 
+                    const errorText = await response.text();
+
+
+                    Swal.fire({
+                        title: 'Hata!',
+                        text: 'HTTP ' + response.status + ' hatası oluştu',
+                        icon: 'error',
+                        confirmButtonColor: '#d33'
                     });
                 }
-            });
-        }
+
+                submitBtn.html(originalText).prop('disabled', false);
+            } catch (error) {
+                console.error('Network Error:', error);
+                Swal.fire({
+                    title: 'Bağlantı Hatası!',
+                    text: 'Server ile bağlantı kurulamadı: ' + error.message,
+                    icon: 'error',
+                    confirmButtonColor: '#d33'
+                });
+
+                const submitBtn = $(this).find('button[type="submit"]');
+                submitBtn.html('<i class="fas fa-save"></i> Kullanıcıyı Kaydet').prop('disabled', false);
+            }
+        });
 
         // Kullanıcı düzenleme form submit
         $('#editUserForm').on('submit', async function(e) {
             e.preventDefault();
 
-            const userId = $('#editUserId').val();
-            const formData = {
-                UserName: $('#editUserName').val(),
-                EMail: $('#editEmail').val(),
-                Password: $('#editPassword').val(),
-                ConfirmPassword: $('#editConfirmPassword').val()
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            const form = document.getElementById('editUserForm');
+            const formData = new FormData(form);
+
+            const userId = formData.get('userId') || document.getElementById('editUserId').value;
+            const userName = formData.get('userName') || document.getElementById('editUserName').value;
+            const email = formData.get('email') || document.getElementById('editEmail').value;
+            const password = formData.get('password') || document.getElementById('editPassword').value;
+            const confirmPassword = formData.get('confirmPassword') || document.getElementById('editConfirmPassword').value;
+
+            const submitData = {
+                UserName: userName.trim(),
+                EMail: email.trim(),
+                Password: password || null,
+                ConfirmPassword: confirmPassword || null
             };
 
             // Basit validasyon
-            if (formData.Password && formData.Password !== formData.ConfirmPassword) {
-                showError('editConfirmPassword', 'Şifreler eşleşmiyor!');
+            if (password && confirmPassword && password !== confirmPassword) {
+                showFieldError('editConfirmPassword', 'Şifreler eşleşmiyor!');
                 Swal.fire({
                     title: 'Validasyon Hatası!',
                     text: 'Şifreler eşleşmiyor!',
@@ -405,11 +665,11 @@
                 return;
             }
 
-            if (formData.Password && formData.Password.length < 6) {
-                showError('editPassword', 'Şifre en az 6 karakter olmalıdır!');
+            if (password && password.length < 4) {
+                showFieldError('editPassword', 'Şifre en az 4 karakter olmalıdır!');
                 Swal.fire({
                     title: 'Validasyon Hatası!',
-                    text: 'Şifre en az 6 karakter olmalıdır!',
+                    text: 'Şifre en az 4 karakter olmalıdır!',
                     icon: 'warning',
                     confirmButtonColor: '#ffc107'
                 });
@@ -417,18 +677,22 @@
             }
 
             try {
-                // Loading göster
                 const submitBtn = $(this).find('button[type="submit"]');
                 const originalText = submitBtn.html();
                 submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Güncelleniyor...').prop('disabled', true);
 
-                const response = await fetch(`@Url.Action("UpdateUser", "SuperAdmin")?userId=${userId}`, {
+                let token = $('input[name="__RequestVerificationToken"]').val();
+                if (!token) {
+                    token = $('meta[name="RequestVerificationToken"]').attr('content');
+                }
+
+                const response = await fetch(`/SuperAdmin/UpdateUser?userId=${userId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
-                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                        'RequestVerificationToken': token || ''
                     },
-                    body: JSON.stringify(formData)
+                    body: JSON.stringify(submitData)
                 });
 
                 if (response.ok) {
@@ -446,16 +710,16 @@
                     } else {
                         Swal.fire({
                             title: 'Hata!',
-                            text: 'Kullanıcı güncellenirken hata oluştu: ' + data.message,
+                            text: 'Kullanıcı güncellenirken hata oluştu: ' + (data.message || 'Bilinmeyen hata'),
                             icon: 'error',
                             confirmButtonColor: '#d33'
                         });
                     }
                 } else {
-                    const errorData = await response.json();
+                    const errorData = await response.json().catch(() => ({}));
                     Swal.fire({
                         title: 'Hata!',
-                        text: 'Kullanıcı güncellenirken hata oluştu: ' + (errorData.message || 'Bilinmeyen hata'),
+                        text: 'Kullanıcı güncellenirken hata oluştu: ' + (errorData.message || 'HTTP ' + response.status),
                         icon: 'error',
                         confirmButtonColor: '#d33'
                     });
@@ -476,100 +740,81 @@
             }
         });
 
-        // Kullanıcı ekleme form submit
-        $('#addUserForm').on('submit', async function(e) {
-            e.preventDefault();
-
-            const formData = {
-                UserName: $('#userName').val(),
-                EMail: $('#email').val(),
-                Password: $('#password').val(),
-                ConfirmPassword: $('#confirmPassword').val()
-            };
-
-            // Basit validasyon
-            if (formData.Password !== formData.ConfirmPassword) {
-                showError('confirmPassword', 'Şifreler eşleşmiyor!');
-                Swal.fire({
-                    title: 'Validasyon Hatası!',
-                    text: 'Şifreler eşleşmiyor!',
-                    icon: 'warning',
-                    confirmButtonColor: '#ffc107'
-                });
-                return;
-            }
-
-            if (formData.Password.length < 6) {
-                showError('password', 'Şifre en az 6 karakter olmalıdır!');
-                Swal.fire({
-                    title: 'Validasyon Hatası!',
-                    text: 'Şifre en az 6 karakter olmalıdır!',
-                    icon: 'warning',
-                    confirmButtonColor: '#ffc107'
-                });
-                return;
-            }
-
-            try {
-                // Loading göster
-                const submitBtn = $(this).find('button[type="submit"]');
-                const originalText = submitBtn.html();
-                submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Kaydediliyor...').prop('disabled', true);
-
-                const response = await fetch('@Url.Action("CreateUser", "SuperAdmin")', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
-                    },
-                    body: JSON.stringify(formData)
-                });
-
-                if (response.ok) {
-                    $('#addUserModal').modal('hide');
+        function deleteUser(userId, userName) {
+            Swal.fire({
+                title: 'Kullanıcıyı Sil',
+                html: `<strong>"${userName}"</strong> kullanıcısını silmek istediğinize emin misiniz?<br><br><small class="text-muted">Bu işlem geri alınamaz!</small>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fas fa-trash"></i> Evet, Sil!',
+                cancelButtonText: '<i class="fas fa-times"></i> İptal',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
                     Swal.fire({
-                        title: 'Başarılı!',
-                        text: 'Kullanıcı başarıyla eklendi!',
-                        icon: 'success',
-                        confirmButtonColor: '#28a745'
-                    }).then(() => {
-                        location.reload();
+                        title: 'Siliniyor...',
+                        html: 'Kullanıcı silme işlemi gerçekleştiriliyor',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
                     });
-                } else {
-                    const errorData = await response.json();
-                    Swal.fire({
-                        title: 'Hata!',
-                        text: 'Kullanıcı eklenirken hata oluştu: ' + (errorData.message || 'Bilinmeyen hata'),
-                        icon: 'error',
-                        confirmButtonColor: '#d33'
+
+                    let token = $('input[name="__RequestVerificationToken"]').val();
+                    if (!token) {
+                        token = $('meta[name="RequestVerificationToken"]').attr('content');
+                    }
+
+                    fetch(`/SuperAdmin/DeleteUser?userId=${userId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'RequestVerificationToken': token || ''
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                title: 'Başarılı!',
+                                text: 'Kullanıcı başarıyla silindi.',
+                                icon: 'success',
+                                confirmButtonColor: '#28a745'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Hata!',
+                                text: 'Kullanıcı silinirken hata oluştu: ' + (data.message || 'Bilinmeyen hata'),
+                                icon: 'error',
+                                confirmButtonColor: '#d33'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            title: 'Bağlantı Hatası!',
+                            text: 'Server ile bağlantı kurulamadı.',
+                            icon: 'error',
+                            confirmButtonColor: '#d33'
+                        });
                     });
                 }
-
-                submitBtn.html(originalText).prop('disabled', false);
-            } catch (error) {
-                console.error('Error:', error);
-                Swal.fire({
-                    title: 'Bağlantı Hatası!',
-                    text: 'Server ile bağlantı kurulamadı.',
-                    icon: 'error',
-                    confirmButtonColor: '#d33'
-                });
-
-                const submitBtn = $(this).find('button[type="submit"]');
-                submitBtn.html('<i class="fas fa-save"></i> Kaydet').prop('disabled', false);
-            }
-        });
+            });
+        }
 
         function viewUserDetails(userId) {
             $('#userDetailModal').modal('show');
 
-            // AJAX ile kullanıcı detaylarını getir
-            $.get('@Url.Action("GetUserById", "SuperAdmin")?userId=' + userId, function(response) {
-                console.log('API Response:', response); // Debug için
+            $.get(`/SuperAdmin/GetUserById?userId=${userId}`, function(response) {
+ 
 
                 if (response && response.success && response.data) {
                     const user = response.data;
-                    console.log('User Data:', user); // Debug için
+ 
 
                     let rolesHtml = '';
 
@@ -617,7 +862,7 @@
                         <hr>
                         <div class="row">
                             <div class="col-12 text-center">
-                                <a href="@Url.Action("AssignRoles", "SuperAdmin")?userId=${userId}" class="btn btn-primary">
+                                <a href="/SuperAdmin/AssignRoles?userId=${userId}" class="btn btn-primary">
                                     <i class="fas fa-user-tag"></i> Rol Yönetimi
                                 </a>
                             </div>
@@ -641,29 +886,15 @@
             });
         }
 
-        function showError(fieldName, message) {
-            $(`#${fieldName}`).addClass('is-invalid');
-            $(`#${fieldName}`).siblings('.invalid-feedback').text(message);
-        }
+        // Modal kapandığında form temizle
+        $('#addUserModal').on('hidden.bs.modal', function () {
+            $('#addUserForm')[0].reset();
+            $('#addUserForm .is-invalid, #addUserForm .is-valid').removeClass('is-invalid is-valid');
+        });
 
-        function showSuccessMessage(message) {
-            Swal.fire({
-                title: 'Başarılı!',
-                text: message,
-                icon: 'success',
-                confirmButtonColor: '#28a745',
-                timer: 2000,
-                showConfirmButton: false
-            });
-        }
-
-        function showErrorMessage(message) {
-            Swal.fire({
-                title: 'Hata!',
-                text: message,
-                icon: 'error',
-                confirmButtonColor: '#d33'
-            });
-        }
+        $('#editUserModal').on('hidden.bs.modal', function () {
+            $('#editUserForm')[0].reset();
+            $('#editUserForm .is-invalid, #editUserForm .is-valid').removeClass('is-invalid is-valid');
+        });
     </script>
 }

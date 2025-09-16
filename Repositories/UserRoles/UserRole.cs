@@ -5,8 +5,10 @@ namespace App.Repositories.UserRoles
     public class UserRole : IdentityRole
     {
         public string? Description { get; set; }
-        public DateTime Created { get; set; }
-        public DateTime? Updated { get; set; }
+        public DateTime CreatedDate { get; set; }
+        public DateTime? UpdatedDate { get; set; }
+        public bool IsDeleted { get; set; } = false;
+        public bool IsActive { get; set; } = true;
     }
 
 }

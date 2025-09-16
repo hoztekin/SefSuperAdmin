@@ -67,7 +67,7 @@ namespace App.UI
             // Custom Middleware
             app.UseMiddleware<TokenRefreshMiddleware>();
 
-          
+
             // Static Assets & Routes
             app.MapStaticAssets();
             ConfigureRoutes(app);

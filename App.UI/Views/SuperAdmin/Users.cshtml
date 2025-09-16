@@ -5,6 +5,9 @@
     Layout = "_Layout";
 }
 
+<!-- ViewComponent Navigation -->
+@await Component.InvokeAsync("RoleBasedNavigation", new { showLogo = true })
+
 <div class="container-fluid">
     <div class="row mb-4">
         <div class="col-12">
@@ -30,9 +33,14 @@
                         <h6 class="m-0 font-weight-bold">
                             <i class="fas fa-list"></i> Kullanıcı Listesi (@Model.Count kullanıcı)
                         </h6>
-                        <button onclick="refreshUserList()" class="btn btn-sm btn-light">
-                            <i class="fas fa-sync-alt"></i> Yenile
-                        </button>
+                        <div>
+                            <button onclick="showAddUserModal()" class="btn btn-sm btn-success me-2">
+                                <i class="fas fa-plus"></i> Ekle
+                            </button>
+                            <button onclick="refreshUserList()" class="btn btn-sm btn-light">
+                                <i class="fas fa-sync-alt"></i> Yenile
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div class="card-body">
@@ -47,33 +55,55 @@
                                         <th><i class="fas fa-user-tag"></i> Roller</th>
                                         <th><i class="fas fa-calendar"></i> Kayıt Tarihi</th>
                                         <th><i class="fas fa-check-circle"></i> Email Onayı</th>
-                                        <th style="width: 200px;"><i class="fas fa-cogs"></i> İşlemler</th>
+                                        <th><i class="fas fa-cog"></i> İşlemler</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach (var user in Model)
                                     {
                                         <tr>
-                                            <td>
+                                            <td class="align-middle">
                                                 <strong>@user.UserName</strong>
-                                                <br>
-                                                <small class="text-muted">ID: @user.Id</small>
+                                                <br><small class="text-muted">ID: @user.Id.Substring(0, 8)...</small>
                                             </td>
-                                            <td>@user.EMail</td>
-                                            <td>
-                                                @if (user.Roles?.Any() == true)
+                                            <td class="align-middle">@user.EMail</td>
+                                            <td class="align-middle">
+                                                @if (user.Roles != null && user.Roles.Any())
                                                 {
                                                     @foreach (var role in user.Roles)
                                                     {
-                                                        <span class="badge badge-pill badge-primary mr-1">@role</span>
+                                                        @if (role == "SuperAdmin")
+                                                        {
+                                                            <span class="badge bg-warning text-dark me-1">
+                                                                <i class="fas fa-crown"></i> @role
+                                                            </span>
+                                                        }
+                                                        else if (role == "Admin")
+                                                        {
+                                                            <span class="badge bg-primary me-1">
+                                                                <i class="fas fa-user-shield"></i> @role
+                                                            </span>
+                                                        }
+                                                        else if (role == "Destek")
+                                                        {
+                                                            <span class="badge bg-info me-1">
+                                                                <i class="fas fa-headset"></i> @role
+                                                            </span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-secondary me-1">
+                                                                <i class="fas fa-user"></i> @role
+                                                            </span>
+                                                        }
                                                     }
                                                 }
                                                 else
                                                 {
-                                                    <span class="text-muted"><em>Rol atanmamış</em></span>
+                                                    <span class="text-muted">Rol atanmamış</span>
                                                 }
                                             </td>
-                                            <td>
+                                            <td class="align-middle">
                                                 @if (user.CreatedDate.HasValue)
                                                 {
                                                     @user.CreatedDate.Value.ToString("dd.MM.yyyy HH:mm")
@@ -83,29 +113,37 @@
                                                     <span class="text-muted">-</span>
                                                 }
                                             </td>
-                                            <td>
+                                            <td class="align-middle text-center">
                                                 @if (user.EmailConfirmed)
                                                 {
-                                                    <span class="badge badge-success"><i class="fas fa-check"></i> Onaylı</span>
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-check"></i> Onaylı
+                                                    </span>
                                                 }
                                                 else
                                                 {
-                                                    <span class="badge badge-warning"><i class="fas fa-clock"></i> Bekliyor</span>
+                                                    <span class="badge bg-warning text-dark">
+                                                        <i class="fas fa-clock"></i> Bekliyor
+                                                    </span>
                                                 }
                                             </td>
-                                            <td>
+                                            <td class="align-middle">
                                                 <div class="btn-group" role="group">
                                                     <a asp-action="AssignRoles" asp-route-userId="@user.Id"
                                                        class="btn btn-sm btn-primary" title="Rol Ata">
-                                                        <i class="fas fa-user-tag"></i> Roller
+                                                        <i class="fas fa-user-tag"></i>
                                                     </a>
                                                     <button onclick="viewUserDetails('@user.Id')"
-                                                            class="btn btn-sm btn-info" title="Detayları Görüntüle">
+                                                            class="btn btn-sm btn-info" title="Detaylar">
                                                         <i class="fas fa-eye"></i>
                                                     </button>
-                                                    <button onclick="getUserRoles('@user.Id')"
-                                                            class="btn btn-sm btn-success" title="Rollerini Görüntüle">
-                                                        <i class="fas fa-list"></i>
+                                                    <button onclick="showEditUserModal('@user.Id', '@user.UserName', '@user.EMail')"
+                                                            class="btn btn-sm btn-warning" title="Düzenle">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button onclick="deleteUser('@user.Id', '@user.UserName')"
+                                                            class="btn btn-sm btn-danger" title="Sil">
+                                                        <i class="fas fa-trash"></i>
                                                     </button>
                                                 </div>
                                             </td>
@@ -117,10 +155,13 @@
                     }
                     else
                     {
-                        <div class="text-center py-5">
+                        <div class="text-center p-5">
                             <i class="fas fa-users fa-3x text-muted mb-3"></i>
-                            <h5 class="text-muted">Henüz kullanıcı bulunmuyor</h5>
-                            <p class="text-muted">Sistem henüz hiç kullanıcı kaydı içermiyor.</p>
+                            <h5 class="text-muted">Kullanıcı Bulunamadı</h5>
+                            <p class="text-muted">Henüz sisteme kullanıcı eklenmemiş.</p>
+                            <button onclick="showAddUserModal()" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> İlk Kullanıcıyı Ekle
+                            </button>
                         </div>
                     }
                 </div>
@@ -129,15 +170,100 @@
     </div>
 </div>
 
+<!-- Kullanıcı Düzenleme Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title"><i class="fas fa-user-edit"></i> Kullanıcı Düzenle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editUserForm">
+                <div class="modal-body">
+                    <input type="hidden" id="editUserId" name="userId">
+                    <div class="mb-3">
+                        <label for="editUserName" class="form-label">Kullanıcı Adı</label>
+                        <input type="text" class="form-control" id="editUserName" name="userName" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editEmail" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="editEmail" name="email" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editPassword" class="form-label">Yeni Şifre (Opsiyonel)</label>
+                        <input type="password" class="form-control" id="editPassword" name="password">
+                        <div class="invalid-feedback"></div>
+                        <div class="form-text">Şifreyi değiştirmek istemiyorsanız boş bırakın.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editConfirmPassword" class="form-label">Yeni Şifre Tekrar</label>
+                        <input type="password" class="form-control" id="editConfirmPassword" name="confirmPassword">
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-save"></i> Güncelle
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Kullanıcı Ekleme Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-user-plus"></i> Yeni Kullanıcı Ekle</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addUserForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="userName" class="form-label">Kullanıcı Adı</label>
+                        <input type="text" class="form-control" id="userName" name="userName" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Şifre</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                        <div class="invalid-feedback"></div>
+                        <div class="form-text">En az 6 karakter olmalıdır.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmPassword" class="form-label">Şifre Tekrar</label>
+                        <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> Kaydet
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Kullanıcı Detay Modal -->
-<div class="modal fade" id="userDetailModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-lg" role="document">
+<div class="modal fade" id="userDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-info text-white">
-                <h5 class="modal-title"><i class="fas fa-user"></i> Kullanıcı Detayları</h5>
-                <button type="button" class="close text-white" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
+                <h5 class="modal-title"><i class="fas fa-user-tag"></i> Kullanıcı Detayları</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div id="userDetailContent">
@@ -148,32 +274,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Kapat</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Kullanıcı Rolleri Modal -->
-<div class="modal fade" id="userRolesModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title"><i class="fas fa-user-tag"></i> Kullanıcı Rolleri</h5>
-                <button type="button" class="close text-white" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div id="userRolesContent">
-                    <div class="text-center">
-                        <i class="fas fa-spinner fa-spin fa-2x"></i>
-                        <p>Yükleniyor...</p>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Kapat</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
             </div>
         </div>
     </div>
@@ -199,71 +300,369 @@
             location.reload();
         }
 
-        function viewUserDetails(userId) {
-            $('#userDetailModal').modal('show');
+        function showAddUserModal() {
+            $('#addUserModal').modal('show');
+            // Formu temizle
+            $('#addUserForm')[0].reset();
+            $('#addUserForm .is-invalid').removeClass('is-invalid');
+        }
 
-            // Kullanıcı detaylarını AJAX ile getir (bu endpoint'i API'de oluşturmanız gerekebilir)
-            $.get('@Url.Action("GetUserDetails", "SistemAdmin")?userId=' + userId, function(response) {
-                if (response.success) {
-                    var user = response.data;
-                    var html = `
-    <div class="row">
-        <div class="col-md-6">
-            <strong>Kullanıcı Adı:</strong><br>
-            ${user.userName}<br><br>
-            <strong>Email:</strong><br>
-            ${user.email}<br><br>
-            <strong>Email Onayı:</strong><br>
-            ${user.emailConfirmed ? '<span class="badge badge-success">Onaylı</span>' : '<span class="badge badge-warning">Bekliyor</span>'}
-        </div>
-        <div class="col-md-6">
-            <strong>Kayıt Tarihi:</strong><br>
-            ${user.createdDate ? new Date(user.createdDate).toLocaleString('tr-TR') : '-'}<br><br>
-            <strong>Son Güncelleme:</strong><br>
-            ${user.updatedDate ? new Date(user.updatedDate).toLocaleString('tr-TR') : '-'}
-        </div>
-    </div>
-                    `;
-                    $('#userDetailContent').html(html);
-                } else {
-                    $('#userDetailContent').html('<div class="alert alert-danger">Kullanıcı detayları yüklenemedi.</div>');
+        function showEditUserModal(userId, userName, email) {
+            $('#editUserModal').modal('show');
+
+            // Formu temizle ve doldur
+            $('#editUserForm')[0].reset();
+            $('#editUserForm .is-invalid').removeClass('is-invalid');
+
+            $('#editUserId').val(userId);
+            $('#editUserName').val(userName);
+            $('#editEmail').val(email);
+        }
+
+        function deleteUser(userId, userName) {
+            Swal.fire({
+                title: 'Kullanıcıyı Sil',
+                html: `<strong>"${userName}"</strong> kullanıcısını silmek istediğinize emin misiniz?<br><br><small class="text-muted">Bu işlem geri alınamaz!</small>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fas fa-trash"></i> Evet, Sil!',
+                cancelButtonText: '<i class="fas fa-times"></i> İptal',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Loading göster
+                    Swal.fire({
+                        title: 'Siliniyor...',
+                        html: 'Kullanıcı silme işlemi gerçekleştiriliyor',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    fetch(`@Url.Action("DeleteUser", "SuperAdmin")?userId=${userId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                title: 'Başarılı!',
+                                text: 'Kullanıcı başarıyla silindi.',
+                                icon: 'success',
+                                confirmButtonColor: '#28a745'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Hata!',
+                                text: 'Kullanıcı silinirken hata oluştu: ' + data.message,
+                                icon: 'error',
+                                confirmButtonColor: '#d33'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            title: 'Bağlantı Hatası!',
+                            text: 'Server ile bağlantı kurulamadı.',
+                            icon: 'error',
+                            confirmButtonColor: '#d33'
+                        });
+                    });
                 }
-            }).fail(function() {
-                $('#userDetailContent').html('<div class="alert alert-danger">Bir hata oluştu.</div>');
             });
         }
 
-        function getUserRoles(userId) {
-            $('#userRolesModal').modal('show');
+        // Kullanıcı düzenleme form submit
+        $('#editUserForm').on('submit', async function(e) {
+            e.preventDefault();
 
-            $.get('@Url.Action("GetUserRoles", "SistemAdmin")?userId=' + userId, function(response) {
-                if (response.success && response.data) {
-                    var html = '<div class="list-group">
-        ';
-        if (response.data.length > 0) {
-        response.data.forEach(function(role) {
-        var badgeClass = role.exist ? 'badge-success' : 'badge-secondary';
-        var icon = role.exist ? 'fa-check' : 'fa-times';
-        html += `
-        <div class="list-group-item d-flex justify-content-between align-items-center">
-            ${role.roleName}
-            <span class="badge ${badgeClass}">
-                <i class="fas ${icon}"></i> ${role.exist ? 'Atanmış' : 'Atanmamış'}
-            </span>
-        </div>
-        `;
-        });
-        } else {
-        html += '<div class="list-group-item">Henüz rol atanmamış</div>';
-        }
-        html += '
-    </div>';
-                    $('#userRolesContent').html(html);
+            const userId = $('#editUserId').val();
+            const formData = {
+                UserName: $('#editUserName').val(),
+                EMail: $('#editEmail').val(),
+                Password: $('#editPassword').val(),
+                ConfirmPassword: $('#editConfirmPassword').val()
+            };
+
+            // Basit validasyon
+            if (formData.Password && formData.Password !== formData.ConfirmPassword) {
+                showError('editConfirmPassword', 'Şifreler eşleşmiyor!');
+                Swal.fire({
+                    title: 'Validasyon Hatası!',
+                    text: 'Şifreler eşleşmiyor!',
+                    icon: 'warning',
+                    confirmButtonColor: '#ffc107'
+                });
+                return;
+            }
+
+            if (formData.Password && formData.Password.length < 6) {
+                showError('editPassword', 'Şifre en az 6 karakter olmalıdır!');
+                Swal.fire({
+                    title: 'Validasyon Hatası!',
+                    text: 'Şifre en az 6 karakter olmalıdır!',
+                    icon: 'warning',
+                    confirmButtonColor: '#ffc107'
+                });
+                return;
+            }
+
+            try {
+                // Loading göster
+                const submitBtn = $(this).find('button[type="submit"]');
+                const originalText = submitBtn.html();
+                submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Güncelleniyor...').prop('disabled', true);
+
+                const response = await fetch(`@Url.Action("UpdateUser", "SuperAdmin")?userId=${userId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        $('#editUserModal').modal('hide');
+                        Swal.fire({
+                            title: 'Başarılı!',
+                            text: 'Kullanıcı başarıyla güncellendi!',
+                            icon: 'success',
+                            confirmButtonColor: '#28a745'
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Hata!',
+                            text: 'Kullanıcı güncellenirken hata oluştu: ' + data.message,
+                            icon: 'error',
+                            confirmButtonColor: '#d33'
+                        });
+                    }
                 } else {
-                    $('#userRolesContent').html('<div class="alert alert-warning">Kullanıcı rolleri yüklenemedi.</div>');
+                    const errorData = await response.json();
+                    Swal.fire({
+                        title: 'Hata!',
+                        text: 'Kullanıcı güncellenirken hata oluştu: ' + (errorData.message || 'Bilinmeyen hata'),
+                        icon: 'error',
+                        confirmButtonColor: '#d33'
+                    });
                 }
-            }).fail(function() {
-                $('#userRolesContent').html('<div class="alert alert-danger">Bir hata oluştu.</div>');
+
+                submitBtn.html(originalText).prop('disabled', false);
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire({
+                    title: 'Bağlantı Hatası!',
+                    text: 'Server ile bağlantı kurulamadı.',
+                    icon: 'error',
+                    confirmButtonColor: '#d33'
+                });
+
+                const submitBtn = $(this).find('button[type="submit"]');
+                submitBtn.html('<i class="fas fa-save"></i> Güncelle').prop('disabled', false);
+            }
+        });
+
+        // Kullanıcı ekleme form submit
+        $('#addUserForm').on('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = {
+                UserName: $('#userName').val(),
+                EMail: $('#email').val(),
+                Password: $('#password').val(),
+                ConfirmPassword: $('#confirmPassword').val()
+            };
+
+            // Basit validasyon
+            if (formData.Password !== formData.ConfirmPassword) {
+                showError('confirmPassword', 'Şifreler eşleşmiyor!');
+                Swal.fire({
+                    title: 'Validasyon Hatası!',
+                    text: 'Şifreler eşleşmiyor!',
+                    icon: 'warning',
+                    confirmButtonColor: '#ffc107'
+                });
+                return;
+            }
+
+            if (formData.Password.length < 6) {
+                showError('password', 'Şifre en az 6 karakter olmalıdır!');
+                Swal.fire({
+                    title: 'Validasyon Hatası!',
+                    text: 'Şifre en az 6 karakter olmalıdır!',
+                    icon: 'warning',
+                    confirmButtonColor: '#ffc107'
+                });
+                return;
+            }
+
+            try {
+                // Loading göster
+                const submitBtn = $(this).find('button[type="submit"]');
+                const originalText = submitBtn.html();
+                submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Kaydediliyor...').prop('disabled', true);
+
+                const response = await fetch('@Url.Action("CreateUser", "SuperAdmin")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    $('#addUserModal').modal('hide');
+                    Swal.fire({
+                        title: 'Başarılı!',
+                        text: 'Kullanıcı başarıyla eklendi!',
+                        icon: 'success',
+                        confirmButtonColor: '#28a745'
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    const errorData = await response.json();
+                    Swal.fire({
+                        title: 'Hata!',
+                        text: 'Kullanıcı eklenirken hata oluştu: ' + (errorData.message || 'Bilinmeyen hata'),
+                        icon: 'error',
+                        confirmButtonColor: '#d33'
+                    });
+                }
+
+                submitBtn.html(originalText).prop('disabled', false);
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire({
+                    title: 'Bağlantı Hatası!',
+                    text: 'Server ile bağlantı kurulamadı.',
+                    icon: 'error',
+                    confirmButtonColor: '#d33'
+                });
+
+                const submitBtn = $(this).find('button[type="submit"]');
+                submitBtn.html('<i class="fas fa-save"></i> Kaydet').prop('disabled', false);
+            }
+        });
+
+        function viewUserDetails(userId) {
+            $('#userDetailModal').modal('show');
+
+            // AJAX ile kullanıcı detaylarını getir
+            $.get('@Url.Action("GetUserById", "SuperAdmin")?userId=' + userId, function(response) {
+                console.log('API Response:', response); // Debug için
+
+                if (response && response.success && response.data) {
+                    const user = response.data;
+                    console.log('User Data:', user); // Debug için
+
+                    let rolesHtml = '';
+
+                    if (user.roles && user.roles.length > 0) {
+                        user.roles.forEach(role => {
+                            let badgeClass = 'bg-secondary';
+                            let icon = 'fas fa-user';
+
+                            if (role === 'SuperAdmin') {
+                                badgeClass = 'bg-warning text-dark';
+                                icon = 'fas fa-crown';
+                            } else if (role === 'Admin') {
+                                badgeClass = 'bg-primary';
+                                icon = 'fas fa-user-shield';
+                            } else if (role === 'Destek') {
+                                badgeClass = 'bg-info';
+                                icon = 'fas fa-headset';
+                            }
+
+                            rolesHtml += `<span class="badge ${badgeClass} me-1"><i class="${icon}"></i> ${role}</span>`;
+                        });
+                    } else {
+                        rolesHtml = '<span class="text-muted">Rol atanmamış</span>';
+                    }
+
+                    const html = `
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Kullanıcı Adı:</strong><br>
+                                <span class="fs-5">${user.userName || 'Belirtilmemiş'}</span><br><br>
+                                <strong>Email:</strong><br>
+                                <span class="fs-6">${user.eMail || user.email || 'Belirtilmemiş'}</span><br><br>
+                                <strong>Email Onayı:</strong><br>
+                                ${user.emailConfirmed ? '<span class="badge bg-success"><i class="fas fa-check"></i> Onaylı</span>' : '<span class="badge bg-warning text-dark"><i class="fas fa-clock"></i> Bekliyor</span>'}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Kayıt Tarihi:</strong><br>
+                                ${user.createdDate ? new Date(user.createdDate).toLocaleString('tr-TR') : '-'}<br><br>
+                                <strong>Son Güncelleme:</strong><br>
+                                ${user.updatedDate ? new Date(user.updatedDate).toLocaleString('tr-TR') : '-'}<br><br>
+                                <strong>Roller:</strong><br>
+                                ${rolesHtml}
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row">
+                            <div class="col-12 text-center">
+                                <a href="@Url.Action("AssignRoles", "SuperAdmin")?userId=${userId}" class="btn btn-primary">
+                                    <i class="fas fa-user-tag"></i> Rol Yönetimi
+                                </a>
+                            </div>
+                        </div>
+                    `;
+
+                    $('#userDetailContent').html(html);
+                } else {
+                    console.error('Invalid API response:', response);
+                    $('#userDetailContent').html('<div class="alert alert-danger">Kullanıcı detayları yüklenemedi.</div>');
+                }
+            }).fail(function(xhr, status, error) {
+                console.error('AJAX Error:', {xhr, status, error});
+                $('#userDetailContent').html('<div class="alert alert-danger">Bağlantı hatası oluştu.</div>');
+                Swal.fire({
+                    title: 'Bağlantı Hatası!',
+                    text: 'Kullanıcı detayları yüklenemedi: ' + error,
+                    icon: 'error',
+                    confirmButtonColor: '#d33'
+                });
+            });
+        }
+
+        function showError(fieldName, message) {
+            $(`#${fieldName}`).addClass('is-invalid');
+            $(`#${fieldName}`).siblings('.invalid-feedback').text(message);
+        }
+
+        function showSuccessMessage(message) {
+            Swal.fire({
+                title: 'Başarılı!',
+                text: message,
+                icon: 'success',
+                confirmButtonColor: '#28a745',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        }
+
+        function showErrorMessage(message) {
+            Swal.fire({
+                title: 'Hata!',
+                text: message,
+                icon: 'error',
+                confirmButtonColor: '#d33'
             });
         }
     </script>

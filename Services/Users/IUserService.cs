@@ -1,4 +1,5 @@
 ﻿using App.Services.Users.Create;
+using App.Services.Users.Update;
 
 namespace App.Services.Users
 {
@@ -9,5 +10,7 @@ namespace App.Services.Users
         Task<ServiceResult<UserAppDto>> GetUserByUserIdAsync(string userId);
         Task<ServiceResult> CreateUserRoles(string usernName);
         Task<ServiceResult<List<UserAppDto>>> GetAllUsersAsync();
+        Task<ServiceResult<UserAppDto>> UpdateUserAsync(string userId, UpdateUserDto updateUserDto);
+        Task<ServiceResult> DeleteUserAsync(string userId);
     }
 }

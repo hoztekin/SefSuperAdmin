@@ -1,5 +1,6 @@
 ﻿using App.Services.Users;
 using App.Services.Users.Create;
+using App.Services.Users.Update;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -25,5 +26,10 @@ namespace App.Api.Controllers
         [HttpGet("{userId}")]
         public async Task<IActionResult> GetUserById(string userId) => CreateActionResult(await userService.GetUserByUserIdAsync(userId));
 
+        [HttpPut("{userId}")]
+        public async Task<IActionResult> UpdateUser(string userId, [FromBody] UpdateUserDto updateUserDto) => CreateActionResult(await userService.UpdateUserAsync(userId, updateUserDto));
+
+        [HttpDelete("{userId}")]
+        public async Task<IActionResult> DeleteUser(string userId) => CreateActionResult(await userService.DeleteUserAsync(userId));
     }
 }

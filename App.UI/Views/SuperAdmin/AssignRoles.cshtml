@@ -5,6 +5,9 @@
     Layout = "_Layout";
 }
 
+<!-- ViewComponent Navigation -->
+@await Component.InvokeAsync("RoleBasedNavigation", new { showLogo = true })
+
 <div class="container-fluid">
     <div class="row mb-4">
         <div class="col-12">
@@ -34,36 +37,11 @@
                     <div class="row">
                         <div class="col-md-6">
                             <strong>Kullanıcı Adı:</strong><br>
-                            <span class="text-primary">@Model.User.UserName</span>
+                            <span class="text-primary fs-5">@Model.User.UserName</span>
                         </div>
                         <div class="col-md-6">
                             <strong>Email:</strong><br>
-                            @Model.User.EMail
-                        </div>
-                    </div>
-                    <hr>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <strong>Kayıt Tarihi:</strong><br>
-                            @if (Model.User.CreatedDate.HasValue)
-                            {
-                                @Model.User.CreatedDate.Value.ToString("dd.MM.yyyy HH:mm")
-                            }
-                            else
-                            {
-                                <span class="text-muted">-</span>
-                            }
-                        </div>
-                        <div class="col-md-6">
-                            <strong>Email Onayı:</strong><br>
-                            @if (Model.User.EmailConfirmed)
-                            {
-                                <span class="badge badge-success"><i class="fas fa-check"></i> Onaylı</span>
-                            }
-                            else
-                            {
-                                <span class="badge badge-warning"><i class="fas fa-clock"></i> Bekliyor</span>
-                            }
+                            <span class="fs-6">@Model.User.EMail</span>
                         </div>
                     </div>
                 </div>
@@ -74,7 +52,7 @@
             <div class="card shadow">
                 <div class="card-header bg-info text-white">
                     <h6 class="m-0 font-weight-bold">
-                        <i class="fas fa-info-circle"></i> Mevcut Roller
+                        <i class="fas fa-tags"></i> Mevcut Roller
                     </h6>
                 </div>
                 <div class="card-body">
@@ -82,16 +60,14 @@
                     {
                         @foreach (var role in Model.UserRoles.Where(r => r.Exist))
                         {
-                            <span class="badge badge-success mb-1">
+                            <span class="badge bg-success mb-1 me-1">
                                 <i class="fas fa-check"></i> @role.RoleName
                             </span>
-                    
-                            <br>
                         }
                     }
                     else
                     {
-                        <p class="text-muted">Henüz rol atanmamış</p>
+                        <p class="text-muted mb-0">Henüz rol atanmamış</p>
                     }
                 </div>
             </div>
@@ -107,23 +83,28 @@
                     </h6>
                 </div>
                 <div class="card-body">
-                    <form asp-action="AssignRoles" asp-route-userId="@Model.User.Id" method="post">
+                    <form id="roleAssignForm" data-user-id="@Model.User.Id">
+                        @Html.AntiForgeryToken()
                         <div class="row">
                             @for (int i = 0; i < Model.UserRoles.Count; i++)
                             {
                                 <div class="col-md-4 mb-3">
-                                    <div class="card role-card @(Model.UserRoles[i].Exist ? "border-success" : "border-light")">
-                                        <div class="card-body text-center">
-                                            <input type="hidden" asp-for="@Model.UserRoles[i].UserId" />
-                                            <input type="hidden" asp-for="@Model.UserRoles[i].RoleId" />
-                                            <input type="hidden" asp-for="@Model.UserRoles[i].RoleName" />
+                                    <div class="card role-card @(Model.UserRoles[i].Exist ? "border-success" : "border-light")"
+                                         data-role-index="@i">
+                                        <div class="card-body text-center @(Model.UserRoles[i].Exist ? "bg-light" : "")">
+                                            <input type="hidden" name="UserRoles[@i].UserId" value="@Model.UserRoles[i].UserId" />
+                                            <input type="hidden" name="UserRoles[@i].RoleId" value="@Model.UserRoles[i].RoleId" />
+                                            <input type="hidden" name="UserRoles[@i].RoleName" value="@Model.UserRoles[i].RoleName" />
 
-                                            <div class="custom-control custom-switch custom-control-lg">
+                                            <div class="custom-control custom-switch custom-control-lg mb-2">
                                                 <input type="checkbox"
                                                        class="custom-control-input role-checkbox"
                                                        id="role_@i"
-                                                       asp-for="@Model.UserRoles[i].Exist"
+                                                       name="UserRoles[@i].Exist"
+                                                       value="true"
+                                                       @(Model.UserRoles[i].Exist ? "checked" : "")
                                                        onchange="toggleRoleCard(this, @i)">
+                                                <input type="hidden" name="UserRoles[@i].Exist" value="false" />
                                                 <label class="custom-control-label" for="role_@i">
                                                     <strong>@Model.UserRoles[i].RoleName</strong>
                                                 </label>
@@ -146,7 +127,7 @@
                                                         break;
                                                     default:
                                                         <i class="fas fa-user fa-2x text-secondary"></i>
-                                                        <p class="text-muted small mt-1">Kullanıcı rolü</p>
+                                                        <p class="text-muted small mt-1">@Model.UserRoles[i].RoleName rolü</p>
                                                         break;
                                                 }
                                             </div>
@@ -160,7 +141,7 @@
 
                         <div class="row">
                             <div class="col-12 text-center">
-                                <button type="submit" class="btn btn-success btn-lg mr-3">
+                                <button type="submit" class="btn btn-success btn-lg me-3" id="saveRolesBtn">
                                     <i class="fas fa-save"></i> Rolleri Kaydet
                                 </button>
                                 <a asp-action="Users" class="btn btn-secondary btn-lg">
@@ -175,49 +156,172 @@
     </div>
 </div>
 
-<script>
-    function toggleRoleCard(checkbox, index) {
-        var card = $(checkbox).closest('.role-card');
+@section Scripts {
+    <script>
+        function toggleRoleCard(checkbox, index) {
+            var card = $(checkbox).closest('.role-card');
+            var cardBody = card.find('.card-body');
 
-        if (checkbox.checked) {
-            card.removeClass('border-light').addClass('border-success');
-            card.find('.card-body').addClass('bg-light');
-        } else {
-            card.removeClass('border-success').addClass('border-light');
-            card.find('.card-body').removeClass('bg-light');
+            if (checkbox.checked) {
+                card.removeClass('border-light').addClass('border-success');
+                cardBody.addClass('bg-light');
+            } else {
+                card.removeClass('border-success').addClass('border-light');
+                cardBody.removeClass('bg-light');
+            }
         }
-    }
 
-    // Sayfa yüklendiğinde mevcut duruma göre kartları düzenle
-    $(document).ready(function() {
-        $('.role-checkbox').each(function(index) {
-            toggleRoleCard(this, index);
-        });
-    });
-
-    // Form submit öncesi onay
-    $('form').on('submit', function(e) {
-        var selectedRoles = [];
-        $('.role-checkbox:checked').each(function() {
-            var roleCard = $(this).closest('.role-card');
-            var roleName = $(this).closest('.card-body').find('strong').text();
-            selectedRoles.push(roleName);
+        // Sayfa yüklendiğinde mevcut duruma göre kartları düzenle
+        $(document).ready(function() {
+            $('.role-checkbox').each(function(index) {
+                toggleRoleCard(this, index);
+            });
         });
 
-        var message = selectedRoles.length > 0
-            ? `Seçili roller (${selectedRoles.join(', ')}) kullanıcıya atanacak. Onaylıyor musunuz?`
-            : 'Kullanıcının tüm rolleri kaldırılacak. Onaylıyor musunuz?';
-
-        if (!confirm(message)) {
+        // Form submit işlemi
+        $('#roleAssignForm').on('submit', function(e) {
             e.preventDefault();
+
+            const userId = $(this).data('user-id');
+            const selectedRoles = [];
+            const unselectedRoles = [];
+
+            $('.role-checkbox').each(function() {
+                const roleName = $(this).closest('.card-body').find('strong').text();
+                if (this.checked) {
+                    selectedRoles.push(roleName);
+                } else {
+                    unselectedRoles.push(roleName);
+                }
+            });
+
+            // Seçim durumunu göster
+            let message = '<div class="text-left">';
+
+            if (selectedRoles.length > 0) {
+                message += `<strong class="text-success">Atanacak Roller:</strong><br>`;
+                message += `<small class="text-success">${selectedRoles.join(', ')}</small><br><br>`;
+            }
+
+            if (unselectedRoles.length > 0) {
+                message += `<strong class="text-danger">Kaldırılacak Roller:</strong><br>`;
+                message += `<small class="text-danger">${unselectedRoles.join(', ')}</small>`;
+            }
+
+            message += '</div>';
+
+            Swal.fire({
+                title: 'Rolleri Kaydet',
+                html: message,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fas fa-save"></i> Evet, Kaydet',
+                cancelButtonText: '<i class="fas fa-times"></i> İptal',
+                reverseButtons: true,
+                width: '500px'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    submitRoleForm(userId);
+                }
+            });
+        });
+
+        function submitRoleForm(userId) {
+            // Loading göster
+            Swal.fire({
+                title: 'Kaydediliyor...',
+                html: 'Rol değişiklikleri kaydediliyor',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Form verilerini topla
+            const formData = [];
+            $('.role-checkbox').each(function(index) {
+                const roleData = {
+                    UserId: $(`input[name="UserRoles[${index}].UserId"]`).val(),
+                    RoleId: $(`input[name="UserRoles[${index}].RoleId"]`).val(),
+                    RoleName: $(`input[name="UserRoles[${index}].RoleName"]`).val(),
+                    Exist: this.checked
+                };
+                formData.push(roleData);
+            });
+
+            // AJAX ile gönder
+            $.ajax({
+                url: '@Url.Action("AssignRoles", "SuperAdmin")',
+                type: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                data: {
+                    userId: userId,
+                    roles: formData,
+                    __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    console.log('Success Response:', response); // Debug için
+
+                    if (response.success) {
+                        Swal.fire({
+                            title: 'Başarılı!',
+                            text: response.message || 'Roller başarıyla kaydedildi!',
+                            icon: 'success',
+                            confirmButtonColor: '#28a745',
+                            timer: 2000,
+                            showConfirmButton: false
+                        }).then(() => {
+                            window.location.href = response.redirectTo || '@Url.Action("Users", "SuperAdmin")';
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Hata!',
+                            text: response.message || 'Roller kaydedilirken bir hata oluştu.',
+                            icon: 'error',
+                            confirmButtonColor: '#d33'
+                        });
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX Error:', {xhr, status, error, response: xhr.responseText});
+
+                    let errorMessage = 'Bağlantı hatası oluştu.';
+
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    } else if (xhr.responseText) {
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            errorMessage = response.message || errorMessage;
+                        } catch (e) {
+                            // JSON parse edilemedi, default mesaj kullan
+                            if (xhr.status === 500) {
+                                errorMessage = 'Sunucu hatası oluştu.';
+                            }
+                        }
+                    }
+
+                    Swal.fire({
+                        title: 'Hata!',
+                        text: errorMessage,
+                        icon: 'error',
+                        confirmButtonColor: '#d33'
+                    });
+                }
+            });
         }
-    });
-</script>
+    </script>
+}
 
 <style>
     .role-card {
         transition: all 0.3s ease;
         cursor: pointer;
+        height: 200px; /* Sabit yükseklik */
     }
 
         .role-card:hover {
@@ -233,5 +337,17 @@
     .custom-control-lg .custom-control-input {
         height: 1.5rem;
         width: 3rem;
+    }
+
+    .role-card .card-body {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+    }
+
+    .role-card .fa-2x {
+        margin: 10px 0;
     }
 </style>

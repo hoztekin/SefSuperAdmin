@@ -27,7 +27,7 @@
                         </a>
                     </li>
 
-                    @if (Model.IsAdmin)
+                    @if (Model.IsSuperAdmin)
                     {
                         <!-- SİSTEM ADMİN MENÜSÜ -->
                         <li class="nav-item dropdown">
@@ -195,7 +195,8 @@
                             }
 
                             <li>
-                                <a class="dropdown-item rounded-pill mx-2 my-1 px-3 py-2 transition-all text-dark fw-medium" asp-controller="Password" asp-action="PasswordChange">
+                                <a class="dropdown-item rounded-pill mx-2 my-1 px-3 py-2 transition-all text-dark fw-medium"
+                                   href="javascript:void(0)" onclick="showPasswordChangeModal()">
                                     <i class="fas fa-key text-secondary me-2"></i>
                                     @("Şifre Değiştir")
                                 </a>
@@ -228,6 +229,83 @@
         </div>
     </div>
 </nav>
+
+<!-- Şifre Değiştirme Modalı -->
+@if (Model.IsAuthenticated)
+{
+    <div class="modal fade" id="passwordChangeModal" tabindex="-1" aria-labelledby="passwordChangeModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content" style="border: none; border-radius: 15px; overflow: hidden;">
+                <div class="modal-header text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <h5 class="modal-title fw-bold" id="passwordChangeModalLabel">
+                        <i class="fas fa-key me-2"></i>Şifre Değiştir
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <form id="passwordChangeForm">
+                    @Html.AntiForgeryToken()
+                    <div class="modal-body p-4">
+                        <div class="alert alert-info border-0" style="background: rgba(102, 126, 234, 0.1);">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <small>Güvenliğiniz için güçlü bir şifre seçin.</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="currentPassword" class="form-label fw-medium">
+                                <i class="fas fa-lock me-1 text-secondary"></i>Mevcut Şifre
+                            </label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="currentPassword" name="OldPassword" required
+                                       placeholder="Mevcut şifrenizi girin" style="border-radius: 8px 0 0 8px;">
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('currentPassword')" style="border-radius: 0 8px 8px 0;">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="newPassword" class="form-label fw-medium">
+                                <i class="fas fa-key me-1 text-success"></i>Yeni Şifre
+                            </label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="newPassword" name="NewPassword" required
+                                       placeholder="Yeni şifrenizi girin" style="border-radius: 8px 0 0 8px;">
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('newPassword')" style="border-radius: 0 8px 8px 0;">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="invalid-feedback"></div>
+                            <small class="text-muted">En az 6 karakter olmalıdır.</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="confirmPassword" class="form-label fw-medium">
+                                <i class="fas fa-check-double me-1 text-warning"></i>Yeni Şifre Tekrar
+                            </label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="confirmPassword" name="ConfirmPassword" required
+                                       placeholder="Yeni şifrenizi tekrar girin" style="border-radius: 8px 0 0 8px;">
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('confirmPassword')" style="border-radius: 0 8px 8px 0;">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 p-4">
+                        <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-2"></i>İptal
+                        </button>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+                            <i class="fas fa-save me-2"></i>Şifreyi Değiştir
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
 
 <!-- jQuery ve Bootstrap JS - CRITICAL -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -360,6 +438,16 @@
         font-weight: 700;
     }
 
+    /* Modal improvements */
+    .modal-content {
+        box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+
+    .form-control:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+
     /* Responsive improvements */
     @@media (max-width: 991.98px) {
         .navbar-nav .nav-link
@@ -406,6 +494,158 @@
             }
         );
     });
+
+    // Şifre değiştirme modalını göster
+    function showPasswordChangeModal() {
+        $('#passwordChangeModal').modal('show');
+        // Formu temizle
+        $('#passwordChangeForm')[0].reset();
+        $('#passwordChangeForm .is-invalid').removeClass('is-invalid');
+        $('.invalid-feedback').text('');
+    }
+
+    // Şifre görünürlüğünü değiştir
+    function togglePassword(inputId) {
+        const input = document.getElementById(inputId);
+        const button = input.nextElementSibling;
+        const icon = button.querySelector('i');
+
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    }
+
+    // Şifre değiştirme form submit
+    $('#passwordChangeForm').on('submit', function(e) {
+        e.preventDefault();
+
+        const currentPassword = $('#currentPassword').val();
+        const newPassword = $('#newPassword').val();
+        const confirmPassword = $('#confirmPassword').val();
+
+        // Client-side validasyon
+        let isValid = true;
+
+        if (!currentPassword) {
+            showFieldError('currentPassword', 'Mevcut şifre gereklidir');
+            isValid = false;
+        }
+
+        if (!newPassword) {
+            showFieldError('newPassword', 'Yeni şifre gereklidir');
+            isValid = false;
+        } else if (newPassword.length < 6) {
+            showFieldError('newPassword', 'Şifre en az 6 karakter olmalıdır');
+            isValid = false;
+        }
+
+        if (!confirmPassword) {
+            showFieldError('confirmPassword', 'Şifre tekrarı gereklidir');
+            isValid = false;
+        } else if (newPassword !== confirmPassword) {
+            showFieldError('confirmPassword', 'Şifreler eşleşmiyor');
+            isValid = false;
+        }
+
+        if (!isValid) return;
+
+        // Loading state
+        const submitBtn = $(this).find('button[type="submit"]');
+        const originalText = submitBtn.html();
+        submitBtn.html('<i class="fas fa-spinner fa-spin me-2"></i>Değiştiriliyor...').prop('disabled', true);
+
+        // AJAX ile gönder
+        $.ajax({
+            url: '@Url.Action("PasswordChange", "Password")',
+            type: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            data: {
+                OldPassword: currentPassword,
+                NewPassword: newPassword,
+                ConfirmNewPassword: confirmPassword,
+                __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                console.log('Success Response:', response);
+
+                if (response.success) {
+                    $('#passwordChangeModal').modal('hide');
+
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            title: 'Başarılı!',
+                            text: response.message || 'Şifreniz başarıyla değiştirildi!',
+                            icon: 'success',
+                            confirmButtonColor: '#667eea',
+                            timer: 3000,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        alert('Şifreniz başarıyla değiştirildi!');
+                    }
+                } else {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            title: 'Hata!',
+                            text: response.message || 'Şifre değiştirilemedi',
+                            icon: 'error',
+                            confirmButtonColor: '#d33'
+                        });
+                    } else {
+                        alert('Hata: ' + (response.message || 'Şifre değiştirilemedi'));
+                    }
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('AJAX Error:', {xhr, status, error, response: xhr.responseText});
+
+                let errorMessage = 'Bağlantı hatası oluştu.';
+
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                } else if (xhr.status === 500) {
+                    errorMessage = 'Sunucu hatası oluştu.';
+                }
+
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        title: 'Hata!',
+                        text: errorMessage,
+                        icon: 'error',
+                        confirmButtonColor: '#d33'
+                    });
+                } else {
+                    alert('Hata: ' + errorMessage);
+                }
+            },
+            complete: function() {
+                submitBtn.html(originalText).prop('disabled', false);
+            }
+        });
+    });
+
+    // Form field error göster
+    function showFieldError(fieldName, message) {
+        const field = $('#' + fieldName);
+        const feedback = field.closest('.mb-3').find('.invalid-feedback');
+
+        field.addClass('is-invalid');
+        feedback.text(message);
+
+        // 3 saniye sonra hata mesajını temizle
+        setTimeout(() => {
+            field.removeClass('is-invalid');
+            feedback.text('');
+        }, 3000);
+    }
 
     function updateSelectedMachineMenu() {
         if (!@Json.Serialize(Model.IsAdmin)) {

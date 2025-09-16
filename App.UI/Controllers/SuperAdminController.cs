@@ -1,6 +1,8 @@
-﻿using App.UI.Application.DTOS;
+﻿using App.Services.Users.Create;
+using App.UI.Application.DTOS;
 using App.UI.Application.Services;
 using App.UI.Helper;
+using App.UI.Infrastructure.Http;
 using App.UI.Presentation.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,9 +10,10 @@ using Microsoft.AspNetCore.Mvc;
 namespace App.UI.Controllers
 {
     [Authorize(Policy = "SuperAdminOnly")]
-    public class SuperAdminController(IMemberService memberService, 
-                                      IRoleService roleService, 
-                                      IMachineAppService machineAppService, 
+    public class SuperAdminController(IMemberService memberService,
+                                      IRoleService roleService,
+                                      IApiService apiService,
+                                      IMachineAppService machineAppService,
                                       ILogger<SuperAdminController> logger) : Controller
     {
         public async Task<IActionResult> Index()
@@ -104,6 +107,10 @@ namespace App.UI.Controllers
         {
             if (string.IsNullOrEmpty(userId) || roles == null)
             {
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    return Json(new { success = false, message = "Geçersiz veri gönderildi" });
+                }
                 this.SetErrorMessage("Geçersiz veri gönderildi");
                 return RedirectToAction(nameof(Users));
             }
@@ -111,12 +118,35 @@ namespace App.UI.Controllers
             try
             {
                 await roleService.AssignRolesToUserAsync(roles, userId);
+
+                // AJAX isteği ise JSON response döndür
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    return Json(new
+                    {
+                        success = true,
+                        message = "Roller başarıyla atandı",
+                        redirectTo = Url.Action("Users", "SuperAdmin")
+                    });
+                }
+
                 this.SetSuccessMessage("Roller başarıyla atandı");
                 return RedirectToAction(nameof(Users));
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Rol atama işlemi sırasında hata oluştu. UserId: {UserId}", userId);
+
+                // AJAX isteği ise JSON response döndür
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = "Rol atama işlemi sırasında bir hata oluştu: " + ex.Message
+                    });
+                }
+
                 this.SetErrorMessage("Rol atama işlemi sırasında bir hata oluştu.");
                 return RedirectToAction(nameof(AssignRoles), new { userId });
             }
@@ -138,7 +168,117 @@ namespace App.UI.Controllers
             }
         }
 
+        // AJAX - Kullanıcı detaylarını getir
+        [HttpGet]
+        public async Task<IActionResult> GetUserById(string userId)
+        {
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Json(new { success = false, message = "Geçersiz kullanıcı ID'si" });
+            }
 
+            try
+            {
+                var user = await roleService.GetUserByIdAsync(userId);
+                if (user == null)
+                {
+                    return Json(new { success = false, message = "Kullanıcı bulunamadı" });
+                }
+
+                return Json(new { success = true, data = user });
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Kullanıcı detayları getirilirken hata oluştu. UserId: {UserId}", userId);
+                return Json(new { success = false, message = "Kullanıcı detayları yüklenemedi" });
+            }
+        }
+
+        // AJAX - Yeni kullanıcı oluştur
+        [HttpPost]
+        public async Task<IActionResult> CreateUser([FromBody] CreateUserDto createUserDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage));
+                return Json(new { success = false, message = "Validasyon hatası", errors = errors });
+            }
+
+            try
+            {
+                // API'ye kullanıcı oluşturma isteği gönder
+                var response = await apiService.PostAsync<CreateUserDto>("api/v1/user", createUserDto, false);
+
+                if (response != null)
+                {
+                    logger.LogInformation("Yeni kullanıcı oluşturuldu: {UserName}", createUserDto.UserName);
+                    return Json(new { success = true, message = "Kullanıcı başarıyla oluşturuldu" });
+                }
+
+                return Json(new { success = false, message = "Kullanıcı oluşturulamadı" });
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Kullanıcı oluşturulurken hata oluştu. UserName: {UserName}", createUserDto.UserName);
+                return Json(new { success = false, message = "Kullanıcı oluşturulurken bir hata oluştu: " + ex.Message });
+            }
+        }
+
+        [HttpPut]
+        public async Task<IActionResult> UpdateUser(string userId, [FromBody] UpdateUserDtoUI updateUserDto)
+        {
+            if (string.IsNullOrEmpty(userId) || updateUserDto == null)
+            {
+                return Json(new { success = false, message = "Geçersiz veri gönderildi" });
+            }
+
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage));
+                return Json(new { success = false, message = "Validasyon hatası", errors = errors });
+            }
+
+            try
+            {
+                var response = await apiService.PutAsync<object>($"api/v1/user/{userId}", updateUserDto);
+
+                if (response != null)
+                {
+                    logger.LogInformation("Kullanıcı güncellendi: UserId: {UserId}", userId);
+                    return Json(new { success = true, message = "Kullanıcı başarıyla güncellendi" });
+                }
+
+                return Json(new { success = false, message = "Kullanıcı güncellenemedi" });
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Kullanıcı güncellenirken hata oluştu. UserId: {UserId}", userId);
+                return Json(new { success = false, message = "Kullanıcı güncellenirken bir hata oluştu: " + ex.Message });
+            }
+        }
+
+        // AJAX - Kullanıcı silme
+        [HttpDelete]
+        public async Task<IActionResult> DeleteUser(string userId)
+        {
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Json(new { success = false, message = "Geçersiz kullanıcı ID'si" });
+            }
+
+            try
+            {
+                var response = await apiService.DeleteAsync<object>($"api/v1/user/{userId}", null);
+
+                logger.LogInformation("Kullanıcı silindi: UserId: {UserId}", userId);
+                return Json(new { success = true, message = "Kullanıcı başarıyla silindi" });
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Kullanıcı silinirken hata oluştu. UserId: {UserId}", userId);
+                return Json(new { success = false, message = "Kullanıcı silinirken bir hata oluştu: " + ex.Message });
+            }
+        }
 
         #region Makine Yönetimi Linkleri
 

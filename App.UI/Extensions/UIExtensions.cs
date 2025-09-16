@@ -2,7 +2,6 @@
 using App.UI.Infrastructure.ExternalApi;
 using App.UI.Infrastructure.Http;
 using App.UI.Infrastructure.Storage;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Reflection;
 
@@ -129,7 +128,7 @@ namespace App.UI.Extensions
 
             return services;
         }
-           
+
 
         private static void AddAuthorizationServices(this IServiceCollection services)
         {
@@ -138,7 +137,7 @@ namespace App.UI.Extensions
                 //options.DefaultPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
                 //    .RequireAuthenticatedUser()
                 //    .Build();
-                options.AddPolicy("AdminOnly", policy =>   policy.RequireRole("Admin", "SuperAdmin"));
+                options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin", "SuperAdmin"));
 
                 options.AddPolicy("SuperAdminOnly", policy => policy.RequireRole("SuperAdmin"));
 

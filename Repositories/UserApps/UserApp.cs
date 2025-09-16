@@ -5,7 +5,9 @@ namespace App.Repositories.UserApps
     public class UserApp : IdentityUser
     {
         public string? FullName { get; set; }
-        public DateTime Created { get; set; }
-        public DateTime? Updated { get; set; }
+        public DateTime CreatedDate { get; set; }
+        public DateTime? UpdatedDate { get; set; }
+        public bool IsDeleted { get; set; } = false;
+        public bool IsActive { get; set; } = true;
     }
 }

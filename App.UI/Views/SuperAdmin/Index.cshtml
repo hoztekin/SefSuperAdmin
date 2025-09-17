@@ -111,9 +111,10 @@
                             </a>
                         </div>
                         <div class="col-md-3 mb-2">
-                            <a asp-controller="Machine" asp-action="Create" class="btn btn-outline-info btn-block">
+                            <button onclick="window.location.href='@Url.Action("Index", "Machine")?createNew=true'"
+                                    class="btn btn-outline-info btn-block">
                                 <i class="fas fa-plus"></i> Yeni Makine Ekle
-                            </a>
+                            </button>
                         </div>
                         <div class="col-md-3 mb-2">
                             <button onclick="refreshStats()" class="btn btn-outline-warning btn-block">
@@ -209,10 +210,10 @@
                                                 }
                                             </td>
                                             <td>
-                                                <a asp-controller="Machine" asp-action="Edit" asp-route-id="@machine.Id"
-                                                   class="btn btn-sm btn-outline-primary">
+                                                <button onclick="window.location.href='@Url.Action("Index", "Machine")?editId=@machine.Id'"
+                                                        class="btn btn-sm btn-outline-primary" title="Makine Düzenle">
                                                     <i class="fas fa-edit"></i> Düzenle
-                                                </a>
+                                                </button>
                                             </td>
                                         </tr>
                                     }

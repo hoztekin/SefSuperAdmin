@@ -133,24 +133,39 @@ namespace App.Services.Roles
                 if (user is null)
                     return ServiceResult.Fail("Kullanıcı bulunamadı", HttpStatusCode.NotFound);
 
+                // Kullanıcının mevcut rollerini al
+                var currentUserRoles = await userManager.GetRolesAsync(user);
+
                 foreach (var role in request)
                 {
+                    var hasRole = currentUserRoles.Contains(role.RoleName);
+
                     if (role.Exist)
                     {
-                        var addResult = await userManager.AddToRoleAsync(user, role.RoleName);
-                        if (!addResult.Succeeded)
+                        // Rol eklenmeli ama kullanıcının zaten bu rolü yok ise ekle
+                        if (!hasRole)
                         {
-                            return ServiceResult.Fail($"'{role.RoleName}' rolü eklenirken hata oluştu: {string.Join(", ", addResult.Errors.Select(e => e.Description))}", HttpStatusCode.BadRequest);
+                            var addResult = await userManager.AddToRoleAsync(user, role.RoleName);
+                            if (!addResult.Succeeded)
+                            {
+                                return ServiceResult.Fail($"'{role.RoleName}' rolü eklenirken hata oluştu: {string.Join(", ", addResult.Errors.Select(e => e.Description))}", HttpStatusCode.BadRequest);
+                            }
                         }
+                        // Kullanıcının zaten bu rolü varsa hiçbir şey yapma (sessizce geç)
                     }
                     else
                     {
-                        var removeResult = await userManager.RemoveFromRoleAsync(user, role.RoleName);
-
-                        if (!removeResult.Succeeded)
+                        // Rol kaldırılmalı ama kullanıcının bu rolü var ise kaldır
+                        if (hasRole)
                         {
-                            return ServiceResult.Fail($"'{role.RoleName}' rolü kaldırılırken hata oluştu: {string.Join(", ", removeResult.Errors.Select(e => e.Description))}", HttpStatusCode.BadRequest);
+                            var removeResult = await userManager.RemoveFromRoleAsync(user, role.RoleName);
+
+                            if (!removeResult.Succeeded)
+                            {
+                                return ServiceResult.Fail($"'{role.RoleName}' rolü kaldırılırken hata oluştu: {string.Join(", ", removeResult.Errors.Select(e => e.Description))}", HttpStatusCode.BadRequest);
+                            }
                         }
+                        // Kullanıcının zaten bu rolü yoksa hiçbir şey yapma (sessizce geç)
                     }
                 }
 

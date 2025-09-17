@@ -19,19 +19,9 @@ namespace App.Api.Controllers
         [ServiceFilter(typeof(NotFoundFilter<Repositories.Machines.Machine, int>))]
         public async Task<IActionResult> GetMachine(int id) => CreateActionResult(await machineService.GetByIdAsync(id));
 
-        /// <summary>
-        /// Koda göre makine getirir
-        /// </summary>
-        /// <param name="code">Makine kodu</param>
-        /// <returns>Makine detayı</returns>
         [HttpGet("code/{code}")]
         public async Task<IActionResult> GetMachineByCode(string code) => CreateActionResult(await machineService.GetByCodeAsync(code));
 
-        /// <summary>
-        /// Şube ID'sine göre makineleri getirir
-        /// </summary>
-        /// <param name="branchId">Şube ID'si</param>
-        /// <returns>Şubeye ait makine listesi</returns>
         [HttpGet("branch/{branchId}")]
         public async Task<IActionResult> GetMachinesByBranch(string branchId) => CreateActionResult(await machineService.GetByBranchIdAsync(branchId));
 
@@ -49,20 +39,13 @@ namespace App.Api.Controllers
 
         [HttpDelete("{id:int}")]
         [ServiceFilter(typeof(NotFoundFilter<Repositories.Machines.Machine, int>))]
-        public async Task<IActionResult> DeleteMachine(int id)
-            => CreateActionResult(await machineService.DeleteAsync(id));
+        public async Task<IActionResult> DeleteMachine(int id) => CreateActionResult(await machineService.DeleteAsync(id));
 
 
-        [HttpPatch("{id:int}/status")]
+        [HttpPut("{id:int}/status")]
         [ServiceFilter(typeof(NotFoundFilter<Repositories.Machines.Machine, int>))]
         public async Task<IActionResult> SetMachineStatus(int id, [FromQuery] bool isActive) => CreateActionResult(await machineService.SetActiveStatusAsync(id, isActive));
 
-
-        /// <summary>
-        /// API bağlantısını test eder
-        /// </summary>
-        /// <param name="apiAddress">Test edilecek API adresi</param>
-        /// <returns>Bağlantı test sonucu</returns>
         [HttpGet("test-connection")]
         public async Task<IActionResult> TestApiConnection([FromQuery] string apiAddress) => CreateActionResult(await machineService.CheckApiConnectionAsync(apiAddress));
 

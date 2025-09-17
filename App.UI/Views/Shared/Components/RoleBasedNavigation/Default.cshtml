@@ -251,13 +251,13 @@
                         </div>
 
                         <div class="mb-3">
-                            <label for="currentPassword" class="form-label fw-medium">
+                            <label for="navbar-currentPassword" class="form-label fw-medium">
                                 <i class="fas fa-lock me-1 text-secondary"></i>Mevcut Şifre
                             </label>
                             <div class="input-group">
-                                <input type="password" class="form-control" id="currentPassword" name="OldPassword" required
+                                <input type="password" class="form-control" id="navbar-currentPassword" name="OldPassword" required
                                        placeholder="Mevcut şifrenizi girin" style="border-radius: 8px 0 0 8px;">
-                                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('currentPassword')" style="border-radius: 0 8px 8px 0;">
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('navbar-currentPassword')" style="border-radius: 0 8px 8px 0;">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
@@ -265,46 +265,47 @@
                         </div>
 
                         <div class="mb-3">
-                            <label for="newPassword" class="form-label fw-medium">
+                            <label for="navbar-newPassword" class="form-label fw-medium">
                                 <i class="fas fa-key me-1 text-success"></i>Yeni Şifre
                             </label>
                             <div class="input-group">
-                                <input type="password" class="form-control" id="newPassword" name="NewPassword" required
+                                <input type="password" class="form-control" id="navbar-newPassword" name="NewPassword" required
                                        placeholder="Yeni şifrenizi girin" style="border-radius: 8px 0 0 8px;">
-                                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('newPassword')" style="border-radius: 0 8px 8px 0;">
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('navbar-newPassword')" style="border-radius: 0 8px 8px 0;">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
                             <div class="invalid-feedback"></div>
-                            <small class="text-muted">En az 6 karakter olmalıdır.</small>
                         </div>
 
                         <div class="mb-3">
-                            <label for="confirmPassword" class="form-label fw-medium">
-                                <i class="fas fa-check-double me-1 text-warning"></i>Yeni Şifre Tekrar
+                            <label for="navbar-confirmPassword" class="form-label fw-medium">
+                                <i class="fas fa-key me-1 text-warning"></i>Yeni Şifre Tekrar
                             </label>
                             <div class="input-group">
-                                <input type="password" class="form-control" id="confirmPassword" name="ConfirmPassword" required
+                                <input type="password" class="form-control" id="navbar-confirmPassword" name="ConfirmNewPassword" required
                                        placeholder="Yeni şifrenizi tekrar girin" style="border-radius: 8px 0 0 8px;">
-                                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('confirmPassword')" style="border-radius: 0 8px 8px 0;">
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('navbar-confirmPassword')" style="border-radius: 0 8px 8px 0;">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
                             <div class="invalid-feedback"></div>
                         </div>
                     </div>
-                    <div class="modal-footer border-0 p-4">
+
+                    <div class="modal-footer border-0 px-4 pb-4">
                         <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">
-                            <i class="fas fa-times me-2"></i>İptal
+                            <i class="fas fa-times me-1"></i>İptal
                         </button>
                         <button type="submit" class="btn btn-primary rounded-pill px-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
-                            <i class="fas fa-save me-2"></i>Şifreyi Değiştir
+                            <i class="fas fa-save me-1"></i>Şifreyi Değiştir
                         </button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
+
 }
 
 <!-- jQuery ve Bootstrap JS - CRITICAL -->
@@ -525,31 +526,31 @@
     $('#passwordChangeForm').on('submit', function(e) {
         e.preventDefault();
 
-        const currentPassword = $('#currentPassword').val();
-        const newPassword = $('#newPassword').val();
-        const confirmPassword = $('#confirmPassword').val();
+        const currentPassword = $('#navbar-currentPassword').val();
+        const newPassword = $('#navbar-newPassword').val();
+        const confirmPassword = $('#navbar-confirmPassword').val();
 
         // Client-side validasyon
         let isValid = true;
 
         if (!currentPassword) {
-            showFieldError('currentPassword', 'Mevcut şifre gereklidir');
+            showFieldError('navbar-currentPassword', 'Mevcut şifre gereklidir');
             isValid = false;
         }
 
         if (!newPassword) {
-            showFieldError('newPassword', 'Yeni şifre gereklidir');
+            showFieldError('navbar-newPassword', 'Yeni şifre gereklidir');
             isValid = false;
         } else if (newPassword.length < 6) {
-            showFieldError('newPassword', 'Şifre en az 6 karakter olmalıdır');
+            showFieldError('navbar-newPassword', 'Şifre en az 6 karakter olmalıdır');
             isValid = false;
         }
 
         if (!confirmPassword) {
-            showFieldError('confirmPassword', 'Şifre tekrarı gereklidir');
+            showFieldError('navbar-confirmPassword', 'Şifre tekrarı gereklidir');
             isValid = false;
         } else if (newPassword !== confirmPassword) {
-            showFieldError('confirmPassword', 'Şifreler eşleşmiyor');
+            showFieldError('navbar-confirmPassword', 'Şifreler eşleşmiyor');
             isValid = false;
         }
 
@@ -595,57 +596,50 @@
                     if (typeof Swal !== 'undefined') {
                         Swal.fire({
                             title: 'Hata!',
-                            text: response.message || 'Şifre değiştirilemedi',
+                            text: response.message || 'Şifre değiştirme sırasında bir hata oluştu!',
                             icon: 'error',
-                            confirmButtonColor: '#d33'
+                            confirmButtonColor: '#dc3545'
                         });
                     } else {
-                        alert('Hata: ' + (response.message || 'Şifre değiştirilemedi'));
+                        alert('Hata: ' + (response.message || 'Şifre değiştirme sırasında bir hata oluştu!'));
                     }
                 }
             },
             error: function(xhr, status, error) {
-                console.error('AJAX Error:', {xhr, status, error, response: xhr.responseText});
-
-                let errorMessage = 'Bağlantı hatası oluştu.';
-
-                if (xhr.responseJSON && xhr.responseJSON.message) {
-                    errorMessage = xhr.responseJSON.message;
-                } else if (xhr.status === 500) {
-                    errorMessage = 'Sunucu hatası oluştu.';
-                }
+                console.error('AJAX Error:', error);
 
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({
                         title: 'Hata!',
-                        text: errorMessage,
+                        text: 'Sunucu hatası oluştu!',
                         icon: 'error',
-                        confirmButtonColor: '#d33'
+                        confirmButtonColor: '#dc3545'
                     });
                 } else {
-                    alert('Hata: ' + errorMessage);
+                    alert('Sunucu hatası oluştu!');
                 }
             },
             complete: function() {
+                // Loading state'i kaldır
                 submitBtn.html(originalText).prop('disabled', false);
             }
         });
     });
 
     // Form field error göster
-    function showFieldError(fieldName, message) {
-        const field = $('#' + fieldName);
-        const feedback = field.closest('.mb-3').find('.invalid-feedback');
+    function showFieldError(fieldId, message) {
+         const field = $('#' + fieldId);
+         field.addClass('is-invalid');
+         field.removeClass('is-valid');
 
-        field.addClass('is-invalid');
-        feedback.text(message);
-
-        // 3 saniye sonra hata mesajını temizle
-        setTimeout(() => {
-            field.removeClass('is-invalid');
-            feedback.text('');
-        }, 3000);
-    }
+         let feedbackElement;
+         if (field.parent().hasClass('input-group')) {
+             feedbackElement = field.parent().parent().find('.invalid-feedback');
+         } else {
+             feedbackElement = field.siblings('.invalid-feedback');
+         }
+         feedbackElement.text(message);
+     }
 
     function updateSelectedMachineMenu() {
         if (!@Json.Serialize(Model.IsAdmin)) {

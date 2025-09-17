@@ -3,7 +3,15 @@ using System.Text.Json.Serialization;
 
 namespace App.Repositories
 {
-    public class BaseEntity
+    public interface IAuditable
+    {
+        DateTime CreatedDate { get; set; }
+        string CreatedBy { get; set; }
+        DateTime? UpdatedDate { get; set; }
+        string UpdatedBy { get; set; }
+    }
+
+    public class BaseEntity : IAuditable
     {
         public BaseEntity()
         {

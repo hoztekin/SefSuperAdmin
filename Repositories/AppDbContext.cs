@@ -35,22 +35,25 @@ namespace App.Repositories
         private void UpdateAuditFields()
         {
             var currentUserId = GetCurrentUserId();
+            var currentUserIdString = currentUserId?.ToString() ?? "System";
 
             foreach (var item in ChangeTracker.Entries())
             {
-                if (item.Entity is BaseEntity entityReference)
+                if (item.Entity is IAuditable auditableEntity)
                 {
                     switch (item.State)
                     {
                         case EntityState.Added:
-                            entityReference.CreatedBy = currentUserId.ToString()!;
-                            Entry(entityReference).Property(x => x.UpdatedDate).IsModified = false;
-                            entityReference.CreatedDate = DateTime.Now;
+                            auditableEntity.CreatedBy = currentUserIdString;
+                            auditableEntity.CreatedDate = DateTime.UtcNow;
+                            Entry(auditableEntity).Property(nameof(IAuditable.UpdatedDate)).IsModified = false;
                             break;
+
                         case EntityState.Modified:
-                            entityReference.UpdatedBy = currentUserId.ToString()!;
-                            Entry(entityReference).Property(x => x.CreatedDate).IsModified = false;
-                            entityReference.UpdatedDate = DateTime.Now;
+                            auditableEntity.UpdatedBy = currentUserIdString;
+                            auditableEntity.UpdatedDate = DateTime.UtcNow;
+                            Entry(auditableEntity).Property(nameof(IAuditable.CreatedDate)).IsModified = false;
+                            Entry(auditableEntity).Property(nameof(IAuditable.CreatedBy)).IsModified = false;
                             break;
                         default:
                             break;
@@ -59,8 +62,6 @@ namespace App.Repositories
 
             }
         }
-
-
 
         private Guid? GetCurrentUserId()
         {
@@ -78,10 +79,8 @@ namespace App.Repositories
             }
             catch (Exception ex)
             {
-
                 Serilog.Log.Error($"Error getting current user ID: {ex.Message}");
             }
-
             return null;
         }
     }

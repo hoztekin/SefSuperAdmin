@@ -1,4 +1,5 @@
-﻿using App.UI.Application.Services;
+﻿using App.UI.Application.DTOS;
+using App.UI.Application.Services;
 using App.UI.Helper;
 using App.UI.Presentation.ViewModels;
 using Microsoft.AspNetCore.Authorization;
@@ -9,107 +10,215 @@ namespace App.UI.Controllers
     [Authorize(Policy = "SuperAdminOnly")]
     public class MachineController(IMachineAppService machineAppService) : Controller
     {
-        // Makine listesi
+        // Ana sayfa
         public async Task<IActionResult> Index()
         {
-            var machines = await machineAppService.GetAllAsync();
-            return View(machines);
+            var result = await machineAppService.GetAllAsync();
+
+            if (!result.IsSuccess)
+            {
+                this.SetErrorMessage(result.ErrorMessage?.FirstOrDefault() ?? "Makineler yüklenemedi");
+                return View(new List<MachineListViewModel>());
+            }
+
+            return View(result.Data ?? new List<MachineListViewModel>());
         }
 
-        // Yeni makine oluşturma formu
-        [HttpGet]
-        public IActionResult Create()
-        {
-            return View(new CreateMachineViewModel());
-        }
-
-        // Yeni makine oluşturma
+        // Yeni makine oluşturma (AJAX)
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(CreateMachineViewModel model)
+        public async Task<IActionResult> Create([FromBody] CreateMachineViewModel model)
         {
-            var machines = await machineAppService.GetAllAsync();
-            return View(machines);
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToArray();
+                    return Json(new { success = false, message = "Form validation failed", errors = errors });
+                }
+
+                var result = await machineAppService.CreateAsync(model);
+
+                if (result.IsSuccess)
+                {
+                    return Json(new { success = true, message = "Makine başarıyla oluşturuldu" });
+                }
+
+                return Json(new
+                {
+                    success = false,
+                    message = result.ErrorMessage?.FirstOrDefault() ?? "Makine oluşturulamadı",
+                    errors = result.ErrorMessage
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Beklenmeyen bir hata oluştu" });
+            }
         }
 
-        // Makine düzenleme formu
+        // Makine bilgilerini getir (AJAX için)
         [HttpGet]
-        public async Task<IActionResult> Edit(int id)
+        public async Task<IActionResult> GetById(int id)
         {
-            var machine = await machineAppService.GetByIdAsync(id);
-
-            if (machine == null)
+            try
             {
-                this.SetErrorMessage("Makine bulunamadı");
-                return RedirectToAction(nameof(Index));
+                var result = await machineAppService.GetByIdAsync(id);
+
+                if (result.IsSuccess)
+                {
+                    return Json(new { success = true, data = result.Data });
+                }
+
+                return Json(new
+                {
+                    success = false,
+                    message = result.ErrorMessage?.FirstOrDefault() ?? "Makine bulunamadı"
+                });
             }
-
-            var model = new UpdateMachineViewModel
+            catch (Exception ex)
             {
-                Id = machine.Id,
-                BranchId = machine.BranchId,
-                BranchName = machine.BranchName,
-                ApiAddress = machine.ApiAddress,
-                Code = machine.Code
-            };
-
-            return View(model);
+                return Json(new { success = false, message = "Beklenmeyen bir hata oluştu" });
+            }
         }
 
-        // Makine düzenleme
+        // Makine düzenleme (AJAX)
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(UpdateMachineViewModel model)
+        public async Task<IActionResult> Edit([FromBody] UpdateMachineViewModel model)
         {
-            if (!ModelState.IsValid)
+            try
             {
-                return View(model);
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToArray();
+                    return Json(new { success = false, message = "Form validation failed", errors = errors });
+                }
+
+                var result = await machineAppService.UpdateAsync(model);
+
+                if (result.IsSuccess)
+                {
+                    return Json(new { success = true, message = "Makine başarıyla güncellendi" });
+                }
+
+                return Json(new
+                {
+                    success = false,
+                    message = result.ErrorMessage?.FirstOrDefault() ?? "Makine güncellenemedi",
+                    errors = result.ErrorMessage
+                });
             }
-
-            var success = await machineAppService.UpdateAsync(model);
-
-            if (success)
+            catch (Exception ex)
             {
-                this.SetSuccessMessage("Makine başarıyla güncellendi");
-                return RedirectToAction(nameof(Index));
+                return Json(new { success = false, message = "Beklenmeyen bir hata oluştu" });
             }
-
-            this.SetErrorMessage("Makine güncellenemedi");
-            return View(model);
         }
 
-        // Makine detayı
-        [HttpGet]
-        public async Task<IActionResult> Details(int id)
-        {
-            var machine = await machineAppService.GetByIdAsync(id);
-
-            if (machine == null)
-            {
-                this.SetErrorMessage("Makine bulunamadı");
-                return RedirectToAction(nameof(Index));
-            }
-
-            return View(machine);
-        }
-
-        // Makine silme
+        // Makine silme (AJAX)
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete([FromBody] DeleteMachineRequest request)
         {
-            var success = await machineAppService.DeleteAsync(id);
-
-            if (success)
+            try
             {
-                this.SetSuccessMessage("Makine başarıyla silindi");
-            }
-            else
-            {
-                this.SetErrorMessage("Makine silinemedi");
-            }
+                if (request?.Id == null || request.Id <= 0)
+                {
+                    return Json(new { success = false, message = "Geçersiz makine ID'si" });
+                }
 
-            return RedirectToAction(nameof(Index));
+                var result = await machineAppService.DeleteAsync(request.Id);
+
+                if (result.IsSuccess)
+                {
+                    return Json(new { success = true, message = "Makine başarıyla silindi" });
+                }
+
+                return Json(new
+                {
+                    success = false,
+                    message = result.ErrorMessage?.FirstOrDefault() ?? "Makine silinemedi"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Beklenmeyen bir hata oluştu" });
+            }
+        }
+
+        // AJAX ile makine durumu değiştirme
+        [HttpPost]
+        public async Task<IActionResult> ToggleStatus([FromBody] ToggleStatusRequest request)
+        {
+            try
+            {
+                if (request == null || request.Id <= 0)
+                {
+                    return Json(new { success = false, message = "Geçersiz istek" });
+                }
+
+                var result = await machineAppService.SetActiveStatusAsync(request.Id, request.IsActive);
+
+                if (result.IsSuccess)
+                {
+                    return Json(new
+                    {
+                        success = true,
+                        message = result.ErrorMessage?.FirstOrDefault() ?? "Durum başarıyla güncellendi",
+                        isActive = request.IsActive
+                    });
+                }
+
+                return Json(new
+                {
+                    success = false,
+                    message = result.ErrorMessage?.FirstOrDefault() ?? "Durum güncellenemedi"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Beklenmeyen bir hata oluştu"
+                });
+            }
+        }
+
+        // AJAX ile API bağlantı testi
+        [HttpPost]
+        public async Task<IActionResult> TestConnection([FromBody] TestConnectionRequest request)
+        {
+            try
+            {
+                if (request == null || string.IsNullOrEmpty(request.ApiAddress))
+                {
+                    return Json(new { success = false, message = "API adresi gereklidir" });
+                }
+
+                var result = await machineAppService.TestApiConnectionAsync(request.ApiAddress);
+
+                if (result.IsSuccess)
+                {
+                    return Json(new
+                    {
+                        success = result.Data,
+                        message = result.Data ? "Bağlantı başarılı" : "Bağlantı başarısız",
+                        connected = result.Data
+                    });
+                }
+
+                return Json(new
+                {
+                    success = false,
+                    message = result.ErrorMessage?.FirstOrDefault() ?? "Bağlantı testi yapılamadı"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Bağlantı testi sırasında hata oluştu"
+                });
+            }
         }
     }
 }

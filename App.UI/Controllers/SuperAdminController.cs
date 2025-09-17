@@ -21,10 +21,11 @@ namespace App.UI.Controllers
             try
             {
                 var members = await memberService.GetAllMembersAsync();
-                var machines = await machineAppService.GetAllAsync();
+                var machinesResult = await machineAppService.GetAllAsync();
                 var rolesResult = await roleService.GetAllRolesAsync();
 
                 var roles = rolesResult?.Data ?? new List<RoleDto>();
+                var machines = machinesResult?.Data ?? new List<MachineListViewModel>();
 
                 var dashboardModel = new SuperAdminDashboardViewModel
                 {
@@ -330,10 +331,11 @@ namespace App.UI.Controllers
             try
             {
                 var users = await memberService.GetAllMembersAsync();
-                var machines = await machineAppService.GetAllAsync();
+                var machinesResult = await machineAppService.GetAllAsync();
                 var rolesResult = await roleService.GetAllRolesAsync();
 
                 var roles = rolesResult?.Data ?? new List<RoleDto>();
+                var machines = machinesResult?.Data ?? new List<MachineListViewModel>();
 
                 var stats = new
                 {

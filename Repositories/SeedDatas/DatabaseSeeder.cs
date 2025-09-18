@@ -151,7 +151,16 @@ namespace App.Repositories.SeedDatas
                     Code = "TEST-001",
                     CreatedBy = "System",
                     CreatedDate = DateTime.UtcNow
-                }
+                },
+                   new Machine
+                {
+                    BranchId = "branch-004",
+                    BranchName = "Docker Test Ortamı",
+                    ApiAddress = "http://app-api:8080",
+                    Code = "TEST-002",
+                    CreatedBy = "System",
+                    CreatedDate = DateTime.UtcNow
+                },
             };
 
             foreach (var machine in testMachines)

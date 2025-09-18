@@ -12,6 +12,11 @@ namespace App.UI.Infrastructure.ExternalApi
         Task<ExternalApiLoginResponse> LoginAsync(string apiAddress, string username = "SystemAdmin", string password = "1234");
         Task<T> GetWithTokenAsync<T>(string apiAddress, string endpoint, string token);
         Task<T> PostWithTokenAsync<T>(string apiAddress, string endpoint, object data, string token);
+
+        // Yeni metodlar - token otomatik alınır
+        Task<T> GetAsync<T>(string apiAddress, string endpoint);
+        Task<T> PostAsync<T>(string apiAddress, string endpoint, object data);
+        Task<bool> RefreshTokenAsync(string apiAddress);
     }
 
     public class ExternalApiService : IExternalApiService
@@ -40,7 +45,7 @@ namespace App.UI.Infrastructure.ExternalApi
                 using var httpClient = _httpClientFactory.CreateClient("ExternalApiClient");
                 httpClient.Timeout = TimeSpan.FromSeconds(10);
 
-                // Health check endpoint'ini dene
+                // Health check endpoint'ini dene (login gerektirmez)
                 var healthUrl = $"{apiAddress.TrimEnd('/')}/health";
 
                 _logger.LogInformation("Health check başlatılıyor: {HealthUrl}", healthUrl);
@@ -58,12 +63,14 @@ namespace App.UI.Infrastructure.ExternalApi
                 if (response.IsSuccessStatusCode)
                 {
                     healthResponse.Message = "API başarıyla yanıt verdi";
-                    _logger.LogInformation("Health check başarılı: {ApiAddress} - {ResponseTime}ms", apiAddress, healthResponse.ResponseTime);
+                    _logger.LogInformation("Health check başarılı: {ApiAddress} - {ResponseTime}ms",
+                        apiAddress, healthResponse.ResponseTime);
                 }
                 else
                 {
                     healthResponse.Message = $"API yanıt vermiyor: {response.StatusCode}";
-                    _logger.LogWarning("Health check başarısız: {ApiAddress} - {StatusCode}", apiAddress, response.StatusCode);
+                    _logger.LogWarning("Health check başarısız: {ApiAddress} - {StatusCode}",
+                        apiAddress, response.StatusCode);
                 }
 
                 return healthResponse;
@@ -265,6 +272,67 @@ namespace App.UI.Infrastructure.ExternalApi
             {
                 _logger.LogError(ex, "External API POST hatası: {ApiAddress}/{Endpoint}", apiAddress, endpoint);
                 return default;
+            }
+        }
+
+        // ExternalApiService implementasyonuna eklenecek metodlar:
+        public async Task<T> GetAsync<T>(string apiAddress, string endpoint)
+        {
+            try
+            {
+                // Önce login ol ve token al
+                var loginResponse = await LoginAsync(apiAddress);
+
+                if (!loginResponse.Success || string.IsNullOrEmpty(loginResponse.AccessToken))
+                {
+                    _logger.LogError("Token alınamadı: {ApiAddress}", apiAddress);
+                    return default(T);
+                }
+
+                // Token ile GET isteği yap
+                return await GetWithTokenAsync<T>(apiAddress, endpoint, loginResponse.AccessToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "GetAsync hatası: {ApiAddress}/{Endpoint}", apiAddress, endpoint);
+                return default(T);
+            }
+        }
+
+        public async Task<T> PostAsync<T>(string apiAddress, string endpoint, object data)
+        {
+            try
+            {
+                // Önce login ol ve token al
+                var loginResponse = await LoginAsync(apiAddress);
+
+                if (!loginResponse.Success || string.IsNullOrEmpty(loginResponse.AccessToken))
+                {
+                    _logger.LogError("Token alınamadı: {ApiAddress}", apiAddress);
+                    return default(T);
+                }
+
+                // Token ile POST isteği yap
+                return await PostWithTokenAsync<T>(apiAddress, endpoint, data, loginResponse.AccessToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "PostAsync hatası: {ApiAddress}/{Endpoint}", apiAddress, endpoint);
+                return default(T);
+            }
+        }
+
+        public async Task<bool> RefreshTokenAsync(string apiAddress)
+        {
+            try
+            {
+                var loginResponse = await LoginAsync(apiAddress);
+                return loginResponse.Success && !string.IsNullOrEmpty(loginResponse.AccessToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Token yenileme hatası: {ApiAddress}", apiAddress);
+                return false;
             }
         }
     }

@@ -16,7 +16,5 @@
         public DateTime? CreatedDate { get; set; } 
         public bool EmailConfirmed { get; set; } = true;
 
-        // UserName mapping
-        public string UserName => Username;
     }
 }

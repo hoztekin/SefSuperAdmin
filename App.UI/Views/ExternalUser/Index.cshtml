@@ -1,4 +1,4 @@
-﻿@model List<ExternalUserDto>
+﻿@model List<ExternalUserListDto>
 
 @{
     ViewData["Title"] = "External Kullanıcı Yönetimi";
@@ -61,9 +61,9 @@
                                     <tr>
                                         <th><i class="fas fa-user"></i> Kullanıcı Adı</th>
                                         <th><i class="fas fa-envelope"></i> Email</th>
-                                        <th><i class="fas fa-user-tag"></i> Roller</th>
+                                        <th><i class="fas fa-user-tag"></i> Ad Soyad</th>
                                         <th><i class="fas fa-calendar"></i> Kayıt Tarihi</th>
-                                        <th><i class="fas fa-check-circle"></i> Email Onayı</th>
+                                        <th><i class="fas fa-check-circle"></i> Durum</th>
                                         <th><i class="fas fa-cog"></i> İşlemler</th>
                                     </tr>
                                 </thead>
@@ -73,80 +73,28 @@
                                         <tr>
                                             <td class="align-middle">
                                                 <strong>@user.UserName</strong>
-                                                <br><small class="text-muted">ID: @user.Id.Substring(0, 8)...</small>
+                                                <br><small class="text-muted">ID: @user.Id.Substring(0, Math.Min(8, user.Id.Length))...</small>
                                             </td>
-                                            <td class="align-middle">@user.</td>
+                                            <td class="align-middle">@user.Email</td>
+                                            <td class="align-middle">@user.FullName</td>
+                                            <td class="align-middle">@user.CreatedDate.ToString("dd.MM.yyyy")</td>
                                             <td class="align-middle">
-                                                @if (user.Roles != null && user.Roles.Any())
+                                                @if (user.IsActive)
                                                 {
-                                                    @foreach (var role in user.Roles)
-                                                    {
-                                                        @if (role == "SuperAdmin")
-                                                        {
-                                                            <span class="badge bg-warning text-dark me-1">
-                                                                <i class="fas fa-crown"></i> @role
-                                                            </span>
-                                                        }
-                                                        else if (role == "Admin")
-                                                        {
-                                                            <span class="badge bg-primary me-1">
-                                                                <i class="fas fa-user-shield"></i> @role
-                                                            </span>
-                                                        }
-                                                        else if (role == "Destek")
-                                                        {
-                                                            <span class="badge bg-info me-1">
-                                                                <i class="fas fa-headset"></i> @role
-                                                            </span>
-                                                        }
-                                                        else
-                                                        {
-                                                            <span class="badge bg-secondary me-1">
-                                                                <i class="fas fa-user"></i> @role
-                                                            </span>
-                                                        }
-                                                    }
+                                                    <span class="badge bg-success">Aktif</span>
                                                 }
                                                 else
                                                 {
-                                                    <span class="text-muted">Rol atanmamış</span>
+                                                    <span class="badge bg-danger">Pasif</span>
                                                 }
                                             </td>
                                             <td class="align-middle">
-                                                @if (user.CreatedDate.HasValue)
-                                                {
-                                                    @user.CreatedDate.Value.ToString("dd.MM.yyyy HH:mm")
-                                                }
-                                                else
-                                                {
-                                                    <span class="text-muted">-</span>
-                                                }
-                                            </td>
-                                            <td class="align-middle text-center">
-                                                @if (user.EmailConfirmed)
-                                                {
-                                                    <span class="badge bg-success">
-                                                        <i class="fas fa-check"></i> Onaylı
-                                                    </span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="badge bg-warning text-dark">
-                                                        <i class="fas fa-clock"></i> Bekliyor
-                                                    </span>
-                                                }
-                                            </td>
-                                            <td class="align-middle">
-                                                <div class="btn-group" role="group">
-                                                    <button onclick="showEditExternalUserModal('@user.Id', '@user.UserName', '@user.EMail')"
-                                                            class="btn btn-sm btn-warning" title="Düzenle">
-                                                        <i class="fas fa-edit"></i>
-                                                    </button>
-                                                    <button onclick="deleteExternalUser('@user.Id', '@user.UserName')"
-                                                            class="btn btn-sm btn-danger" title="Sil">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </div>
+                                                <button class="btn btn-sm btn-primary" onclick="editUser('@user.Id')">
+                                                    <i class="fas fa-edit"></i> Düzenle
+                                                </button>
+                                                <button class="btn btn-sm btn-danger" onclick="deleteUser('@user.Id', '@user.UserName')">
+                                                    <i class="fas fa-trash"></i> Sil
+                                                </button>
                                             </td>
                                         </tr>
                                     }
@@ -156,13 +104,10 @@
                     }
                     else
                     {
-                        <div class="text-center p-5">
+                        <div class="text-center py-5">
                             <i class="fas fa-users fa-3x text-muted mb-3"></i>
-                            <h5 class="text-muted">External Kullanıcı Bulunamadı</h5>
-                            <p class="text-muted">Bu makinede henüz kullanıcı bulunmuyor.</p>
-                            <button onclick="showAddExternalUserModal()" class="btn btn-success">
-                                <i class="fas fa-plus"></i> İlk External Kullanıcıyı Ekle
-                            </button>
+                            <h4 class="text-muted">Kullanıcı bulunamadı</h4>
+                            <p class="text-muted">Henüz hiç kullanıcı kaydı yapılmamış.</p>
                         </div>
                     }
                 </div>

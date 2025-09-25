@@ -1,4 +1,5 @@
 ﻿using App.UI.Application.DTOS;
+using App.UI.Infrastructure.Storage;
 using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Text;
@@ -9,13 +10,14 @@ namespace App.UI.Infrastructure.ExternalApi
     public interface IExternalApiService
     {
         Task<ExternalApiHealthResponse> CheckHealthAsync(string apiAddress);
-        Task<ExternalApiLoginResponse> LoginAsync(string apiAddress, string username = "SystemAdmin", string password = "1234");
-        Task<T> GetWithTokenAsync<T>(string apiAddress, string endpoint, string token);
-        Task<T> PostWithTokenAsync<T>(string apiAddress, string endpoint, object data, string token);
+        Task<ExternalApiLoginResponse> LoginAsync(string apiAddress, string username = "Admin", string password = "Admin1234");
 
-        // Yeni metodlar - token otomatik alınır
-        Task<T> GetAsync<T>(string apiAddress, string endpoint);
-        Task<T> PostAsync<T>(string apiAddress, string endpoint, object data);
+        // Token ile CRUD metodları
+        Task<HttpResponseMessage> GetWithTokenAsync(string apiAddress, string endpoint, string token);
+        Task<HttpResponseMessage> PostWithTokenAsync(string apiAddress, string endpoint, object data, string token);
+        Task<HttpResponseMessage> PutWithTokenAsync(string apiAddress, string endpoint, object data, string token);
+        Task<HttpResponseMessage> DeleteWithTokenAsync(string apiAddress, string endpoint, string token);
+
         Task<bool> RefreshTokenAsync(string apiAddress);
     }
 
@@ -24,15 +26,16 @@ namespace App.UI.Infrastructure.ExternalApi
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<ExternalApiService> _logger;
         private readonly JsonSerializerOptions _jsonOptions;
+        private readonly ISessionService _sessionService;
 
-        public ExternalApiService(IHttpClientFactory httpClientFactory, ILogger<ExternalApiService> logger)
+        public ExternalApiService(IHttpClientFactory httpClientFactory, ILogger<ExternalApiService> logger, ISessionService sessionService)
         {
             _httpClientFactory = httpClientFactory;
             _logger = logger;
+            _sessionService = sessionService;
             _jsonOptions = new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             };
         }
 
@@ -116,15 +119,14 @@ namespace App.UI.Infrastructure.ExternalApi
             }
         }
 
-        public async Task<ExternalApiLoginResponse> LoginAsync(string apiAddress, string username = "SystemAdmin", string password = "1234")
+        public async Task<ExternalApiLoginResponse> LoginAsync(string apiAddress, string username = "Admin", string password = "Admin1234")
         {
             try
             {
                 using var httpClient = _httpClientFactory.CreateClient("ExternalApiClient");
                 httpClient.Timeout = TimeSpan.FromSeconds(30);
 
-                var loginUrl = $"{apiAddress.TrimEnd('/')}/api/v1/Auth/Login";
-
+                var loginUrl = $"{apiAddress.TrimEnd('/')}/Public/Auth/Login";
                 var loginRequest = new ExternalApiLoginRequest
                 {
                     UserName = username,
@@ -134,67 +136,10 @@ namespace App.UI.Infrastructure.ExternalApi
                 var json = JsonSerializer.Serialize(loginRequest, _jsonOptions);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                _logger.LogInformation("Login isteği gönderiliyor: {LoginUrl} - Kullanıcı: {Username}", loginUrl, username);
-
                 var response = await httpClient.PostAsync(loginUrl, content);
                 var responseContent = await response.Content.ReadAsStringAsync();
 
-                if (response.IsSuccessStatusCode)
-                {
-                    // Yanıtı deserialize et
-                    var loginResult = JsonSerializer.Deserialize<dynamic>(responseContent, _jsonOptions);
-
-                    // Farklı response formatları için esnek approach
-                    var loginResponse = new ExternalApiLoginResponse
-                    {
-                        Success = true,
-                        Message = "Login başarılı"
-                    };
-
-                    // JSON response'undan token bilgilerini çıkar
-                    // Bu kısım uzaktaki API'nin response formatına göre düzenlenebilir
-                    try
-                    {
-                        using JsonDocument doc = JsonDocument.Parse(responseContent);
-
-                        if (doc.RootElement.TryGetProperty("data", out var dataElement))
-                        {
-                            if (dataElement.TryGetProperty("accessToken", out var tokenElement))
-                            {
-                                loginResponse.AccessToken = tokenElement.GetString() ?? string.Empty;
-                            }
-
-                            if (dataElement.TryGetProperty("refreshToken", out var refreshElement))
-                            {
-                                loginResponse.RefreshToken = refreshElement.GetString() ?? string.Empty;
-                            }
-
-                            if (dataElement.TryGetProperty("accessTokenExpiration", out var expiresElement))
-                            {
-                                if (DateTime.TryParse(expiresElement.GetString(), out var expiresAt))
-                                {
-                                    loginResponse.ExpiresAt = expiresAt;
-                                    loginResponse.ExpiresIn = (int)(expiresAt - DateTime.UtcNow).TotalSeconds;
-                                }
-                            }
-                        }
-                        // Alternatif format: token direkt root'ta olabilir
-                        else if (doc.RootElement.TryGetProperty("accessToken", out var directTokenElement))
-                        {
-                            loginResponse.AccessToken = directTokenElement.GetString() ?? string.Empty;
-                        }
-                    }
-                    catch (JsonException ex)
-                    {
-                        _logger.LogWarning(ex, "Login response parse edilirken hata: {ResponseContent}", responseContent);
-                    }
-
-                    _logger.LogInformation("Login başarılı: {ApiAddress} - Token alındı: {HasToken}",
-                        apiAddress, !string.IsNullOrEmpty(loginResponse.AccessToken));
-
-                    return loginResponse;
-                }
-                else
+                if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogError("Login başarısız: {ApiAddress} - {StatusCode} - {ResponseContent}",
                         apiAddress, response.StatusCode, responseContent);
@@ -205,11 +150,51 @@ namespace App.UI.Infrastructure.ExternalApi
                         Message = $"Login başarısız: {response.StatusCode}"
                     };
                 }
+
+                // ---- JSON Parse ----
+                var loginResponse = new ExternalApiLoginResponse
+                {
+                    Success = true,
+                    Message = "Login başarılı"
+                };
+
+                using (JsonDocument doc = JsonDocument.Parse(responseContent))
+                {
+                    if (doc.RootElement.TryGetProperty("data", out var dataElement) &&
+                        dataElement.TryGetProperty("token", out var tokenElement))
+                    {
+                        loginResponse.AccessToken = tokenElement.GetProperty("access_token").GetString() ?? string.Empty;
+                        loginResponse.RefreshToken = tokenElement.GetProperty("refresh_token").GetString() ?? string.Empty;
+
+                        if (tokenElement.TryGetProperty("expires_in", out var expInElement))
+                        {
+                            loginResponse.ExpiresIn = expInElement.GetInt32();
+                            loginResponse.ExpiresAt = DateTime.UtcNow.AddSeconds(loginResponse.ExpiresIn);
+                        }
+                    }
+                }
+
+                _logger.LogInformation("Login başarılı: {ApiAddress} - Token alındı: {HasToken}",
+                    apiAddress, !string.IsNullOrEmpty(loginResponse.AccessToken));
+
+                // ---- Session'a Kaydet ----
+                if (!string.IsNullOrEmpty(loginResponse.AccessToken))
+                {
+                    _logger.LogDebug("Token session'a kaydediliyor: ApiAddress={ApiAddress}, ExpiresAt={ExpiresAt}",  apiAddress, loginResponse.ExpiresAt);
+
+                    _sessionService.SaveMachineApiToken(
+                        apiAddress,
+                        loginResponse.AccessToken,
+                        loginResponse.ExpiresAt,
+                        loginResponse.RefreshToken
+                    );
+                }
+
+                return loginResponse;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Login işlemi sırasında hata: {ApiAddress}", apiAddress);
-
                 return new ExternalApiLoginResponse
                 {
                     Success = false,
@@ -218,34 +203,35 @@ namespace App.UI.Infrastructure.ExternalApi
             }
         }
 
-        public async Task<T> GetWithTokenAsync<T>(string apiAddress, string endpoint, string token)
+        public async Task<HttpResponseMessage> GetWithTokenAsync(string apiAddress, string endpoint, string token)
         {
             try
             {
                 using var httpClient = _httpClientFactory.CreateClient("ExternalApiClient");
                 httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
                 var fullUrl = $"{apiAddress.TrimEnd('/')}/{endpoint.TrimStart('/')}";
 
                 var response = await httpClient.GetAsync(fullUrl);
-                var content = await response.Content.ReadAsStringAsync();
 
                 if (response.IsSuccessStatusCode)
                 {
-                    return JsonSerializer.Deserialize<T>(content, _jsonOptions);
+                    _logger.LogInformation("External API GET başarılı: {Url}", fullUrl);
+                }
+                else
+                {
+                    _logger.LogWarning("External API GET başarısız: {Url} - {StatusCode}", fullUrl, response.StatusCode);
                 }
 
-                _logger.LogWarning("External API GET başarısız: {Url} - {StatusCode}", fullUrl, response.StatusCode);
-                return default;
+                return response; // Raw HttpResponseMessage döndür
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "External API GET hatası: {ApiAddress}/{Endpoint}", apiAddress, endpoint);
-                return default;
+                throw; // Exception'ı yukarı fırlat
             }
         }
 
-        public async Task<T> PostWithTokenAsync<T>(string apiAddress, string endpoint, object data, string token)
+        public async Task<HttpResponseMessage> PostWithTokenAsync(string apiAddress, string endpoint, object data, string token)
         {
             try
             {
@@ -258,15 +244,17 @@ namespace App.UI.Infrastructure.ExternalApi
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 var response = await httpClient.PostAsync(fullUrl, content);
-                var responseContent = await response.Content.ReadAsStringAsync();
 
                 if (response.IsSuccessStatusCode)
                 {
-                    return JsonSerializer.Deserialize<T>(responseContent, _jsonOptions);
+                    _logger.LogInformation("External API Post başarılı: {Url}", fullUrl);
+                }
+                else
+                {
+                    _logger.LogWarning("External API Post başarısız: {Url} - {StatusCode}", fullUrl, response.StatusCode);
                 }
 
-                _logger.LogWarning("External API POST başarısız: {Url} - {StatusCode}", fullUrl, response.StatusCode);
-                return default;
+                return response; // Raw HttpResponseMessage döndür
             }
             catch (Exception ex)
             {
@@ -275,50 +263,64 @@ namespace App.UI.Infrastructure.ExternalApi
             }
         }
 
-        // ExternalApiService implementasyonuna eklenecek metodlar:
-        public async Task<T> GetAsync<T>(string apiAddress, string endpoint)
+        public async Task<HttpResponseMessage> PutWithTokenAsync(string apiAddress, string endpoint, object data, string token)
         {
             try
             {
-                // Önce login ol ve token al
-                var loginResponse = await LoginAsync(apiAddress);
+                using var httpClient = _httpClientFactory.CreateClient("ExternalApiClient");
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-                if (!loginResponse.Success || string.IsNullOrEmpty(loginResponse.AccessToken))
+                var fullUrl = $"{apiAddress.TrimEnd('/')}/{endpoint.TrimStart('/')}";
+
+                var json = JsonSerializer.Serialize(data, _jsonOptions);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await httpClient.PutAsync(fullUrl, content);
+
+                if (response.IsSuccessStatusCode)
                 {
-                    _logger.LogError("Token alınamadı: {ApiAddress}", apiAddress);
-                    return default(T);
+                    _logger.LogInformation("External API Put başarılı: {Url}", fullUrl);
+                }
+                else
+                {
+                    _logger.LogWarning("External API Put başarısız: {Url} - {StatusCode}", fullUrl, response.StatusCode);
                 }
 
-                // Token ile GET isteği yap
-                return await GetWithTokenAsync<T>(apiAddress, endpoint, loginResponse.AccessToken);
+                return response;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "GetAsync hatası: {ApiAddress}/{Endpoint}", apiAddress, endpoint);
-                return default(T);
+                _logger.LogError(ex, "External API PUT hatası: {ApiAddress}/{Endpoint}", apiAddress, endpoint);
+                return default;
             }
         }
 
-        public async Task<T> PostAsync<T>(string apiAddress, string endpoint, object data)
+        public async Task<HttpResponseMessage> DeleteWithTokenAsync(string apiAddress, string endpoint, string token)
         {
             try
             {
-                // Önce login ol ve token al
-                var loginResponse = await LoginAsync(apiAddress);
+                using var httpClient = _httpClientFactory.CreateClient("ExternalApiClient");
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-                if (!loginResponse.Success || string.IsNullOrEmpty(loginResponse.AccessToken))
+                var fullUrl = $"{apiAddress.TrimEnd('/')}/{endpoint.TrimStart('/')}";
+
+                var response = await httpClient.DeleteAsync(fullUrl);
+
+                if (response.IsSuccessStatusCode)
                 {
-                    _logger.LogError("Token alınamadı: {ApiAddress}", apiAddress);
-                    return default(T);
+                    _logger.LogInformation("External API GET başarılı: {Url}", fullUrl);
+                }
+                else
+                {
+                    _logger.LogWarning("External API GET başarısız: {Url} - {StatusCode}", fullUrl, response.StatusCode);
                 }
 
-                // Token ile POST isteği yap
-                return await PostWithTokenAsync<T>(apiAddress, endpoint, data, loginResponse.AccessToken);
+                return response; // Raw HttpResponseMessage döndür
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "PostAsync hatası: {ApiAddress}/{Endpoint}", apiAddress, endpoint);
-                return default(T);
+                _logger.LogError(ex, "External API DELETE hatası: {ApiAddress}/{Endpoint}", apiAddress, endpoint);
+                return default;
             }
         }
 

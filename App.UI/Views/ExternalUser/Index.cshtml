@@ -1,0 +1,800 @@
+﻿@model List<ExternalUserDto>
+
+@{
+    ViewData["Title"] = "External Kullanıcı Yönetimi";
+    var selectedMachine = ViewData["SelectedMachine"] as SelectedMachineInfo;
+}
+
+<!-- ViewComponent Navigation -->
+@await Component.InvokeAsync("RoleBasedNavigation", new { showLogo = true })
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2><i class="fas fa-network-wired"></i> External Kullanıcı Yönetimi</h2>
+                    <p class="text-muted">
+                        @if (selectedMachine != null)
+                        {
+                            <text>@selectedMachine.BranchName makinesiindeki kullanıcıları yönetin</text>
+                        }
+                        else
+                        {
+                            <text>External API kullanıcılarını yönetin</text>
+                        }
+                    </p>
+                </div>
+                <div>
+                    <a href="/Home/Index" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Makine Seçimine Dön
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold">
+                            <i class="fas fa-list"></i> External Kullanıcı Listesi (@Model.Count kullanıcı)
+                        </h6>
+                        <div>
+                            <button onclick="showAddExternalUserModal()" class="btn btn-sm btn-light me-2">
+                                <i class="fas fa-plus"></i> Ekle
+                            </button>
+                            <button onclick="refreshExternalUserList()" class="btn btn-sm btn-outline-light">
+                                <i class="fas fa-sync-alt"></i> Yenile
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (Model.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover" id="externalUsersTable">
+                                <thead class="thead-dark">
+                                    <tr>
+                                        <th><i class="fas fa-user"></i> Kullanıcı Adı</th>
+                                        <th><i class="fas fa-envelope"></i> Email</th>
+                                        <th><i class="fas fa-user-tag"></i> Roller</th>
+                                        <th><i class="fas fa-calendar"></i> Kayıt Tarihi</th>
+                                        <th><i class="fas fa-check-circle"></i> Email Onayı</th>
+                                        <th><i class="fas fa-cog"></i> İşlemler</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var user in Model)
+                                    {
+                                        <tr>
+                                            <td class="align-middle">
+                                                <strong>@user.UserName</strong>
+                                                <br><small class="text-muted">ID: @user.Id.Substring(0, 8)...</small>
+                                            </td>
+                                            <td class="align-middle">@user.</td>
+                                            <td class="align-middle">
+                                                @if (user.Roles != null && user.Roles.Any())
+                                                {
+                                                    @foreach (var role in user.Roles)
+                                                    {
+                                                        @if (role == "SuperAdmin")
+                                                        {
+                                                            <span class="badge bg-warning text-dark me-1">
+                                                                <i class="fas fa-crown"></i> @role
+                                                            </span>
+                                                        }
+                                                        else if (role == "Admin")
+                                                        {
+                                                            <span class="badge bg-primary me-1">
+                                                                <i class="fas fa-user-shield"></i> @role
+                                                            </span>
+                                                        }
+                                                        else if (role == "Destek")
+                                                        {
+                                                            <span class="badge bg-info me-1">
+                                                                <i class="fas fa-headset"></i> @role
+                                                            </span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-secondary me-1">
+                                                                <i class="fas fa-user"></i> @role
+                                                            </span>
+                                                        }
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">Rol atanmamış</span>
+                                                }
+                                            </td>
+                                            <td class="align-middle">
+                                                @if (user.CreatedDate.HasValue)
+                                                {
+                                                    @user.CreatedDate.Value.ToString("dd.MM.yyyy HH:mm")
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                            <td class="align-middle text-center">
+                                                @if (user.EmailConfirmed)
+                                                {
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-check"></i> Onaylı
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-warning text-dark">
+                                                        <i class="fas fa-clock"></i> Bekliyor
+                                                    </span>
+                                                }
+                                            </td>
+                                            <td class="align-middle">
+                                                <div class="btn-group" role="group">
+                                                    <button onclick="showEditExternalUserModal('@user.Id', '@user.UserName', '@user.EMail')"
+                                                            class="btn btn-sm btn-warning" title="Düzenle">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button onclick="deleteExternalUser('@user.Id', '@user.UserName')"
+                                                            class="btn btn-sm btn-danger" title="Sil">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center p-5">
+                            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">External Kullanıcı Bulunamadı</h5>
+                            <p class="text-muted">Bu makinede henüz kullanıcı bulunmuyor.</p>
+                            <button onclick="showAddExternalUserModal()" class="btn btn-success">
+                                <i class="fas fa-plus"></i> İlk External Kullanıcıyı Ekle
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- External Kullanıcı Ekleme Modal -->
+<div class="modal fade" id="addExternalUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus"></i> Yeni External Kullanıcı Ekle
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addExternalUserForm">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        Tüm alanlar zorunludur. External makineye kullanıcı eklenecektir.
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="external-admin-userName" class="form-label">
+                            <i class="fas fa-user"></i> Kullanıcı Adı *
+                        </label>
+                        <input type="text" class="form-control form-control-lg" id="external-admin-userName" name="userName" required autocomplete="off">
+                        <div class="invalid-feedback"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="external-admin-email" class="form-label">
+                            <i class="fas fa-envelope"></i> Email *
+                        </label>
+                        <input type="email" class="form-control form-control-lg" id="external-admin-email" name="email" required autocomplete="off">
+                        <div class="invalid-feedback"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="external-admin-password" class="form-label">
+                            <i class="fas fa-lock"></i> Şifre *
+                        </label>
+                        <div class="input-group">
+                            <input type="password" class="form-control form-control-lg" id="external-admin-password" name="password" required autocomplete="new-password">
+                            <button class="btn btn-outline-secondary" type="button" onclick="toggleExternalPassword('external-admin-password', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="invalid-feedback"></div>
+                        <div class="form-text">En az 4 karakter olmalıdır.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="external-admin-confirmPassword" class="form-label">
+                            <i class="fas fa-lock"></i> Şifre Tekrar *
+                        </label>
+                        <div class="input-group">
+                            <input type="password" class="form-control form-control-lg" id="external-admin-confirmPassword" name="confirmPassword" required autocomplete="new-password">
+                            <button class="btn btn-outline-secondary" type="button" onclick="toggleExternalPassword('external-admin-confirmPassword', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="invalid-feedback"></div>
+                        <div class="valid-feedback">Şifreler eşleşiyor!</div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> İptal
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> External Kullanıcı Ekle
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- External Kullanıcı Düzenleme Modal -->
+<div class="modal fade" id="editExternalUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-edit"></i> External Kullanıcı Düzenle
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editExternalUserForm">
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        External kullanıcı bilgilerini dikkatli bir şekilde düzenleyin.
+                    </div>
+
+                    <input type="hidden" id="external-edit-userId" name="userId">
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        Şifreyi değiştirmek istemiyorsanız boş bırakın.
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="external-edit-userName" class="form-label">
+                            <i class="fas fa-user"></i> Kullanıcı Adı *
+                        </label>
+                        <input type="text" class="form-control form-control-lg" id="external-edit-userName" name="userName" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="external-edit-email" class="form-label">
+                            <i class="fas fa-envelope"></i> Email *
+                        </label>
+                        <input type="email" class="form-control form-control-lg" id="external-edit-email" name="email" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="external-edit-password" class="form-label">
+                            <i class="fas fa-lock"></i> Yeni Şifre (Opsiyonel)
+                        </label>
+                        <div class="input-group">
+                            <input type="password" class="form-control form-control-lg" id="external-edit-password" name="password" autocomplete="new-password">
+                            <button class="btn btn-outline-secondary" type="button" onclick="toggleExternalPassword('external-edit-password', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="invalid-feedback"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="external-edit-confirmPassword" class="form-label">
+                            <i class="fas fa-lock"></i> Yeni Şifre Tekrar
+                        </label>
+                        <div class="input-group">
+                            <input type="password" class="form-control form-control-lg" id="external-edit-confirmPassword" name="confirmPassword" autocomplete="new-password">
+                            <button class="btn btn-outline-secondary" type="button" onclick="toggleExternalPassword('external-edit-confirmPassword', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="invalid-feedback"></div>
+                        <div class="valid-feedback">Şifreler eşleşiyor!</div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> İptal
+                    </button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-save"></i> Güncelle
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- JavaScript kodunu buraya ekleyebilirsiniz -->
+    <!-- Önceki artifact'ta paylaştığım JS kodu buraya gelecek -->
+
+    <script>
+        // External API Base URL - Seçili makineden alınacak
+        let selectedMachineApiAddress = null;
+
+        $(document).ready(function() {
+            // Önce seçili makine bilgisini al
+            loadSelectedMachineInfo();
+
+            // DataTables sadece tablo varsa yükle
+            if ($('#externalUsersTable').length > 0) {
+                // DataTables CSS ve JS'i dinamik yükle
+                if (!$.fn.DataTable) {
+                    $('head').append('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.24/css/dataTables.bootstrap5.min.css">');
+                    $.getScript('https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.24/js/jquery.dataTables.min.js', function() {
+                        $.getScript('https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.24/js/dataTables.bootstrap5.min.js', function() {
+                            initDataTable();
+                        });
+                    });
+                } else {
+                    initDataTable();
+                }
+            }
+
+            // Modal açıldığında setup yap
+            $('#addExternalUserModal').on('shown.bs.modal', function () {
+                setTimeout(() => {
+                    setupPasswordMatching('external-admin-password', 'external-admin-confirmPassword');
+                }, 50);
+                $('#external-admin-userName').focus();
+                // Formu temizle
+                $('#addExternalUserForm')[0].reset();
+                $('#addExternalUserForm .is-invalid, #addExternalUserForm .is-valid').removeClass('is-invalid is-valid');
+            });
+
+            $('#editExternalUserModal').on('shown.bs.modal', function () {
+                setTimeout(() => {
+                    setupPasswordMatching('external-edit-password', 'external-edit-confirmPassword');
+                }, 50);
+                $('#external-edit-userName').focus();
+                // Form validation'ları temizle
+                $('#editExternalUserForm .is-invalid, #editExternalUserForm .is-valid').removeClass('is-invalid is-valid');
+            });
+
+            // EXTERNAL KULLANICI EKLEME FORM SUBMIT
+            $('#addExternalUserForm').on('submit', async function(e) {
+                e.preventDefault();
+
+                // Seçili makine kontrolü
+                if (!selectedMachineApiAddress) {
+                    await checkSelectedMachine();
+                    if (!selectedMachineApiAddress) {
+                        showError('Önce bir makine seçiniz!');
+                        return;
+                    }
+                }
+
+                // Form verilerini al
+                const userName = $('#external-admin-userName').val();
+                const email = $('#external-admin-email').val();
+                const password = $('#external-admin-password').val();
+                const confirmPassword = $('#external-admin-confirmPassword').val();
+
+                // Validasyon
+                let hasError = false;
+                $('#addExternalUserForm .is-invalid, #addExternalUserForm .is-valid').removeClass('is-invalid is-valid');
+
+                if (!userName || userName.trim() === '') {
+                    showFieldError('external-admin-userName', 'Kullanıcı adı gerekli!');
+                    hasError = true;
+                }
+
+                if (!email || email.trim() === '') {
+                    showFieldError('external-admin-email', 'Email gerekli!');
+                    hasError = true;
+                }
+
+                if (!password || password.length === 0) {
+                    showFieldError('external-admin-password', 'Şifre gerekli!');
+                    hasError = true;
+                } else if (password.length < 4) {
+                    showFieldError('external-admin-password', 'Şifre en az 4 karakter olmalıdır!');
+                    hasError = true;
+                }
+
+                if (!confirmPassword || confirmPassword.length === 0) {
+                    showFieldError('external-admin-confirmPassword', 'Şifre tekrar gerekli!');
+                    hasError = true;
+                }
+
+                if (password && confirmPassword && password !== confirmPassword) {
+                    showFieldError('external-admin-confirmPassword', 'Şifreler eşleşmiyor!');
+                    hasError = true;
+                }
+
+                if (hasError) return;
+
+                const submitData = {
+                    UserName: userName.trim(),
+                    EMail: email.trim(),
+                    Password: password,
+                    ConfirmPassword: confirmPassword
+                };
+
+                try {
+                    const submitBtn = $(this).find('button[type="submit"]');
+                    const originalText = submitBtn.html();
+                    submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Kaydediliyor...').prop('disabled', true);
+
+                    let token = $('input[name="__RequestVerificationToken"]').val();
+                    if (!token) {
+                        token = $('meta[name="RequestVerificationToken"]').attr('content');
+                    }
+
+                    const response = await fetch('/ExternalUser/CreateUser', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': token || ''
+                        },
+                        body: JSON.stringify(submitData)
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success) {
+                            $('#addExternalUserModal').modal('hide');
+                            showSuccess('External kullanıcı başarıyla eklendi!', () => {
+                                location.reload();
+                            });
+                        } else {
+                            showError(data.message || 'External kullanıcı eklenirken bir hata oluştu!');
+                        }
+                    } else {
+                        showError('Sunucu hatası oluştu!');
+                    }
+                    submitBtn.html(originalText).prop('disabled', false);
+                } catch (error) {
+                    showError('Beklenmeyen bir hata oluştu!');
+                    $(this).find('button[type="submit"]').html('<i class="fas fa-save"></i> External Kullanıcı Ekle').prop('disabled', false);
+                }
+            });
+
+            // EXTERNAL KULLANICI DÜZENLEME FORM SUBMIT
+            $('#editExternalUserForm').on('submit', async function(e) {
+                e.preventDefault();
+
+                if (!selectedMachineApiAddress) {
+                    await checkSelectedMachine();
+                    if (!selectedMachineApiAddress) {
+                        showError('Önce bir makine seçiniz!');
+                        return;
+                    }
+                }
+
+                const userId = $('#external-edit-userId').val();
+                const userName = $('#external-edit-userName').val();
+                const email = $('#external-edit-email').val();
+                const password = $('#external-edit-password').val();
+                const confirmPassword = $('#external-edit-confirmPassword').val();
+
+                let hasError = false;
+                $('#editExternalUserForm .is-invalid, #editExternalUserForm .is-valid').removeClass('is-invalid is-valid');
+
+                if (!userId) {
+                    showError('Kullanıcı ID bulunamadı!');
+                    return;
+                }
+
+                if (!userName || userName.trim() === '') {
+                    showFieldError('external-edit-userName', 'Kullanıcı adı gerekli!');
+                    hasError = true;
+                }
+
+                if (!email || email.trim() === '') {
+                    showFieldError('external-edit-email', 'Email gerekli!');
+                    hasError = true;
+                }
+
+                if (password && password.length > 0) {
+                    if (password.length < 4) {
+                        showFieldError('external-edit-password', 'Şifre en az 4 karakter olmalıdır!');
+                        hasError = true;
+                    }
+                    if (!confirmPassword || confirmPassword.length === 0) {
+                        showFieldError('external-edit-confirmPassword', 'Şifre tekrar gerekli!');
+                        hasError = true;
+                    } else if (password !== confirmPassword) {
+                        showFieldError('external-edit-confirmPassword', 'Şifreler eşleşmiyor!');
+                        hasError = true;
+                    }
+                }
+
+                if (hasError) return;
+
+                const submitData = {
+                    Id: userId,
+                    UserName: userName.trim(),
+                    EMail: email.trim()
+                };
+
+                if (password && password.length > 0) {
+                    submitData.Password = password;
+                    submitData.ConfirmPassword = confirmPassword;
+                }
+
+                try {
+                    const submitBtn = $(this).find('button[type="submit"]');
+                    const originalText = submitBtn.html();
+                    submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Güncelleniyor...').prop('disabled', true);
+
+                    let token = $('input[name="__RequestVerificationToken"]').val();
+                    if (!token) {
+                        token = $('meta[name="RequestVerificationToken"]').attr('content');
+                    }
+
+                    const response = await fetch(`/ExternalUser/UpdateUser?userId=${userId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': token || ''
+                        },
+                        body: JSON.stringify(submitData)
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success) {
+                            $('#editExternalUserModal').modal('hide');
+                            showSuccess('External kullanıcı başarıyla güncellendi!', () => {
+                                location.reload();
+                            });
+                        } else {
+                            showError(data.message || 'External kullanıcı güncellenirken bir hata oluştu!');
+                        }
+                    } else {
+                        showError('Sunucu hatası oluştu!');
+                    }
+                    submitBtn.html(originalText).prop('disabled', false);
+                } catch (error) {
+                    showError('Sunucuya bağlanılamadı!');
+                    $(this).find('button[type="submit"]').html('<i class="fas fa-save"></i> Güncelle').prop('disabled', false);
+                }
+            });
+        });
+
+        // Helper fonksiyonlar
+        async function loadSelectedMachineInfo() {
+            try {
+                const response = await fetch('/Home/GetSelectedMachine');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.data) {
+                        selectedMachineApiAddress = data.data.apiAddress;
+                        updateSelectedMachineDisplay(data.data);
+                    } else {
+                        showMachineSelectionWarning();
+                    }
+                }
+            } catch (error) {
+                console.error('Selected machine info yüklenirken hata:', error);
+            }
+        }
+
+        async function checkSelectedMachine() {
+            if (!selectedMachineApiAddress) {
+                await loadSelectedMachineInfo();
+            }
+            return selectedMachineApiAddress != null;
+        }
+
+        function updateSelectedMachineDisplay(machineData) {
+            const displayHtml = `
+                <div class="alert alert-success mb-3">
+                    <i class="fas fa-server"></i>
+                    <strong>Seçili Makine:</strong> ${machineData.branchName}
+                    <small class="text-muted">(${machineData.apiAddress})</small>
+                </div>
+            `;
+            $('.selected-machine-display').remove();
+            $('.container-fluid').first().after(displayHtml);
+        }
+
+        function showMachineSelectionWarning() {
+            const warningHtml = `
+                <div class="alert alert-warning mb-3 selected-machine-display">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Uyarı:</strong> External kullanıcı işlemleri için önce bir makine seçiniz.
+                    <a href="/Home/Index" class="btn btn-sm btn-primary ms-2">Makine Seç</a>
+                </div>
+            `;
+            $('.container-fluid').first().after(warningHtml);
+        }
+
+        function initDataTable() {
+            $('#externalUsersTable').DataTable({
+                "language": { "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Turkish.json" },
+                "pageLength": 25,
+                "order": [[ 3, "desc" ]],
+                "columnDefs": [{ "orderable": false, "targets": 5 }],
+                "responsive": true,
+                "autoWidth": false
+            });
+        }
+
+        function refreshExternalUserList() {
+            location.reload();
+        }
+
+        function showAddExternalUserModal() {
+            if (!selectedMachineApiAddress) {
+                showError('Önce bir makine seçiniz!');
+                return;
+            }
+            $('#addExternalUserModal').modal('show');
+        }
+
+        function showEditExternalUserModal(userId, userName, email) {
+            if (!selectedMachineApiAddress) {
+                showError('Önce bir makine seçiniz!');
+                return;
+            }
+            $('#editExternalUserModal').modal('show');
+            $('#editExternalUserForm')[0].reset();
+            $('#editExternalUserForm .is-invalid, #editExternalUserForm .is-valid').removeClass('is-invalid is-valid');
+            $('#external-edit-userId').val(userId);
+            $('#external-edit-userName').val(userName);
+            $('#external-edit-email').val(email);
+        }
+
+        function deleteExternalUser(userId, userName) {
+            if (!selectedMachineApiAddress) {
+                showError('Önce bir makine seçiniz!');
+                return;
+            }
+
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Emin misiniz?',
+                    text: `"${userName}" external kullanıcısını silmek istediğinizden emin misiniz?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Evet, Sil!',
+                    cancelButtonText: 'İptal'
+                }).then(async (result) => {
+                    if (result.isConfirmed) {
+                        try {
+                            let token = $('input[name="__RequestVerificationToken"]').val();
+                            if (!token) {
+                                token = $('meta[name="RequestVerificationToken"]').attr('content');
+                            }
+
+                            const response = await fetch(`/ExternalUser/DeleteUser?userId=${userId}`, {
+                                method: 'DELETE',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'RequestVerificationToken': token || ''
+                                }
+                            });
+
+                            if (response.ok) {
+                                const data = await response.json();
+                                if (data.success) {
+                                    Swal.fire('Silindi!', 'External kullanıcı başarıyla silindi.', 'success').then(() => {
+                                        location.reload();
+                                    });
+                                } else {
+                                    Swal.fire('Hata!', data.message || 'External kullanıcı silinirken bir hata oluştu!', 'error');
+                                }
+                            } else {
+                                Swal.fire('Hata!', 'Sunucu hatası oluştu!', 'error');
+                            }
+                        } catch (error) {
+                            Swal.fire('Hata!', 'Beklenmeyen bir hata oluştu!', 'error');
+                        }
+                    }
+                });
+            } else {
+                if (confirm(`"${userName}" external kullanıcısını silmek istediğinizden emin misiniz?`)) {
+                    window.location.href = `/ExternalUser/DeleteUser/${userId}`;
+                }
+            }
+        }
+
+        window.toggleExternalPassword = function(fieldId, button) {
+            const field = document.getElementById(fieldId);
+            const icon = button.querySelector('i');
+
+            if (field.type === 'password') {
+                field.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                field.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        function setupPasswordMatching(passwordId, confirmPasswordId) {
+            const passwordField = document.getElementById(passwordId);
+            const confirmField = document.getElementById(confirmPasswordId);
+
+            if (!passwordField || !confirmField) return;
+
+            function checkMatch() {
+                const password = passwordField.value;
+                const confirm = confirmField.value;
+
+                if (confirm === '') {
+                    confirmField.classList.remove('is-valid', 'is-invalid');
+                    return;
+                }
+
+                if (password === confirm && password !== '') {
+                    confirmField.classList.remove('is-invalid');
+                    confirmField.classList.add('is-valid');
+                } else {
+                    confirmField.classList.remove('is-valid');
+                    confirmField.classList.add('is-invalid');
+                }
+            }
+
+            passwordField.addEventListener('input', checkMatch);
+            confirmField.addEventListener('input', checkMatch);
+        }
+
+        function showFieldError(fieldId, message) {
+            const field = $('#' + fieldId);
+            field.addClass('is-invalid').removeClass('is-valid');
+
+            let feedbackElement = field.parent().hasClass('input-group')
+                ? field.parent().parent().find('.invalid-feedback')
+                : field.siblings('.invalid-feedback');
+
+            if (feedbackElement.length === 0) {
+                if (field.parent().hasClass('input-group')) {
+                    field.parent().after('<div class="invalid-feedback">' + message + '</div>');
+                } else {
+                    field.after('<div class="invalid-feedback">' + message + '</div>');
+                }
+            } else {
+                feedbackElement.text(message);
+            }
+        }
+
+        function showError(message) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire('Hata!', message, 'error');
+            } else {
+                alert('Hata: ' + message);
+            }
+        }
+
+        function showSuccess(message, callback = null) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire('Başarılı!', message, 'success').then(() => {
+                    if (callback) callback();
+                });
+            } else {
+                alert(message);
+                if (callback) callback();
+            }
+        }
+    </script>
+}

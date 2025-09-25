@@ -151,6 +151,7 @@ namespace App.UI.Extensions
         {
 
             services.AddScoped<IMachineAppService, MachineAppService>();
+            services.AddScoped<IExternalUserService, ExternalUserService>();
             services.AddLegacyServices();
 
             return services;

@@ -141,7 +141,8 @@ public class HomeController(ILogger<HomeController> logger, IApiService apiServi
         try
         {
             // External API'den kullanıcı sayısını çek - parametreleri ayır
-            var userResponse = await externalApiService.GetAsync<dynamic>(apiAddress, "api/users/count");
+            //var userResponse = await externalApiService.GetAsync<dynamic>(apiAddress, "api/users/count");
+            var userResponse = 20;
 
             if (userResponse != null)
             {
@@ -170,12 +171,12 @@ public class HomeController(ILogger<HomeController> logger, IApiService apiServi
         }
     }
 
-
     private async Task LoadLicenseInfoAsync(DashboardViewModel model, string apiAddress)
     {
         try
         {
-            var licenseResponse = await externalApiService.GetAsync<dynamic>(apiAddress, "api/license/info");
+            //var licenseResponse = await externalApiService.GetAsync<dynamic>(apiAddress, "api/license/info");
+            var licenseResponse =20;
 
             if (licenseResponse != null)
             {
@@ -236,7 +237,8 @@ public class HomeController(ILogger<HomeController> logger, IApiService apiServi
         try
         {
             // External API'den şube sayısını çek - parametreleri ayır
-            var branchResponse = await externalApiService.GetAsync<dynamic>(apiAddress, "api/branches/count");
+            //var branchResponse = await externalApiService.GetAsync<dynamic>(apiAddress, "api/branches/count");
+            var branchResponse = 20;
 
             if (branchResponse != null)
             {
@@ -269,7 +271,6 @@ public class HomeController(ILogger<HomeController> logger, IApiService apiServi
             model.Stats.BranchCount = 156; // Fallback
         }
     }
-
 
     private List<RecentActivity> GetRecentActivities(SelectedMachineInfo selectedMachine, bool isApiHealthy)
     {

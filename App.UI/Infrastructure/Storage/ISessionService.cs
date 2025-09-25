@@ -292,19 +292,31 @@ namespace App.UI.Infrastructure.Storage
             try
             {
                 var json = Session.GetString(MACHINE_TOKEN_KEY);
-                if (string.IsNullOrEmpty(json)) return null;
+                _logger.LogDebug("Machine token JSON: {Json}", json);
+
+                if (string.IsNullOrEmpty(json))
+                {
+                    _logger.LogWarning("Machine token JSON boş");
+                    return null;
+                }
 
                 using var doc = JsonDocument.Parse(json);
                 var root = doc.RootElement;
 
                 var expiresAt = root.GetProperty("ExpiresAt").GetDateTime();
+                _logger.LogDebug("Token expire zamanı: {ExpiresAt}, Şu anki zaman: {Now}", expiresAt, DateTime.UtcNow);
+
                 if (DateTime.UtcNow >= expiresAt)
                 {
+                    _logger.LogWarning("Machine token expired, temizleniyor");
                     ClearMachineApiToken();
                     return null;
                 }
 
-                return root.GetProperty("AccessToken").GetString();
+                var token = root.GetProperty("AccessToken").GetString();
+                _logger.LogDebug("Machine token alındı: {HasToken}", !string.IsNullOrEmpty(token));
+
+                return token;
             }
             catch (Exception ex)
             {

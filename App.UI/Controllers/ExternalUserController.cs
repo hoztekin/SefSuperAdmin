@@ -55,212 +55,154 @@ namespace App.UI.Controllers
             }
         }
 
-        //// POST: ExternalUser/CreateUser - Yeni external user oluştur
-        //[HttpPost]
-        //public async Task<IActionResult> CreateUser([FromBody] CreateUserDto createUserDto)
-        //{
-        //    if (!ModelState.IsValid)
-        //    {
-        //        var errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage));
-        //        return Json(new { success = false, message = "Validasyon hatası", errors = errors });
-        //    }
+        // POST: ExternalUser/CreateUser - Yeni external user oluştur
+        [HttpPost]
+        public async Task<IActionResult> CreateUser([FromBody] CreateExternalUserDto createUserDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage));
+                return Json(new { success = false, message = "Validasyon hatası", errors = errors });
+            }
 
-        //    try
-        //    {
-        //        // Seçili makine kontrolü
-        //        var selectedMachine = _sessionService.GetSelectedMachine();
-        //        if (selectedMachine == null)
-        //        {
-        //            return Json(new { success = false, message = "Seçili makine bulunamadı" });
-        //        }
+            try
+            {
+                var result = await _externalUserService.CreateUserAsync(createUserDto);
 
-        //        // Token kontrolü
-        //        var token = _sessionService.GetMachineApiToken();
-        //        if (string.IsNullOrEmpty(token))
-        //        {
-        //            // Token yenilemeyi dene
-        //            var loginResponse = await _externalApiService.LoginAsync(selectedMachine.ApiAddress, "SystemAdmin", "1234");
-        //            if (!loginResponse.Success)
-        //            {
-        //                return Json(new { success = false, message = "External API'ye bağlanılamadı" });
-        //            }
+                if (result.IsSuccess)
+                {
+                    _logger.LogInformation("External kullanıcı oluşturuldu: {UserName}", createUserDto.UserName);
+                    return Json(new { success = true, message = "External kullanıcı başarıyla oluşturuldu" });
+                }
 
-        //            _sessionService.SaveMachineApiToken(selectedMachine.ApiAddress, loginResponse.AccessToken,
-        //                loginResponse.ExpiresAt != default ? loginResponse.ExpiresAt : DateTime.Now.AddHours(1));
-        //            token = loginResponse.AccessToken;
-        //        }
+                return Json(new { success = false, message = result.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "External kullanıcı oluşturulurken hata oluştu. UserName: {UserName}", createUserDto.UserName);
+                return Json(new { success = false, message = "External kullanıcı oluşturulurken bir hata oluştu: " + ex.Message });
+            }
+        }
 
-        //        // External API'ye kullanıcı oluşturma isteği gönder
-        //        var result = await _externalApiService.PostWithTokenAsync<object>(
-        //            selectedMachine.ApiAddress,
-        //            "api/user",
-        //            createUserDto,
-        //            token
-        //        );
+        // PUT: ExternalUser/UpdateUser - External user güncelle
+        [HttpPut]
+        public async Task<IActionResult> UpdateUser(string userId, [FromBody] UpdateExternalUserDto updateUserDto)
+        {
+            if (string.IsNullOrEmpty(userId) || updateUserDto == null)
+            {
+                return Json(new { success = false, message = "Geçersiz veri gönderildi" });
+            }
 
-        //        if (result != null)
-        //        {
-        //            _logger.LogInformation("External kullanıcı oluşturuldu: {UserName} - {ApiAddress}",
-        //                createUserDto.UserName, selectedMachine.ApiAddress);
-        //            return Json(new { success = true, message = "External kullanıcı başarıyla oluşturuldu" });
-        //        }
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage));
+                return Json(new { success = false, message = "Validasyon hatası", errors = errors });
+            }
 
-        //        return Json(new { success = false, message = "External kullanıcı oluşturulamadı" });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "External kullanıcı oluşturulurken hata oluştu. UserName: {UserName}", createUserDto.UserName);
-        //        return Json(new { success = false, message = "External kullanıcı oluşturulurken bir hata oluştu: " + ex.Message });
-        //    }
-        //}
+            try
+            {
+                updateUserDto.Id = userId; // ID'yi set et
 
-        //// PUT: ExternalUser/UpdateUser - External user güncelle
-        //[HttpPut]
-        //public async Task<IActionResult> UpdateUser(string userId, [FromBody] UpdateUserDto updateUserDto)
-        //{
-        //    if (string.IsNullOrEmpty(userId) || updateUserDto == null)
-        //    {
-        //        return Json(new { success = false, message = "Geçersiz veri gönderildi" });
-        //    }
+                var result = await _externalUserService.UpdateUserAsync(updateUserDto);
 
-        //    if (!ModelState.IsValid)
-        //    {
-        //        var errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage));
-        //        return Json(new { success = false, message = "Validasyon hatası", errors = errors });
-        //    }
+                if (result.IsSuccess)
+                {
+                    _logger.LogInformation("External kullanıcı güncellendi: UserId: {UserId}", userId);
+                    return Json(new { success = true, message = "External kullanıcı başarıyla güncellendi" });
+                }
 
-        //    try
-        //    {
-        //        // Seçili makine kontrolü
-        //        var selectedMachine = _sessionService.GetSelectedMachine();
-        //        if (selectedMachine == null)
-        //        {
-        //            return Json(new { success = false, message = "Seçili makine bulunamadı" });
-        //        }
+                return Json(new { success = false, message = result.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "External kullanıcı güncellenirken hata oluştu. UserId: {UserId}", userId);
+                return Json(new { success = false, message = "External kullanıcı güncellenirken bir hata oluştu: " + ex.Message });
+            }
+        }
 
-        //        // Token kontrolü
-        //        var token = _sessionService.GetMachineApiToken();
-        //        if (string.IsNullOrEmpty(token))
-        //        {
-        //            return Json(new { success = false, message = "Token bulunamadı, sayfayı yenileyin" });
-        //        }
+        // DELETE: ExternalUser/DeleteUser - External user sil
+        [HttpDelete]
+        public async Task<IActionResult> DeleteUser(string userId)
+        {
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Json(new { success = false, message = "Geçersiz kullanıcı ID'si" });
+            }
 
-        //        // External API'ye güncelleme isteği gönder
-        //        var result = await _externalApiService.PutWithTokenAsync<object>(
-        //            selectedMachine.ApiAddress,
-        //            $"api/user/{userId}",
-        //            updateUserDto,
-        //            token
-        //        );
+            try
+            {
+                var result = await _externalUserService.DeleteUserAsync(userId);
 
-        //        if (result != null)
-        //        {
-        //            _logger.LogInformation("External kullanıcı güncellendi: UserId: {UserId} - {ApiAddress}",
-        //                userId, selectedMachine.ApiAddress);
-        //            return Json(new { success = true, message = "External kullanıcı başarıyla güncellendi" });
-        //        }
+                if (result.IsSuccess)
+                {
+                    _logger.LogInformation("External kullanıcı silindi: UserId: {UserId}", userId);
+                    return Json(new { success = true, message = "External kullanıcı başarıyla silindi" });
+                }
 
-        //        return Json(new { success = false, message = "External kullanıcı güncellenemedi" });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "External kullanıcı güncellenirken hata oluştu. UserId: {UserId}", userId);
-        //        return Json(new { success = false, message = "External kullanıcı güncellenirken bir hata oluştu: " + ex.Message });
-        //    }
-        //}
+                return Json(new { success = false, message = result.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "External kullanıcı silinirken hata oluştu. UserId: {UserId}", userId);
+                return Json(new { success = false, message = "External kullanıcı silinirken bir hata oluştu: " + ex.Message });
+            }
+        }
 
-        //// DELETE: ExternalUser/DeleteUser - External user sil
-        //[HttpDelete]
-        //public async Task<IActionResult> DeleteUser(string userId)
-        //{
-        //    if (string.IsNullOrEmpty(userId))
-        //    {
-        //        return Json(new { success = false, message = "Geçersiz kullanıcı ID'si" });
-        //    }
+        // GET: ExternalUser/GetUserById - Belirli bir external user'ı getir (AJAX için)
+        [HttpGet]
+        public async Task<IActionResult> GetUserById(string userId)
+        {
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Json(new { success = false, message = "Geçersiz kullanıcı ID'si" });
+            }
 
-        //    try
-        //    {
-        //        // Seçili makine kontrolü
-        //        var selectedMachine = _sessionService.GetSelectedMachine();
-        //        if (selectedMachine == null)
-        //        {
-        //            return Json(new { success = false, message = "Seçili makine bulunamadı" });
-        //        }
+            try
+            {
+                var result = await _externalUserService.GetUserByIdAsync(userId);
 
-        //        // Token kontrolü
-        //        var token = _sessionService.GetMachineApiToken();
-        //        if (string.IsNullOrEmpty(token))
-        //        {
-        //            return Json(new { success = false, message = "Token bulunamadı, sayfayı yenileyin" });
-        //        }
+                if (result.IsSuccess)
+                {
+                    return Json(new { success = true, data = result.Data });
+                }
 
-        //        // External API'ye silme isteği gönder
-        //        var result = await _externalApiService.DeleteWithTokenAsync<object>(
-        //            selectedMachine.ApiAddress,
-        //            $"api/user/{userId}",
-        //            token
-        //        );
+                return Json(new { success = false, message = result.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "External kullanıcı detayı alınırken hata oluştu. UserId: {UserId}", userId);
+                return Json(new { success = false, message = "External kullanıcı detayı alınırken bir hata oluştu: " + ex.Message });
+            }
+        }
 
-        //        if (result != null)
-        //        {
-        //            _logger.LogInformation("External kullanıcı silindi: UserId: {UserId} - {ApiAddress}",
-        //                userId, selectedMachine.ApiAddress);
-        //            return Json(new { success = true, message = "External kullanıcı başarıyla silindi" });
-        //        }
+        // PUT: ExternalUser/ChangeUserStatus - External user durumu değiştir
+        [HttpPut]
+        public async Task<IActionResult> ChangeUserStatus(string userId, [FromBody] bool isActive)
+        {
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Json(new { success = false, message = "Geçersiz kullanıcı ID'si" });
+            }
 
-        //        return Json(new { success = false, message = "External kullanıcı silinemedi" });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "External kullanıcı silinirken hata oluştu. UserId: {UserId}", userId);
-        //        return Json(new { success = false, message = "External kullanıcı silinirken bir hata oluştu: " + ex.Message });
-        //    }
-        //}
+            try
+            {
+                var result = await _externalUserService.ChangeUserStatusAsync(userId, isActive);
 
-        //// GET: ExternalUser/GetUserById - Belirli bir external user'ı getir (AJAX için)
-        //[HttpGet]
-        //public async Task<IActionResult> GetUserById(string userId)
-        //{
-        //    if (string.IsNullOrEmpty(userId))
-        //    {
-        //        return Json(new { success = false, message = "Geçersiz kullanıcı ID'si" });
-        //    }
+                if (result.IsSuccess)
+                {
+                    _logger.LogInformation("External kullanıcı durumu değiştirildi: UserId: {UserId}, IsActive: {IsActive}", userId, isActive);
+                    return Json(new { success = true, message = "External kullanıcı durumu başarıyla değiştirildi" });
+                }
 
-        //    try
-        //    {
-        //        var selectedMachine = _sessionService.GetSelectedMachine();
-        //        if (selectedMachine == null)
-        //        {
-        //            return Json(new { success = false, message = "Seçili makine bulunamadı" });
-        //        }
+                return Json(new { success = false, message = result.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "External kullanıcı durumu değiştirilirken hata oluştu. UserId: {UserId}", userId);
+                return Json(new { success = false, message = "External kullanıcı durumu değiştirilirken bir hata oluştu: " + ex.Message });
+            }
+        }
 
-        //        var token = _sessionService.GetMachineApiToken();
-        //        if (string.IsNullOrEmpty(token))
-        //        {
-        //            return Json(new { success = false, message = "Token bulunamadı" });
-        //        }
-
-        //        var user = await _externalApiService.GetWithTokenAsync<ExternalUserDto>(
-        //            selectedMachine.ApiAddress,
-        //            $"api/user/{userId}",
-        //            token
-        //        );
-
-        //        if (user != null)
-        //        {
-        //            return Json(new { success = true, data = user });
-        //        }
-
-        //        return Json(new { success = false, message = "Kullanıcı bulunamadı" });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "External kullanıcı detayı alınırken hata oluştu. UserId: {UserId}", userId);
-        //        return Json(new { success = false, message = "Kullanıcı detayları yüklenemedi" });
-        //    }
-        //}
-
-        // GET: ExternalUser/CheckConnection - Bağlantı durumu kontrolü (AJAX için)
         [HttpGet]
         public async Task<IActionResult> CheckConnection()
         {

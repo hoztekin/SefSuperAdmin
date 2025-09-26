@@ -9,7 +9,8 @@
         public string Email { get; set; } = string.Empty;
         public string PhoneNumber { get; set; } = string.Empty;
         public bool IsActive { get; set; }
-        public DateTime CreatedDate { get; set; }
+        public string CompanyName { get; set; } = string.Empty;
+        public string BranchName { get; set; }
 
         public string FullName => $"{FirstName} {LastName}".Trim();
     }

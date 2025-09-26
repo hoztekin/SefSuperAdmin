@@ -8,12 +8,11 @@ namespace App.UI.Application.Services
     public interface IExternalUserService
     {
         Task<ServiceResult<List<ExternalUserListDto>>> GetUsersAsync();
-        //Task<ServiceResult<ExternalUserDto>> GetUserByIdAsync(int id);
-        //Task<ServiceResult<ExternalUserDto>> CreateUserAsync(CreateExternalUserDto createDto);
-        //Task<ServiceResult<ExternalUserDto>> UpdateUserAsync(UpdateExternalUserDto updateDto);
-        //Task<ServiceResult> DeleteUserAsync(int id);
-        //Task<ServiceResult<ExternalUserStatsDto>> GetUserStatsAsync();
-        //Task<ServiceResult> ChangeUserStatusAsync(int id, bool isActive);
+        Task<ServiceResult<ExternalUserDto>> GetUserByIdAsync(string id);
+        Task<ServiceResult<ExternalUserDto>> CreateUserAsync(CreateExternalUserDto createDto);
+        Task<ServiceResult<ExternalUserDto>> UpdateUserAsync(UpdateExternalUserDto updateDto);
+        Task<ServiceResult> DeleteUserAsync(string id);
+        Task<ServiceResult> ChangeUserStatusAsync(string id, bool isActive);
     }
 
     public class ExternalUserService : IExternalUserService
@@ -79,7 +78,8 @@ namespace App.UI.Application.Services
                             FirstName = u.FirstName,
                             LastName = u.LastName,
                             IsActive = u.IsActive,
-                            CreatedDate = Convert.ToDateTime(u.CreatedDate)
+                            CompanyName = u.CompanyName,
+                            BranchName = u.BranchName
                         }).ToList();
 
                         return ServiceResult<List<ExternalUserListDto>>.Success(userList);
@@ -95,245 +95,290 @@ namespace App.UI.Application.Services
             }
         }
 
-        //public async Task<ServiceResult<ExternalUserDto>> GetUserByIdAsync(int id)
-        //{
-        //    try
-        //    {
-        //        var selectedMachine = _sessionService.GetSelectedMachine();
-        //        if (selectedMachine == null)
-        //        {
-        //            return ServiceResult<ExternalUserDto>.Fail("Makine seçilmedi");
-        //        }
+        public async Task<ServiceResult<ExternalUserDto>> GetUserByIdAsync(string id)
+        {
+            try
+            {
+                var selectedMachine = _sessionService.GetSelectedMachine();
+                if (selectedMachine == null)
+                {
+                    return ServiceResult<ExternalUserDto>.Fail("Makine seçilmedi");
+                }
 
-        //        _logger.LogInformation("External API'den kullanıcı detayı alınıyor: {UserId}", id);
+                var token = _sessionService.GetMachineApiToken();
+                if (string.IsNullOrEmpty(token))
+                {
+                    var loginResponse = await _externalApiService.LoginAsync(selectedMachine.ApiAddress);
+                    if (!loginResponse.Success)
+                    {
+                        return ServiceResult<ExternalUserDto>.Fail("Token alınamadı");
+                    }
+                    token = loginResponse.AccessToken;
+                }
 
-        //        var user = await _externalApiService.GetAsync<ExternalUserDto>(
-        //            selectedMachine.ApiAddress,
-        //            $"api/v1/users/{id}"
-        //        );
+                _logger.LogInformation("External API'den kullanıcı detayı alınıyor: {UserId}", id);
 
-        //        if (user == null)
-        //        {
-        //            _logger.LogWarning("Kullanıcı bulunamadı: {UserId}", id);
-        //            return ServiceResult<ExternalUserDto>.Fail("Kullanıcı bulunamadı");
-        //        }
+                var response = await _externalApiService.GetWithTokenAsync(
+                    selectedMachine.ApiAddress,
+                    $"identity/account/{id}",
+                    token
+                );
 
-        //        return ServiceResult<ExternalUserDto>.Success(user);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "Kullanıcı detayı alınırken hata oluştu: {UserId}", id);
-        //        return ServiceResult<ExternalUserDto>.Fail("Kullanıcı detayı alınamadı");
-        //    }
-        //}
+                if (response.IsSuccessStatusCode)
+                {
+                    var jsonString = await response.Content.ReadAsStringAsync();
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    var user = JsonSerializer.Deserialize<ExternalUserDto>(jsonString, options);
 
-        //public async Task<ServiceResult<ExternalUserDto>> CreateUserAsync(CreateExternalUserDto createDto)
-        //{
-        //    try
-        //    {
-        //        var selectedMachine = _sessionService.GetSelectedMachine();
-        //        if (selectedMachine == null)
-        //        {
-        //            return ServiceResult<ExternalUserDto>.Fail("Makine seçilmedi");
-        //        }
+                    if (user != null)
+                    {
+                        return ServiceResult<ExternalUserDto>.Success(user);
+                    }
+                }
 
-        //        // Validation
-        //        if (string.IsNullOrWhiteSpace(createDto.UserName))
-        //        {
-        //            return ServiceResult<ExternalUserDto>.Fail("Kullanıcı adı boş olamaz");
-        //        }
+                _logger.LogWarning("Kullanıcı bulunamadı: {UserId}", id);
+                return ServiceResult<ExternalUserDto>.Fail("Kullanıcı bulunamadı");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Kullanıcı detayı alınırken hata oluştu: {UserId}", id);
+                return ServiceResult<ExternalUserDto>.Fail("Kullanıcı detayı alınamadı");
+            }
+        }
 
-        //        if (string.IsNullOrWhiteSpace(createDto.FirstName))
-        //        {
-        //            return ServiceResult<ExternalUserDto>.Fail("Ad alanı boş olamaz");
-        //        }
+        public async Task<ServiceResult<ExternalUserDto>> CreateUserAsync(CreateExternalUserDto createDto)
+        {
+            try
+            {
+                var selectedMachine = _sessionService.GetSelectedMachine();
+                if (selectedMachine == null)
+                {
+                    return ServiceResult<ExternalUserDto>.Fail("Makine seçilmedi");
+                }
 
-        //        if (string.IsNullOrWhiteSpace(createDto.LastName))
-        //        {
-        //            return ServiceResult<ExternalUserDto>.Fail("Soyad alanı boş olamaz");
-        //        }
+                var token = _sessionService.GetMachineApiToken();
+                if (string.IsNullOrEmpty(token))
+                {
+                    var loginResponse = await _externalApiService.LoginAsync(selectedMachine.ApiAddress);
+                    if (!loginResponse.Success)
+                    {
+                        return ServiceResult<ExternalUserDto>.Fail("Token alınamadı");
+                    }
+                    token = loginResponse.AccessToken;
+                }
 
-        //        if (string.IsNullOrWhiteSpace(createDto.Password))
-        //        {
-        //            return ServiceResult<ExternalUserDto>.Fail("Şifre boş olamaz");
-        //        }
+                var externalApiData = new
+                {
+                    UserName = createDto.UserName,
+                    EMail = createDto.Email,
+                    Code = createDto.Code, 
+                    Password = createDto.Password,
+                    ConfirmPassword = createDto.Password, 
+                    FirstName = createDto.FirstName,
+                    LastName = createDto.LastName,
+                    PhoneNumber = createDto.PhoneNumber,
+                    UserLoginType = createDto.LoginType, 
+                    IsActive = createDto.IsActive
+                };
 
-        //        _logger.LogInformation("Yeni kullanıcı oluşturuluyor: {UserName}", createDto.UserName);
+                var response = await _externalApiService.PostWithTokenAsync(
+                    selectedMachine.ApiAddress,
+                    "identity/account",
+                    externalApiData,
+                    token
+                );
 
-        //        var createdUser = await _externalApiService.PostAsync<ExternalUserDto>(
-        //            selectedMachine.ApiAddress,
-        //            "api/v1/users",
-        //            createDto
-        //        );
+                if (response.IsSuccessStatusCode)
+                {
+                    var jsonString = await response.Content.ReadAsStringAsync();
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    var createdUser = JsonSerializer.Deserialize<ExternalUserDto>(jsonString, options);
 
-        //        if (createdUser == null)
-        //        {
-        //            _logger.LogWarning("Kullanıcı oluşturulamadı: {UserName}", createDto.UserName);
-        //            return ServiceResult<ExternalUserDto>.Fail("Kullanıcı oluşturulamadı");
-        //        }
+                    if (createdUser != null)
+                    {
+                        _logger.LogInformation("External kullanıcı başarıyla oluşturuldu: {UserId} - {UserName}",
+                            createdUser.Id, createDto.UserName);
+                        return ServiceResult<ExternalUserDto>.Success(createdUser);
+                    }
+                }
 
-        //        _logger.LogInformation("Kullanıcı başarıyla oluşturuldu: {UserId} - {UserName}",
-        //            createdUser.Id, createdUser.UserName);
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("External API Error: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                return ServiceResult<ExternalUserDto>.Fail("Kullanıcı oluşturulamadı - API hatası");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "External kullanıcı oluşturulurken hata oluştu: {UserName}", createDto.UserName);
+                return ServiceResult<ExternalUserDto>.Fail("External kullanıcı oluşturulurken hata oluştu");
+            }
+        }
 
-        //        return ServiceResult<ExternalUserDto>.Success(createdUser);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "Kullanıcı oluşturulurken hata oluştu: {UserName}", createDto.UserName);
-        //        return ServiceResult<ExternalUserDto>.Fail("Kullanıcı oluşturulurken hata oluştu");
-        //    }
-        //}
+        public async Task<ServiceResult<ExternalUserDto>> UpdateUserAsync(UpdateExternalUserDto updateDto)
+        {
+            try
+            {
+                var selectedMachine = _sessionService.GetSelectedMachine();
+                if (selectedMachine == null)
+                {
+                    return ServiceResult<ExternalUserDto>.Fail("Makine seçilmedi");
+                }
 
-        //public async Task<ServiceResult<ExternalUserDto>> UpdateUserAsync(UpdateExternalUserDto updateDto)
-        //{
-        //    try
-        //    {
-        //        var selectedMachine = _sessionService.GetSelectedMachine();
-        //        if (selectedMachine == null)
-        //        {
-        //            return ServiceResult<ExternalUserDto>.Fail("Makine seçilmedi");
-        //        }
+                // Validation
+                if (string.IsNullOrWhiteSpace(updateDto.Id))
+                {
+                    return ServiceResult<ExternalUserDto>.Fail("Kullanıcı ID'si geçersiz");
+                }
 
-        //        // Validation
-        //        if (string.IsNullOrWhiteSpace(updateDto.UserName))
-        //        {
-        //            return ServiceResult<ExternalUserDto>.Fail("Kullanıcı adı boş olamaz");
-        //        }
+                if (string.IsNullOrWhiteSpace(updateDto.UserName))
+                {
+                    return ServiceResult<ExternalUserDto>.Fail("Kullanıcı adı boş olamaz");
+                }
 
-        //        if (string.IsNullOrWhiteSpace(updateDto.FirstName))
-        //        {
-        //            return ServiceResult<ExternalUserDto>.Fail("Ad alanı boş olamaz");
-        //        }
+                var token = _sessionService.GetMachineApiToken();
+                if (string.IsNullOrEmpty(token))
+                {
+                    var loginResponse = await _externalApiService.LoginAsync(selectedMachine.ApiAddress);
+                    if (!loginResponse.Success)
+                    {
+                        return ServiceResult<ExternalUserDto>.Fail("Token alınamadı");
+                    }
+                    token = loginResponse.AccessToken;
+                }
 
-        //        if (string.IsNullOrWhiteSpace(updateDto.LastName))
-        //        {
-        //            return ServiceResult<ExternalUserDto>.Fail("Soyad alanı boş olamaz");
-        //        }
+                _logger.LogInformation("Kullanıcı güncelleniyor: {UserId}", updateDto.Id);
 
-        //        _logger.LogInformation("Kullanıcı güncelleniyor: {UserId} - {UserName}",
-        //            updateDto.Id, updateDto.UserName);
+                var response = await _externalApiService.PutWithTokenAsync(
+                    selectedMachine.ApiAddress,
+                    $"identity/account",
+                    updateDto,
+                    token
+                );
 
-        //        var updatedUser = await _externalApiService.PostAsync<ExternalUserDto>(
-        //            selectedMachine.ApiAddress,
-        //            $"api/v1/users/{updateDto.Id}",
-        //            updateDto
-        //        );
+                if (response.IsSuccessStatusCode)
+                {
+                    var jsonString = await response.Content.ReadAsStringAsync();
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    var updatedUser = JsonSerializer.Deserialize<ExternalUserDto>(jsonString, options);
 
-        //        if (updatedUser == null)
-        //        {
-        //            _logger.LogWarning("Kullanıcı güncellenemedi: {UserId}", updateDto.Id);
-        //            return ServiceResult<ExternalUserDto>.Fail("Kullanıcı güncellenemedi");
-        //        }
+                    if (updatedUser != null)
+                    {
+                        _logger.LogInformation("Kullanıcı başarıyla güncellendi: {UserId} - {UserName}",
+                            updateDto.Id, updateDto.UserName);
 
-        //        _logger.LogInformation("Kullanıcı başarıyla güncellendi: {UserId}", updatedUser.Id);
-        //        return ServiceResult<ExternalUserDto>.Success(updatedUser);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "Kullanıcı güncellenirken hata oluştu: {UserId}", updateDto.Id);
-        //        return ServiceResult<ExternalUserDto>.Fail("Kullanıcı güncellenirken hata oluştu");
-        //    }
-        //}
+                        return ServiceResult<ExternalUserDto>.Success(updatedUser);
+                    }
+                }
 
-        //public async Task<ServiceResult> DeleteUserAsync(int id)
-        //{
-        //    try
-        //    {
-        //        var selectedMachine = _sessionService.GetSelectedMachine();
-        //        if (selectedMachine == null)
-        //        {
-        //            return ServiceResult.Fail("Makine seçilmedi");
-        //        }
+                _logger.LogWarning("Kullanıcı güncellenemedi: {UserId}", updateDto.Id);
+                return ServiceResult<ExternalUserDto>.Fail("Kullanıcı güncellenemedi");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Kullanıcı güncellenirken hata oluştu: {UserId}", updateDto.Id);
+                return ServiceResult<ExternalUserDto>.Fail("Kullanıcı güncellenirken hata oluştu");
+            }
+        }
 
-        //        _logger.LogInformation("Kullanıcı siliniyor: {UserId}", id);
+        public async Task<ServiceResult> DeleteUserAsync(string id)
+        {
+            try
+            {
+                var selectedMachine = _sessionService.GetSelectedMachine();
+                if (selectedMachine == null)
+                {
+                    return ServiceResult.Fail("Makine seçilmedi");
+                }
 
-        //        // External API'ye DELETE isteği gönder
-        //        var result = await _externalApiService.PostAsync<object>(
-        //            selectedMachine.ApiAddress,
-        //            $"api/v1/users/{id}/delete",
-        //            new { }
-        //        );
+                if (string.IsNullOrWhiteSpace(id))
+                {
+                    return ServiceResult.Fail("Kullanıcı ID'si geçersiz");
+                }
 
-        //        // Silme işlemi genellikle 200 OK döndürür, null result normal olabilir
-        //        _logger.LogInformation("Kullanıcı başarıyla silindi: {UserId}", id);
-        //        return ServiceResult.Success();
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "Kullanıcı silinirken hata oluştu: {UserId}", id);
-        //        return ServiceResult.Fail("Kullanıcı silinirken hata oluştu");
-        //    }
-        //}
+                var token = _sessionService.GetMachineApiToken();
+                if (string.IsNullOrEmpty(token))
+                {
+                    var loginResponse = await _externalApiService.LoginAsync(selectedMachine.ApiAddress);
+                    if (!loginResponse.Success)
+                    {
+                        return ServiceResult.Fail("Token alınamadı");
+                    }
+                    token = loginResponse.AccessToken;
+                }
 
-        //public async Task<ServiceResult<ExternalUserStatsDto>> GetUserStatsAsync()
-        //{
-        //    try
-        //    {
-        //        var selectedMachine = _sessionService.GetSelectedMachine();
-        //        if (selectedMachine == null)
-        //        {
-        //            return ServiceResult<ExternalUserStatsDto>.Fail("Makine seçilmedi");
-        //        }
+                _logger.LogInformation("Kullanıcı siliniyor: {UserId}", id);
 
-        //        _logger.LogInformation("External API'den kullanıcı istatistikleri alınıyor");
+                var response = await _externalApiService.DeleteWithTokenAsync(
+                    selectedMachine.ApiAddress,
+                    $"identity/account",
+                    token
+                );
 
-        //        // Önce tüm kullanıcıları al, sonra istatistikleri hesapla
-        //        var usersResult = await GetUsersAsync();
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("Kullanıcı başarıyla silindi: {UserId}", id);
+                    return ServiceResult.Success();
+                }
 
-        //        if (!usersResult.IsSuccess)
-        //        {
-        //            return ServiceResult<ExternalUserStatsDto>.Fail("İstatistikler hesaplanamadı");
-        //        }
+                _logger.LogWarning("Kullanıcı silinemedi: {UserId}", id);
+                return ServiceResult.Fail("Kullanıcı silinemedi");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Kullanıcı silinirken hata oluştu: {UserId}", id);
+                return ServiceResult.Fail("Kullanıcı silinirken hata oluştu");
+            }
+        }
 
-        //        var users = usersResult.Data ?? new List<ExternalUserListDto>();
+        public async Task<ServiceResult> ChangeUserStatusAsync(string id, bool isActive)
+        {
+            try
+            {
+                var selectedMachine = _sessionService.GetSelectedMachine();
+                if (selectedMachine == null)
+                {
+                    return ServiceResult.Fail("Makine seçilmedi");
+                }
 
-        //        var stats = new ExternalUserStatsDto
-        //        {
-        //            TotalUsers = users.Count,
-        //            ActiveUsers = users.Count(u => u.IsActive),
-        //            InactiveUsers = users.Count(u => !u.IsActive),
-        //            RecentUsers = users.Count(u => u.CreatedDate >= DateTime.Now.AddDays(-30)),
-        //            LastUpdate = DateTime.Now
-        //        };
+                if (string.IsNullOrWhiteSpace(id))
+                {
+                    return ServiceResult.Fail("Kullanıcı ID'si geçersiz");
+                }
 
-        //        _logger.LogInformation("Kullanıcı istatistikleri hesaplandı: {Total} toplam, {Active} aktif",
-        //            stats.TotalUsers, stats.ActiveUsers);
+                var token = _sessionService.GetMachineApiToken();
+                if (string.IsNullOrEmpty(token))
+                {
+                    var loginResponse = await _externalApiService.LoginAsync(selectedMachine.ApiAddress);
+                    if (!loginResponse.Success)
+                    {
+                        return ServiceResult.Fail("Token alınamadı");
+                    }
+                    token = loginResponse.AccessToken;
+                }
 
-        //        return ServiceResult<ExternalUserStatsDto>.Success(stats);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "Kullanıcı istatistikleri alınırken hata oluştu");
-        //        return ServiceResult<ExternalUserStatsDto>.Fail("İstatistikler yüklenirken hata oluştu");
-        //    }
-        //}
+                _logger.LogInformation("Kullanıcı durumu değiştiriliyor: {UserId} - {IsActive}", id, isActive);
 
-        //public async Task<ServiceResult> ChangeUserStatusAsync(int id, bool isActive)
-        //{
-        //    try
-        //    {
-        //        var selectedMachine = _sessionService.GetSelectedMachine();
-        //        if (selectedMachine == null)
-        //        {
-        //            return ServiceResult.Fail("Makine seçilmedi");
-        //        }
+                var updateData = new { IsActive = isActive };
+                var response = await _externalApiService.PutWithTokenAsync(
+                    selectedMachine.ApiAddress,
+                    $"identity/account/{id}/status",
+                    updateData,
+                    token
+                );
 
-        //        _logger.LogInformation("Kullanıcı durumu değiştiriliyor: {UserId} -> {Status}", id, isActive);
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("Kullanıcı durumu başarıyla değiştirildi: {UserId} - {IsActive}", id, isActive);
+                    return ServiceResult.Success();
+                }
 
-        //        var result = await _externalApiService.PostAsync<object>(
-        //            selectedMachine.ApiAddress,
-        //            $"api/v1/users/{id}/status",
-        //            new { isActive = isActive }
-        //        );
-
-        //        _logger.LogInformation("Kullanıcı durumu başarıyla değiştirildi: {UserId}", id);
-        //        return ServiceResult.Success();
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "Kullanıcı durumu değiştirilirken hata oluştu: {UserId}", id);
-        //        return ServiceResult.Fail("Kullanıcı durumu değiştirilemedi");
-        //    }
-        //}
+                _logger.LogWarning("Kullanıcı durumu değiştirilemedi: {UserId}", id);
+                return ServiceResult.Fail("Kullanıcı durumu değiştirilemedi");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Kullanıcı durumu değiştirilirken hata oluştu: {UserId}", id);
+                return ServiceResult.Fail("Kullanıcı durumu değiştirilirken hata oluştu");
+            }
+        }
     }
 }

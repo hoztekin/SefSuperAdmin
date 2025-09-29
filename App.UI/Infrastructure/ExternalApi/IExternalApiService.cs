@@ -16,7 +16,7 @@ namespace App.UI.Infrastructure.ExternalApi
         Task<HttpResponseMessage> GetWithTokenAsync(string apiAddress, string endpoint, string token);
         Task<HttpResponseMessage> PostWithTokenAsync(string apiAddress, string endpoint, object data, string token);
         Task<HttpResponseMessage> PutWithTokenAsync(string apiAddress, string endpoint, object data, string token);
-        Task<HttpResponseMessage> DeleteWithTokenAsync(string apiAddress, string endpoint, string token);
+        Task<HttpResponseMessage> DeleteWithTokenAsync(string apiAddress, string endpoint, object data, string token);
 
         Task<bool> RefreshTokenAsync(string apiAddress);
     }
@@ -295,7 +295,7 @@ namespace App.UI.Infrastructure.ExternalApi
             }
         }
 
-        public async Task<HttpResponseMessage> DeleteWithTokenAsync(string apiAddress, string endpoint, string token)
+        public async Task<HttpResponseMessage> DeleteWithTokenAsync(string apiAddress, string endpoint, object data, string token)
         {
             try
             {
@@ -304,23 +304,33 @@ namespace App.UI.Infrastructure.ExternalApi
 
                 var fullUrl = $"{apiAddress.TrimEnd('/')}/{endpoint.TrimStart('/')}";
 
-                var response = await httpClient.DeleteAsync(fullUrl);
+                var request = new HttpRequestMessage(HttpMethod.Delete, fullUrl);
+
+                if (data != null)
+                {
+                    var json = JsonSerializer.Serialize(data, _jsonOptions);
+                    request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+                }
+
+                var response = await httpClient.SendAsync(request);
 
                 if (response.IsSuccessStatusCode)
                 {
-                    _logger.LogInformation("External API GET başarılı: {Url}", fullUrl);
+                    _logger.LogInformation("External API DELETE başarılı: {Url}", fullUrl);
                 }
                 else
                 {
-                    _logger.LogWarning("External API GET başarısız: {Url} - {StatusCode}", fullUrl, response.StatusCode);
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("External API DELETE başarısız: {Url} - {StatusCode} - {Error}",
+                        fullUrl, response.StatusCode, errorContent);
                 }
 
-                return response; // Raw HttpResponseMessage döndür
+                return response;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "External API DELETE hatası: {ApiAddress}/{Endpoint}", apiAddress, endpoint);
-                return default;
+                throw; // Exception'ı yukarı fırlat
             }
         }
 

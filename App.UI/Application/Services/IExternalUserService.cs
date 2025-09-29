@@ -1,4 +1,5 @@
 ﻿using App.UI.Application.DTOS;
+using App.UI.Application.Enums;
 using App.UI.Infrastructure.ExternalApi;
 using App.UI.Infrastructure.Storage;
 using System.Text.Json;
@@ -127,13 +128,97 @@ namespace App.UI.Application.Services
                 if (response.IsSuccessStatusCode)
                 {
                     var jsonString = await response.Content.ReadAsStringAsync();
-                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                    var user = JsonSerializer.Deserialize<ExternalUserDto>(jsonString, options);
+                    _logger.LogInformation("API Response: {Json}", jsonString.Length > 500 ? jsonString.Substring(0, 500) : jsonString);
 
-                    if (user != null)
+                    var options = new JsonSerializerOptions
                     {
+                        PropertyNameCaseInsensitive = true,
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    };
+
+                    // API Response Wrapper'ını deserialize et
+                    var apiResponse = JsonSerializer.Deserialize<JsonElement>(jsonString, options);
+
+                    // data.item path'ini kontrol et
+                    if (apiResponse.TryGetProperty("data", out var dataElement))
+                    {
+                        JsonElement userElement;
+
+                        // data.item var mı kontrol et
+                        if (dataElement.TryGetProperty("item", out var itemElement))
+                        {
+                            userElement = itemElement;
+                        }
+                        else
+                        {
+                            // Direkt data içinde user var
+                            userElement = dataElement;
+                        }
+
+                        // API'den gelen property isimleri tutarsız - manual mapping yap
+                        var user = new ExternalUserDto
+                        {
+                            Id = GetStringProperty(userElement, "id"),
+                            Username = GetStringProperty(userElement, "username") ?? GetStringProperty(userElement, "userName"),
+                            EMail = GetStringProperty(userElement, "eMail") ?? GetStringProperty(userElement, "email"),
+                            FirstName = GetStringProperty(userElement, "firstName"),
+                            LastName = GetStringProperty(userElement, "lastName"),
+                            PhoneNumber = GetStringProperty(userElement, "phoneNumber"),
+                            Code = GetStringProperty(userElement, "code"),
+                            BranchName = GetStringProperty(userElement, "branchName"),
+                            CompanyName = GetStringProperty(userElement, "companyName"),
+                            IsActive = GetBoolProperty(userElement, "isActive"),
+                            EmailConfirmed = GetBoolProperty(userElement, "emailConfirmed")
+                        };
+
+                        // UserLoginType parse et
+                        var loginTypeStr = GetStringProperty(userElement, "userLoginType");
+                        if (!string.IsNullOrEmpty(loginTypeStr))
+                        {
+                            if (Enum.TryParse<UserLoginType>(loginTypeStr, true, out var loginType))
+                            {
+                                user.UserLoginType = loginType;
+                            }
+                        }
+                        else
+                        {
+                            // Numeric değer olarak gelmiş olabilir
+                            if (userElement.TryGetProperty("userLoginType", out var loginTypeElement) &&
+                                loginTypeElement.TryGetInt32(out var loginTypeInt))
+                            {
+                                user.UserLoginType = (UserLoginType)loginTypeInt;
+                            }
+                        }
+
+                        // Roles array'i parse et
+                        if (userElement.TryGetProperty("roles", out var rolesElement) &&
+                            rolesElement.ValueKind == JsonValueKind.Array)
+                        {
+                            user.Roles = new List<string>();
+                            foreach (var role in rolesElement.EnumerateArray())
+                            {
+                                var roleStr = role.GetString();
+                                if (!string.IsNullOrEmpty(roleStr))
+                                {
+                                    user.Roles.Add(roleStr);
+                                }
+                            }
+                        }
+
+                        _logger.LogInformation("Kullanıcı başarıyla parse edildi: {UserId} - UserName: {UserName}, Email: {Email}",
+                            user.Id, user.Username, user.EMail);
+
                         return ServiceResult<ExternalUserDto>.Success(user);
                     }
+                    else
+                    {
+                        _logger.LogWarning("API response'unda 'data' property'si bulunamadı");
+                    }
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("API hatası: {StatusCode} - {Content}", response.StatusCode, errorContent);
                 }
 
                 _logger.LogWarning("Kullanıcı bulunamadı: {UserId}", id);
@@ -142,10 +227,33 @@ namespace App.UI.Application.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Kullanıcı detayı alınırken hata oluştu: {UserId}", id);
-                return ServiceResult<ExternalUserDto>.Fail("Kullanıcı detayı alınamadı");
+                return ServiceResult<ExternalUserDto>.Fail("Kullanıcı detayı alınamadı: " + ex.Message);
             }
         }
 
+        private string? GetStringProperty(JsonElement element, string propertyName)
+        {
+            if (element.TryGetProperty(propertyName, out var prop) &&
+                prop.ValueKind != JsonValueKind.Null)
+            {
+                return prop.GetString();
+            }
+            return null;
+        }
+
+        private bool GetBoolProperty(JsonElement element, string propertyName)
+        {
+            if (element.TryGetProperty(propertyName, out var prop) &&
+                prop.ValueKind == JsonValueKind.True)
+            {
+                return true;
+            }
+            if (prop.ValueKind == JsonValueKind.False)
+            {
+                return false;
+            }
+            return false;
+        }
         public async Task<ServiceResult<ExternalUserDto>> CreateUserAsync(CreateExternalUserDto createDto)
         {
             try
@@ -229,9 +337,47 @@ namespace App.UI.Application.Services
                     return ServiceResult<ExternalUserDto>.Fail("Kullanıcı ID'si geçersiz");
                 }
 
-                if (string.IsNullOrWhiteSpace(updateDto.UserName))
+                if (string.IsNullOrWhiteSpace(updateDto.Email))
                 {
-                    return ServiceResult<ExternalUserDto>.Fail("Kullanıcı adı boş olamaz");
+                    return ServiceResult<ExternalUserDto>.Fail("Email adresi zorunludur");
+                }
+
+                if (string.IsNullOrWhiteSpace(updateDto.FirstName) || updateDto.FirstName.Length < 2)
+                {
+                    return ServiceResult<ExternalUserDto>.Fail("Ad en az 2 karakter olmalıdır");
+                }
+
+                if (string.IsNullOrWhiteSpace(updateDto.LastName) || updateDto.LastName.Length < 2)
+                {
+                    return ServiceResult<ExternalUserDto>.Fail("Soyad en az 2 karakter olmalıdır");
+                }
+
+                if (string.IsNullOrWhiteSpace(updateDto.PhoneNumber))
+                {
+                    return ServiceResult<ExternalUserDto>.Fail("Telefon numarası zorunludur");
+                }
+
+                // Telefon numarası format kontrolü
+                if (!System.Text.RegularExpressions.Regex.IsMatch(updateDto.PhoneNumber, @"^0\d{10}$"))
+                {
+                    return ServiceResult<ExternalUserDto>.Fail("Telefon numarası 0 ile başlamalı ve 11 haneli olmalıdır");
+                }
+
+                if (string.IsNullOrWhiteSpace(updateDto.Code) || updateDto.Code.Length < 2 || updateDto.Code.Length > 20)
+                {
+                    return ServiceResult<ExternalUserDto>.Fail("Kod 2-20 karakter arasında olmalıdır");
+                }
+
+                // Kod format kontrolü - sadece büyük harf ve rakam
+                if (!System.Text.RegularExpressions.Regex.IsMatch(updateDto.Code, @"^[A-Z0-9]+$"))
+                {
+                    return ServiceResult<ExternalUserDto>.Fail("Kod sadece büyük harf ve rakam içermelidir");
+                }
+
+                // Şifre varsa validation yap
+                if (!string.IsNullOrEmpty(updateDto.Password) && updateDto.Password.Length < 6)
+                {
+                    return ServiceResult<ExternalUserDto>.Fail("Şifre en az 6 karakter olmalıdır");
                 }
 
                 var token = _sessionService.GetMachineApiToken();
@@ -245,12 +391,45 @@ namespace App.UI.Application.Services
                     token = loginResponse.AccessToken;
                 }
 
-                _logger.LogInformation("Kullanıcı güncelleniyor: {UserId}", updateDto.Id);
+                _logger.LogInformation("Kullanıcı güncelleniyor: {UserId}, Email: {Email}, Phone: {Phone}, Code: {Code}",
+                    updateDto.Id, updateDto.Email, updateDto.PhoneNumber, updateDto.Code);
+
+                // API'ye gönderilecek veriyi hazırla
+                var requestData = new
+                {
+                    id = updateDto.Id,
+                    email = updateDto.Email,
+                    phoneNumber = updateDto.PhoneNumber,
+                    firstName = updateDto.FirstName,
+                    lastName = updateDto.LastName,
+                    code = updateDto.Code,
+                    roles = updateDto.Roles ?? new List<string>(),
+                    isActive = updateDto.IsActive,
+                    userLoginType = updateDto.UserLoginType.ToString(),
+                    password = string.IsNullOrEmpty(updateDto.Password) ? null : updateDto.Password
+                };
+
+                // Eğer şifre varsa ekle
+                var requestObject = string.IsNullOrEmpty(updateDto.Password)
+                    ? requestData
+                    : new
+                    {
+                        id = updateDto.Id,
+                        email = updateDto.Email,
+                        phoneNumber = updateDto.PhoneNumber,
+                        firstName = updateDto.FirstName,
+                        lastName = updateDto.LastName,
+                        code = updateDto.Code,
+                        roles = updateDto.Roles ?? new List<string>(),
+                        isActive = updateDto.IsActive,
+                        userLoginType = updateDto.UserLoginType.ToString(),
+                        password = string.IsNullOrEmpty(updateDto.Password) ? null : updateDto.Password
+                    };
 
                 var response = await _externalApiService.PutWithTokenAsync(
                     selectedMachine.ApiAddress,
-                    $"identity/account",
-                    updateDto,
+                    "identity/account",
+                    requestObject,
                     token
                 );
 
@@ -262,20 +441,46 @@ namespace App.UI.Application.Services
 
                     if (updatedUser != null)
                     {
-                        _logger.LogInformation("Kullanıcı başarıyla güncellendi: {UserId} - {UserName}",
-                            updateDto.Id, updateDto.UserName);
-
+                        _logger.LogInformation("Kullanıcı başarıyla güncellendi: {UserId} - Email: {Email}",
+                            updateDto.Id, updateDto.Email);
                         return ServiceResult<ExternalUserDto>.Success(updatedUser);
                     }
                 }
+                else
+                {
+                    // API'den dönen hata mesajını oku
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("Kullanıcı güncellenemedi: {UserId}, StatusCode: {StatusCode}, Error: {Error}",
+                        updateDto.Id, response.StatusCode, errorContent);
 
-                _logger.LogWarning("Kullanıcı güncellenemedi: {UserId}", updateDto.Id);
+                    // Hata mesajını parse etmeye çalış
+                    try
+                    {
+                        var errorResponse = JsonSerializer.Deserialize<JsonElement>(errorContent);
+                        if (errorResponse.TryGetProperty("message", out var message))
+                        {
+                            return ServiceResult<ExternalUserDto>.Fail($"Kullanıcı güncellenemedi: {message.GetString()}");
+                        }
+                        if (errorResponse.TryGetProperty("title", out var title))
+                        {
+                            return ServiceResult<ExternalUserDto>.Fail($"Kullanıcı güncellenemedi: {title.GetString()}");
+                        }
+                    }
+                    catch
+                    {
+                       
+                    }
+
+                    return ServiceResult<ExternalUserDto>.Fail($"Kullanıcı güncellenemedi. HTTP {response.StatusCode}");
+                }
+
+                _logger.LogWarning("Kullanıcı güncellenemedi: {UserId} - Beklenmeyen durum", updateDto.Id);
                 return ServiceResult<ExternalUserDto>.Fail("Kullanıcı güncellenemedi");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Kullanıcı güncellenirken hata oluştu: {UserId}", updateDto.Id);
-                return ServiceResult<ExternalUserDto>.Fail("Kullanıcı güncellenirken hata oluştu");
+                return ServiceResult<ExternalUserDto>.Fail($"Kullanıcı güncellenirken hata oluştu: {ex.Message}");
             }
         }
 
@@ -305,27 +510,40 @@ namespace App.UI.Application.Services
                     token = loginResponse.AccessToken;
                 }
 
-                _logger.LogInformation("Kullanıcı siliniyor: {UserId}", id);
+                _logger.LogInformation("External kullanıcı siliniyor: {UserId}", id);
+
+                // DELETE body için DTO hazırla
+                var deleteDto = new DeleteDto
+                {
+                    Id = id,
+
+                };
 
                 var response = await _externalApiService.DeleteWithTokenAsync(
                     selectedMachine.ApiAddress,
-                    $"identity/account",
+                    "identity/account",
+                    deleteDto,
                     token
                 );
 
                 if (response.IsSuccessStatusCode)
                 {
-                    _logger.LogInformation("Kullanıcı başarıyla silindi: {UserId}", id);
+                    _logger.LogInformation("External kullanıcı başarıyla silindi: {UserId}", id);
                     return ServiceResult.Success();
                 }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("Kullanıcı silinemedi: {UserId}, StatusCode: {StatusCode}, Error: {Error}",
+                        id, response.StatusCode, errorContent);
 
-                _logger.LogWarning("Kullanıcı silinemedi: {UserId}", id);
-                return ServiceResult.Fail("Kullanıcı silinemedi");
+                    return ServiceResult.Fail($"Kullanıcı silinemedi: HTTP {response.StatusCode}");
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Kullanıcı silinirken hata oluştu: {UserId}", id);
-                return ServiceResult.Fail("Kullanıcı silinirken hata oluştu");
+                return ServiceResult.Fail("Kullanıcı silinirken hata oluştu: " + ex.Message);
             }
         }
 

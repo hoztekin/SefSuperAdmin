@@ -86,11 +86,16 @@ namespace App.UI.Controllers
 
         // PUT: ExternalUser/UpdateUser - External user güncelle
         [HttpPut]
-        public async Task<IActionResult> UpdateUser(string userId, [FromBody] UpdateExternalUserDto updateUserDto)
+        public async Task<IActionResult> UpdateUser([FromBody] UpdateExternalUserDto updateUserDto)
         {
-            if (string.IsNullOrEmpty(userId) || updateUserDto == null)
+            if (updateUserDto == null)
             {
                 return Json(new { success = false, message = "Geçersiz veri gönderildi" });
+            }
+
+            if (string.IsNullOrEmpty(updateUserDto.Id))
+            {
+                return Json(new { success = false, message = "Kullanıcı ID'si gereklidir" });
             }
 
             if (!ModelState.IsValid)
@@ -101,13 +106,11 @@ namespace App.UI.Controllers
 
             try
             {
-                updateUserDto.Id = userId; // ID'yi set et
-
                 var result = await _externalUserService.UpdateUserAsync(updateUserDto);
 
                 if (result.IsSuccess)
                 {
-                    _logger.LogInformation("External kullanıcı güncellendi: UserId: {UserId}", userId);
+                    _logger.LogInformation("External kullanıcı güncellendi: UserId: {UserId}", updateUserDto.Id);
                     return Json(new { success = true, message = "External kullanıcı başarıyla güncellendi" });
                 }
 
@@ -115,27 +118,27 @@ namespace App.UI.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "External kullanıcı güncellenirken hata oluştu. UserId: {UserId}", userId);
+                _logger.LogError(ex, "External kullanıcı güncellenirken hata oluştu. UserId: {UserId}", updateUserDto.Id);
                 return Json(new { success = false, message = "External kullanıcı güncellenirken bir hata oluştu: " + ex.Message });
             }
         }
 
         // DELETE: ExternalUser/DeleteUser - External user sil
         [HttpDelete]
-        public async Task<IActionResult> DeleteUser(string userId)
+        public async Task<IActionResult> DeleteUser([FromBody] DeleteDto deleteDto)
         {
-            if (string.IsNullOrEmpty(userId))
+            if (deleteDto == null || string.IsNullOrEmpty(deleteDto.Id))
             {
                 return Json(new { success = false, message = "Geçersiz kullanıcı ID'si" });
             }
 
             try
             {
-                var result = await _externalUserService.DeleteUserAsync(userId);
+                var result = await _externalUserService.DeleteUserAsync(deleteDto.Id);
 
                 if (result.IsSuccess)
                 {
-                    _logger.LogInformation("External kullanıcı silindi: UserId: {UserId}", userId);
+                    _logger.LogInformation("External kullanıcı silindi: UserId: {UserId}", deleteDto.Id);
                     return Json(new { success = true, message = "External kullanıcı başarıyla silindi" });
                 }
 
@@ -143,7 +146,7 @@ namespace App.UI.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "External kullanıcı silinirken hata oluştu. UserId: {UserId}", userId);
+                _logger.LogError(ex, "External kullanıcı silinirken hata oluştu. UserId: {UserId}", deleteDto.Id);
                 return Json(new { success = false, message = "External kullanıcı silinirken bir hata oluştu: " + ex.Message });
             }
         }

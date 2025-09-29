@@ -10,6 +10,7 @@ namespace App.UI.Application.DTOS
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public string Code { get; set; }
+        public string? PhoneNumber { get; set; }
         public string BranchName { get; set; }
         public string CompanyName { get; set; }
         public bool IsActive { get; set; }

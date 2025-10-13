@@ -1,0 +1,4 @@
+﻿ingress:
+  - hostname: testadmin.haliloztekin.com
+    service: http://app-ui:8080                                    
+  - service: http_status:404

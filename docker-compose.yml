@@ -108,16 +108,16 @@
   cloudflared:
     container_name: app-cloudflared
     image: cloudflare/cloudflared:latest
-    command: tunnel --config /etc/cloudflared/config.yaml --url https://app-ui:8081 run
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=eyJhIjoiYmUwNmU1ZDM3ODY1MTkwOGJiNGYzYjQ0YWU5ZjkwMGYiLCJ0IjoiYjc3NWVhM2UtYTE1ZS00MTNmLTg3NDQtMTYxZDdkMjNmN2VjIiwicyI6IlpUWTJaV0k1WlRndE56RmlaaTAwWXpsbUxUZzFNbUV0WlRnek0yVXdNV1EwTm1WaSJ9
     networks:
       - app-network
     restart: unless-stopped
     depends_on:
       - app-ui
-      - app-api 
     volumes:
-      - ./cloudflared:/etc/cloudflared
-      - ./config.yaml:/etc/cloudflared/config.yaml
+      - ./.cloudflared:/etc/cloudflared
 
 
 

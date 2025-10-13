@@ -1,10 +1,1 @@
-﻿tunnel: b775ea3e-a15e-413f-8744-161d7d23f7ec
-credentials-file: /etc/cloudflared/b775ea3e-a15e-413f-8744-161d7d23f7ec.json
-
-ingress:
-  - hostname: testadmin.haliloztekin.com
-    service: https://app-ui:8081
-    originRequest:
-      noTLSVerify: true
-
-  - service: http_status:404
+﻿

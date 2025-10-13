@@ -51,7 +51,7 @@ namespace App.UI
             }
 
             // Static Files & Security
-            app.UseHttpsRedirection();
+            //app.UseHttpsRedirection();
             app.UseStaticFiles();
 
             // Routing

@@ -115,9 +115,8 @@
       - app-network
     restart: unless-stopped
     depends_on:
-      - app-ui
-    volumes:
-      - ./.cloudflared:/etc/cloudflared
+      app-ui:
+        condition: service_started 
 
 
 

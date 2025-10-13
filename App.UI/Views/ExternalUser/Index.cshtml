@@ -73,7 +73,7 @@
                                         <tr>
                                             <td class="align-middle">
                                                 <strong>@user.UserName</strong>
-                                                <br><small class="text-muted">ID: @user.Id.Substring(0, Math.Min(8, user.Id.Length))...</small>
+                                                <br><small class="text-muted">ID: @user.Id</small>
                                             </td>
                                             <td class="align-middle">@user.Email</td>
                                             <td class="align-middle">@user.FullName</td>
@@ -497,68 +497,36 @@
 
                 const data = await response.json();
 
-                // Debug - API response yapısını göster
-                console.log('Full API Response:', data);
-                console.log('data.success:', data.success);
-                console.log('data.data:', data.data);
-
                 if (!data.success) {
                     showError(data.message || 'Kullanıcı bilgileri alınamadı!');
                     return;
                 }
 
-                // API response yapısı: { data: { item: {...} } } VEYA { data: {...} }
-                // Swagger'a göre: response.data.item şeklinde geliyor
                 let user = null;
 
                 if (data.data && data.data.item) {
-                    // Desktop API response pattern: data.item
+   
                     user = data.data.item;
-                    console.log('User from data.item:', user);
+ 
                 } else if (data.data) {
-                    // Direkt data içinde user
+
                     user = data.data;
-                    console.log('User from data:', user);
+
                 }
 
                 if (!user) {
                     showError('Kullanıcı verisi bulunamadı!');
-                    console.error('No user data found in response');
                     return;
                 }
 
-                // API'den gelen property isimleri (camelCase) ile eşleş
-
-                // ID
                 $('#external-edit-userId').val(user.id || '');
-                console.log('ID:', user.id);
-
-                // Kullanıcı adı (API'den "userName" geliyor)
-                $('#external-edit-userName').val(user.userName || '');
-                console.log('UserName:', user.userName);
-
-                // Email (API'den "email" geliyor)
-                $('#external-edit-email').val(user.email || '');
-                console.log('Email:', user.email);
-
-                // Ad (API'den "firstName" geliyor)
+                $('#external-edit-userName').val(user.username || '');
+                $('#external-edit-email').val(user.eMail || '');
                 $('#external-edit-firstName').val(user.firstName || '');
-                console.log('FirstName:', user.firstName);
-
-                // Soyad (API'den "lastName" geliyor)
                 $('#external-edit-lastName').val(user.lastName || '');
-                console.log('LastName:', user.lastName);
-
-                // Telefon (API'de olmayabilir - opsiyonel)
                 $('#external-edit-phoneNumber').val(user.phoneNumber || '');
-                console.log('PhoneNumber:', user.phoneNumber);
-
-                // Kod (API'den "code" geliyor)
                 $('#external-edit-code').val(user.code || '');
-                console.log('Code:', user.code);
-
-                // UserLoginType (API'den gelmeyebilir - default Shared)
-                let typeValue = '2'; // Default Shared
+   
                 if (user.userLoginType !== undefined && user.userLoginType !== null) {
                     if (typeof user.userLoginType === 'string') {
                         const typeStr = user.userLoginType.toLowerCase();
@@ -566,32 +534,25 @@
                         else if (typeStr === 'service') typeValue = '3';
                         else typeValue = '2'; // Shared
                     } else if (typeof user.userLoginType === 'number') {
-                        typeValue = user.userLoginType.toString();
+                        if (user.userLoginType === 1 || user.userLoginType === 2 || user.userLoginType === 3) {
+                            typeValue = user.userLoginType.toString();
+                        } else {
+                            typeValue = '2';
+                        }
                     }
                 }
-                $('#external-edit-userLoginType').val(typeValue);
-                console.log('UserLoginType:', user.userLoginType, '-> set to:', typeValue);
 
-                // IsActive (API'den "isActive" geliyor)
+                $('#external-edit-userLoginType').val(typeValue);
                 const isActive = user.isActive !== undefined ? user.isActive : true;
                 $('#external-edit-isActive').val(isActive ? 'true' : 'false');
-                console.log('IsActive:', isActive);
-
-                // Validation'ları temizle
                 $('#editExternalUserForm .is-invalid, #editExternalUserForm .is-valid').removeClass('is-invalid is-valid');
                 hideEditModalError();
 
-                // Şifre alanlarını temizle
                 $('#external-edit-password').val('');
                 $('#external-edit-confirmPassword').val('');
-
-                // ✅ EN SON MODAL'I AÇ - Tüm veriler dolduktan sonra
                 $('#editExternalUserModal').modal('show');
 
-                console.log('Modal açıldı ve tüm veriler dolduruldu');
-
             } catch (error) {
-                console.error('Edit user error:', error);
                 showError('Kullanıcı bilgileri alınırken bir hata oluştu: ' + error.message);
             }
         };
@@ -767,13 +728,11 @@
                         }
                     } else {
                         const errorText = await response.text();
-                        console.error('Response error:', errorText);
                         showModalError('Sunucu hatası: ' + response.status);
                     }
 
                     submitBtn.html(originalText).prop('disabled', false);
                 } catch (error) {
-                    console.error('Create user error:', error);
                     showModalError('Kullanıcı oluşturulurken hata oluştu!');
                     $(this).find('button[type="submit"]').html('<i class="fas fa-save"></i> External Kullanıcı Ekle').prop('disabled', false);
                 }
@@ -800,7 +759,7 @@
                     firstName: $('#external-edit-firstName').val().trim(),
                     lastName: $('#external-edit-lastName').val().trim(),
                     code: $('#external-edit-code').val().trim().toUpperCase(),
-                    roles: [], // Boş array gönder
+                    roles: [], 
                     isActive: $('#external-edit-isActive').val() === 'true',
                     userLoginType: parseInt($('#external-edit-userLoginType').val())
                 };
@@ -862,7 +821,6 @@
                     const originalText = submitBtn.html();
                     submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Güncelleniyor...').prop('disabled', true);
 
-                    // ID'yi body'de göndereceğiz, route parametresi yok
                     const response = await fetch('/ExternalUser/UpdateUser', {
                         method: 'PUT',
                         headers: {
@@ -883,13 +841,11 @@
                         }
                     } else {
                         const errorText = await response.text();
-                        console.error('Response error:', errorText);
                         showEditModalError('Sunucu hatası: ' + response.status);
                     }
 
                     submitBtn.html(originalText).prop('disabled', false);
                 } catch (error) {
-                    console.error('Update user error:', error);
                     showEditModalError('Kullanıcı güncellenirken hata oluştu!');
                     $(this).find('button[type="submit"]').html('<i class="fas fa-save"></i> Güncelle').prop('disabled', false);
                 }
@@ -936,8 +892,7 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        id: userId,
-                        branchId: '' // API token'dan otomatik alacak
+                        id: userId
                     })
                 });
 
@@ -960,7 +915,6 @@
                     showError('Sunucu hatası oluştu!');
                 }
             } catch (error) {
-                console.error('Delete user error:', error);
                 showError('External kullanıcı silinirken bir hata oluştu!');
             }
         }

@@ -305,7 +305,8 @@ namespace App.Services.Machine
                 using var httpClient = httpClientFactory.CreateClient();
                 httpClient.Timeout = TimeSpan.FromSeconds(10);
 
-                var response = await httpClient.GetAsync(apiAddress);
+                var healthUrl = $"{apiAddress.TrimEnd('/')}/health";
+                var response = await httpClient.GetAsync(healthUrl);
                 var isConnected = response.IsSuccessStatusCode;
 
                 return ServiceResult<bool>.Success(isConnected);

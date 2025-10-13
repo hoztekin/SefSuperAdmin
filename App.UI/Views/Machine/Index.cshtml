@@ -472,7 +472,7 @@
 
          // Düzenle modalı aç
         if (editId) {
-            console.log('Edit modal açılacak, ID:', editId);
+
             setTimeout(() => {
                 // Mevcut edit-machine butonunu simüle et
                 $(`button[data-id="${editId}"].edit-machine`).click();
@@ -481,7 +481,7 @@
 
         // Yeni makine modalı aç
         if (createNew === 'true') {
-            console.log('Create modal açılacak');
+
             setTimeout(() => {
                 // Direkt modal aç - #createMachineModal ID'si mevcut
                 $('#createMachineModal').modal('show');

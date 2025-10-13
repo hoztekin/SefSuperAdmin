@@ -62,7 +62,6 @@ namespace App.UI.Application.Services
 
                 if (response.IsSuccessStatusCode)
                 {
-                    // Desktop pattern: JSON deserialize
                     var jsonString = await response.Content.ReadAsStringAsync();
                     var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
@@ -136,26 +135,21 @@ namespace App.UI.Application.Services
                         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                     };
 
-                    // API Response Wrapper'ını deserialize et
                     var apiResponse = JsonSerializer.Deserialize<JsonElement>(jsonString, options);
-
-                    // data.item path'ini kontrol et
+        
                     if (apiResponse.TryGetProperty("data", out var dataElement))
                     {
                         JsonElement userElement;
 
-                        // data.item var mı kontrol et
                         if (dataElement.TryGetProperty("item", out var itemElement))
                         {
                             userElement = itemElement;
                         }
                         else
                         {
-                            // Direkt data içinde user var
                             userElement = dataElement;
                         }
 
-                        // API'den gelen property isimleri tutarsız - manual mapping yap
                         var user = new ExternalUserDto
                         {
                             Id = GetStringProperty(userElement, "id"),
@@ -171,7 +165,6 @@ namespace App.UI.Application.Services
                             EmailConfirmed = GetBoolProperty(userElement, "emailConfirmed")
                         };
 
-                        // UserLoginType parse et
                         var loginTypeStr = GetStringProperty(userElement, "userLoginType");
                         if (!string.IsNullOrEmpty(loginTypeStr))
                         {
@@ -182,7 +175,6 @@ namespace App.UI.Application.Services
                         }
                         else
                         {
-                            // Numeric değer olarak gelmiş olabilir
                             if (userElement.TryGetProperty("userLoginType", out var loginTypeElement) &&
                                 loginTypeElement.TryGetInt32(out var loginTypeInt))
                             {
@@ -190,7 +182,6 @@ namespace App.UI.Application.Services
                             }
                         }
 
-                        // Roles array'i parse et
                         if (userElement.TryGetProperty("roles", out var rolesElement) &&
                             rolesElement.ValueKind == JsonValueKind.Array)
                         {
@@ -278,7 +269,7 @@ namespace App.UI.Application.Services
                 var externalApiData = new
                 {
                     UserName = createDto.UserName,
-                    EMail = createDto.Email,
+                    Email = createDto.Email,
                     Code = createDto.Code, 
                     Password = createDto.Password,
                     ConfirmPassword = createDto.Password, 

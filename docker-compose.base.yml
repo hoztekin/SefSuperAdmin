@@ -1,0 +1,365 @@
+﻿services:
+
+  # ========================================
+  # SQL SERVER - Shared
+  # ========================================
+  sql-server:
+    profiles: ["dev", "prod"]
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    container_name: app-db
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=${SQL_SERVER_PASSWORD}
+    ports:
+      - "1433:1433"
+    volumes:
+      - sql-data:/var/opt/mssql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/1433'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ========================================
+  # RABBITMQ - Shared
+  # ========================================
+  rabbitmq:
+    profiles: ["dev", "prod"]
+    image: rabbitmq:3-management-alpine
+    container_name: app-rabbitmq
+    hostname: rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USERNAME}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - app-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ========================================
+  # REDIS - Shared
+  # ========================================
+  app-redis:
+    profiles: ["dev", "prod"]
+    image: redis:7-alpine
+    container_name: app-redis
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - app-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ========================================
+  # REDIS INSIGHT - Shared
+  # ========================================
+  redis-insight:
+    profiles: ["dev", "prod"]
+    image: redis/redisinsight:latest
+    container_name: app-redis-insight
+    ports:
+      - "5540:5540"
+    volumes:
+      - redis-insight-data:/data
+    networks:
+      - app-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ========================================
+  # SEQ - Shared
+  # ========================================
+  seq:
+    profiles: ["dev", "prod"]
+    image: datalust/seq:latest
+    container_name: app-seq
+    environment:
+      - ACCEPT_EULA=Y
+      - SEQ_FIRSTRUN_ADMINUSERNAME=${SEQ_CONTAINER_ADMIN_USER}
+      - SEQ_FIRSTRUN_ADMINPASSWORD=${SEQ_CONTAINER_ADMIN_PASSWORD}
+    ports:
+      - "5341:80"
+    volumes:
+      - seq-data:/data
+    networks:
+      - app-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+
+# ========================================
+# VOLUMES
+# ========================================
+volumes:
+  sql-data:
+  rabbitmq-data:
+  redis-data:
+  redis-insight-data:
+  seq-data:
+
+# ========================================
+# NETWORKS
+# ========================================
+networks:
+  app-network:
+    driver: bridge
+    name: app-network
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+
+
+
+
+
+# services:
+#   # Development API
+#   app-api-dev:
+#     container_name: app-api-dev
+#     image: local/appapi:dev
+#     build:
+#       context: .
+#       dockerfile: App.Api/Dockerfile
+#     environment:
+#       - ASPNETCORE_ENVIRONMENT=Development
+#       - ASPNETCORE_HTTP_PORTS=8080
+#       - ASPNETCORE_HTTPS_PORTS=8081
+#       - ConnectionStrings__SqlServer=Server=sql-server;Database=${SQL_SERVER_DB};User Id=${SQL_SERVER_USER};Password=${SQL_SERVER_PASSWORD};TrustServerCertificate=True;
+#     ports:
+#       - "5000:8080"
+#       - "5001:8081"
+#     networks:
+#       - app-network
+#     depends_on:
+#       - sql-server
+#       - app-redis
+#       - seq
+
+#  # Production API
+#   app-api:
+#     container_name: app-api
+#     image: local/appapi:latest
+#     build:
+#       context: .
+#       dockerfile: App.Api/Dockerfile
+#     environment:
+#       - ASPNETCORE_ENVIRONMENT=Production
+#       - ASPNETCORE_HTTP_PORTS=8080
+#       - ASPNETCORE_HTTPS_PORTS=8081
+#       - ConnectionStrings__SqlServer=Server=sql-server;Database=${SQL_SERVER_DB};User Id=${SQL_SERVER_USER};Password=${SQL_SERVER_PASSWORD};TrustServerCertificate=True;
+#     ports:
+#       - "5190:8080"
+#       - "7190:8081"
+#     networks:
+#       - app-network
+#     depends_on:
+#       - sql-server
+#       - app-redis
+#       - seq
+#     restart: unless-stopped
+
+
+
+#   # Development UI
+#   app-ui-dev:
+#     container_name: app-ui-dev
+#     image: local/appui:dev
+#     build:
+#       context: .
+#       dockerfile: App.UI/Dockerfile
+#     environment:
+#       - ASPNETCORE_ENVIRONMENT=Development
+#       - ASPNETCORE_HTTP_PORTS=8080
+#       - ASPNETCORE_HTTPS_PORTS=8081
+#       - DOTNET_RUNNING_IN_CONTAINER=true
+#       - API_BASE_URL=http://app-api-dev:8080/
+#       - CacheSettings__ConnectionString=app-redis:6379,password=${REDIS_PASSWORD}
+#     ports:
+#       - "5002:8080"
+#       - "5003:8081"
+#     networks:
+#       - app-network
+#     depends_on:
+#       - app-api-dev
+
+#   # Production UI
+#   app-ui:
+#     container_name: app-ui
+#     image: local/appui:latest
+#     build:
+#       context: .
+#       dockerfile: App.UI/Dockerfile
+#     environment:
+#       - ASPNETCORE_ENVIRONMENT=Production
+#       - ASPNETCORE_HTTP_PORTS=8080
+#       - ASPNETCORE_HTTPS_PORTS=8081
+#       - DOTNET_RUNNING_IN_CONTAINER=true
+#       - API_BASE_URL=http://app-api:8080/
+#       - CacheSettings__ConnectionString=app-redis:6379,password=${REDIS_PASSWORD}
+#     ports:
+#       - "5191:8080"
+#       - "7191:8081"
+#     networks:
+#       - app-network
+#     depends_on:
+#       - app-api
+#     restart: unless-stopped
+
+
+#   sql-server:
+#     image: mcr.microsoft.com/mssql/server:2019-latest
+#     container_name: app-db
+#     environment:
+#       - ACCEPT_EULA=Y
+#       - SA_PASSWORD=${SQL_SERVER_PASSWORD}
+#     ports:
+#       - "1433:1433"
+#     volumes:
+#       - sql-data:/var/opt/mssql
+#     networks:
+#       - app-network
+#     restart: unless-stopped
+
+#   rabbitmq:
+#     image: rabbitmq:3-management-alpine
+#     container_name: app-rabbitmq
+#     environment:
+#       - RABBITMQ_DEFAULT_USER=${RABBITMQ_USERNAME}
+#       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}
+#     ports:
+#       - "5672:5672"
+#       - "15672:15672"
+#     volumes:
+#       - rabbitmq-data:/var/lib/rabbitmq
+#     networks:
+#       - app-network
+#     restart: unless-stopped
+
+#   app-redis:
+#     image: redis:7-alpine
+#     container_name: app-redis
+#     command: redis-server --requirepass ${REDIS_PASSWORD}
+#     ports:
+#       - "6379:6379"
+#     volumes:
+#       - redis-data:/data
+#     networks:
+#       - app-network
+#     restart: unless-stopped
+
+#   redis-insight:
+#     image: redis/redisinsight:latest
+#     container_name: app-redis-insight
+#     ports:
+#       - "5540:5540"
+#     volumes:
+#       - redis-insight-data:/data
+#     networks:
+#       - app-network
+#     restart: unless-stopped
+
+#   seq:
+#     image: datalust/seq:latest
+#     container_name: app-seq
+#     environment:
+#       - ACCEPT_EULA=Y
+#       - SEQ_FIRSTRUN_ADMINUSERNAME=${SEQ_CONTAINER_ADMIN_USER}
+#       - SEQ_FIRSTRUN_ADMINPASSWORD=${SEQ_CONTAINER_ADMIN_PASSWORD}
+#     ports:
+#       - "5341:80"
+#     volumes:
+#       - seq-data:/data
+#     networks:
+#       - app-network
+#     restart: unless-stopped
+
+#   cloudflared:
+#     container_name: app-cloudflared
+#     image: cloudflare/cloudflared:latest
+#     command: tunnel run
+#     environment:
+#       - TUNNEL_TOKEN=${CLOUD_TUNNEL_TOKEN}
+#     networks:
+#       - app-network
+#     restart: unless-stopped
+#     depends_on:
+#       - app-ui
+
+# volumes:
+#   sql-data:
+#   rabbitmq-data:
+#   redis-data:
+#   redis-insight-data:
+#   seq-data:
+
+# networks:
+#   app-network:
+#     driver: bridge

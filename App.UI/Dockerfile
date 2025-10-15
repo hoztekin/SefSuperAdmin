@@ -1,7 +1,9 @@
+ï»¿# Build stage
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
-# Önce projeyi kopyalayýp restore edin
+# Restore
 COPY ["App.UI/App.UI.csproj", "App.UI/"]
 COPY ["App.Shared/App.Shared.csproj", "App.Shared/"]
 COPY ["App.Api/App.Api.csproj", "App.Api/"]
@@ -9,19 +11,25 @@ COPY ["Services/App.Services.csproj", "Services/"]
 COPY ["Repositories/App.Repositories.csproj", "Repositories/"]
 RUN dotnet restore "App.UI/App.UI.csproj"
 
-# Ardýndan tüm kodu kopyalayýn
+# Copy source
 COPY . .
 
-# appsettings.json çakýþmalarýný çözün
+# API'nin appsettings'lerini SÄ°L (Ã§akÄ±ÅŸma olmasÄ±n)
 RUN rm -f App.Api/appsettings*.json
 
-# Build iþlemini TreatWarningsAsErrors=false ile yapýn
 WORKDIR "/src/App.UI"
-RUN dotnet publish "App.UI.csproj" -c Release -o /app/publish /p:TreatWarningsAsErrors=false /p:UseAppHost=false
+RUN dotnet build "App.UI.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
+# Publish
+FROM build AS publish
+ARG BUILD_CONFIGURATION=Release
+RUN dotnet publish "App.UI.csproj" \
+    -c $BUILD_CONFIGURATION \
+    -o /app/publish \
+    /p:UseAppHost=false
+
+# Final
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
-COPY --from=build /app/publish .
-EXPOSE 8080
-EXPOSE 8081
+COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "App.UI.dll"]

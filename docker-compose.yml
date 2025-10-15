@@ -1,4 +1,6 @@
 ﻿services:
+
+
   app-api:
     container_name: app-api
     image: local/appapi
@@ -6,7 +8,7 @@
       context: .
       dockerfile: App.Api/Dockerfile
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_HTTPS_PORTS=8081
       - ConnectionStrings__SqlServer=Server=sql-server;Database=SefimSuperAdmin;User Id=sa;Password=StrongPassword123!;TrustServerCertificate=True;
@@ -23,6 +25,8 @@
     depends_on:
       - sql-server
       - seq
+
+
   app-ui:
     image: local/appui
     container_name: app-ui
@@ -30,7 +34,7 @@
       context: .
       dockerfile: App.UI/Dockerfile
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_HTTPS_PORTS=8081
       - DOTNET_RUNNING_IN_CONTAINER=true
@@ -45,9 +49,13 @@
       - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
       - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
       - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro
+      - ui-keys:/app/key
     depends_on:
       - app-api
       - seq
+      - app-redis 
+
+
   sql-server:
     image: mcr.microsoft.com/mssql/server:2019-latest
     container_name: app-db
@@ -60,6 +68,7 @@
       - sql-data:/var/opt/mssql
     networks:
       - app-network
+
 
   rabbitmq:
     image: "rabbitmq:3-management"
@@ -75,21 +84,31 @@
     networks:
       - app-network
 
-  app-worker:
-    image: local/appworker
-    container_name: app-worker
-    build:
-      context: .
-      dockerfile: App.Worker/Dockerfile
-    environment:
-      - RabbitMQ__HostName=rabbitmq
-      - RabbitMQ__UserName=${RABBITMQ_USERNAME}
-      - RabbitMQ__Password=${RABBITMQ_PASSWORD}
+
+  app-redis:
+    image: redis:7-alpine
+    container_name: app-redis
+    command: redis-server --requirepass ProjectPassword
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: app-redis-insight
+    ports:
+      - "5540:5540"
     networks:
       - app-network
     depends_on:
-      - rabbitmq
-      - seq
+      - app-redis
+    volumes:
+      - redis-insight-data:/data
+    restart: unless-stopped
 
   seq:
     image: datalust/seq:latest
@@ -105,12 +124,13 @@
     networks:
       - app-network
   
+
   cloudflared:
     container_name: app-cloudflared
     image: cloudflare/cloudflared:latest
     command: tunnel run
     environment:
-      - TUNNEL_TOKEN=eyJhIjoiYmUwNmU1ZDM3ODY1MTkwOGJiNGYzYjQ0YWU5ZjkwMGYiLCJ0IjoiYjc3NWVhM2UtYTE1ZS00MTNmLTg3NDQtMTYxZDdkMjNmN2VjIiwicyI6IlpUWTJaV0k1WlRndE56RmlaaTAwWXpsbUxUZzFNbUV0WlRnek0yVXdNV1EwTm1WaSJ9
+      - TUNNEL_TOKEN=${CLOUD_TUNNEL_TOKEN}
     networks:
       - app-network
     restart: unless-stopped
@@ -124,6 +144,10 @@ volumes:
   sql-data:
   rabbitmq-data:
   seq-data:
+  ui-keys:
+  redis-data:
+  redis-insight-data:
+
 
 networks:
   app-network:

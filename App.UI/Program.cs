@@ -1,7 +1,9 @@
 ﻿using App.Shared;
 using App.UI.Extensions;
 using App.UI.MiddleWare;
+using Microsoft.AspNetCore.DataProtection;
 using Serilog;
+using StackExchange.Redis;
 
 namespace App.UI
 {
@@ -10,6 +12,41 @@ namespace App.UI
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            // HTTPS'i devre dışı bırak (container için)
+            builder.WebHost.ConfigureKestrel(serverOptions =>
+            {
+                serverOptions.ListenAnyIP(8080); // Sadece HTTP
+            });
+
+            // DataProtection - Container volume
+            builder.Services.AddDataProtection()
+                .PersistKeysToFileSystem(new DirectoryInfo("/app/keys"))
+                .SetApplicationName("SefimPlusUI");
+
+            // DataProtection & Session için Redis
+            var redisConnection = ConnectionMultiplexer.Connect(
+                builder.Configuration["CacheSettings:ConnectionString"]
+            );
+
+            // DataProtection - Redis'e kaydet
+            builder.Services.AddDataProtection()
+                .PersistKeysToStackExchangeRedis(redisConnection, "DataProtection-Keys")
+                .SetApplicationName("SefimPlusUI");
+
+            // Session - Redis'e kaydet
+            builder.Services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = builder.Configuration["CacheSettings:ConnectionString"];
+                options.InstanceName = "SefimUI_";
+            });
+
+            builder.Services.AddSession(options =>
+            {
+                options.IdleTimeout = TimeSpan.FromHours(1);
+                options.Cookie.HttpOnly = true;
+                options.Cookie.IsEssential = true;
+            });
 
             // Configure Logging
             ConfigureLogging(builder);

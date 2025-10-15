@@ -4,7 +4,6 @@ using App.Services.Extensions;
 using App.Services.Filters;
 using App.Shared;
 using App.Shared.Redis;
-using App.Worker;
 using Scalar.AspNetCore;
 using Serilog;
 using System.Text.Json.Serialization;
@@ -18,7 +17,12 @@ namespace App.Api
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            DotNetEnv.Env.Load();
+            // HTTPS'i devre dışı bırak (container için)
+            builder.WebHost.ConfigureKestrel(serverOptions =>
+            {
+                serverOptions.ListenAnyIP(8080); // Sadece HTTP
+            });
+
 
             LoggerConfig.ConfigureLogger("App.Api");
 
@@ -30,8 +34,6 @@ namespace App.Api
             builder.Services.AddScoped<DatabaseSeeder>();
             builder.Services.AddOpenApi();
             builder.Services.AddRepositories(builder.Configuration).AddServices(builder.Configuration);
-
-            builder.Services.AddHostedService<RabbitMQWorker>();
 
             builder.Services.AddControllers(options =>
             {

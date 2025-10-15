@@ -22,7 +22,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\App.Shared\App.Shared.csproj" />
-    <ProjectReference Include="..\App.Worker\App.Worker.csproj" />
     <ProjectReference Include="..\Services\App.Services.csproj" />
   </ItemGroup>
 

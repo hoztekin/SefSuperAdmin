@@ -1,4 +1,15 @@
 ﻿ingress:
+  # UI
   - hostname: testadmin.haliloztekin.com
-    service: http://app-ui:8080                                    
+    service: http://app-ui:8080
+  
+  # Seq Logs
+  - hostname: seq.haliloztekin.com
+    service: http://app-seq:80
+  
+  # Redis (RedisInsight UI için)
+  - hostname: redis.haliloztekin.com
+    service: http://redis-insight:5540
+  
+  # Catch-all
   - service: http_status:404

@@ -1,15 +1,48 @@
-﻿ingress:
-  # UI
+﻿# ingress:
+#   # UI
+#   - hostname: testadmin.haliloztekin.com
+#     service: http://app-ui:8080
+  
+#   # Seq Logs
+#   - hostname: seq.haliloztekin.com
+#     service: http://app-seq:80
+  
+#   # Redis (RedisInsight UI için)
+#   - hostname: redis.haliloztekin.com
+#     service: http://redis-insight:5540
+  
+#   # Catch-all
+#   - service: http_status:404
+
+
+ingress:
   - hostname: testadmin.haliloztekin.com
     service: http://app-ui:8080
+    originRequest:
+      connectTimeout: 30s
+      tcpKeepAlive: 30s
+      keepAliveTimeout: 90s
+      keepAliveConnections: 100
+      noHappyEyeballs: false
+      noTLSVerify: true
+      disableChunkedEncoding: false
+      http2Origin: false
+      httpHostHeader: testadmin.haliloztekin.com
   
-  # Seq Logs
   - hostname: seq.haliloztekin.com
     service: http://app-seq:80
+    originRequest:
+      connectTimeout: 30s
+      tcpKeepAlive: 30s
+      keepAliveTimeout: 90s
+      noTLSVerify: true
   
-  # Redis (RedisInsight UI için)
   - hostname: redis.haliloztekin.com
-    service: http://redis-insight:5540
+    service: http://app-redis-insight:5540
+    originRequest:
+      connectTimeout: 30s
+      tcpKeepAlive: 30s
+      keepAliveTimeout: 90s
+      noTLSVerify: true
   
-  # Catch-all
   - service: http_status:404

@@ -1,0 +1,251 @@
+﻿🐳 Docker Compose Ortam Yönetimi
+Bu proje Development ve Production olmak üzere iki farklı ortamda çalışabilir.
+📋 İçindekiler
+
+Hızlı Başlangıç
+Ortamlar
+Visual Studio ile Çalışma
+Komut Satırı ile Çalışma
+Servis Portları
+Sorun Giderme
+
+
+🚀 Hızlı Başlangıç
+Gereksinimler
+
+Docker Desktop (Windows/Mac/Linux)
+.NET 8.0 SDK (opsiyonel, sadece local development için)
+Visual Studio 2022+ (opsiyonel, Docker Debug için)
+
+İlk Kurulum
+bash# 1. Repository'yi klonlayın
+git clone <repo-url>
+cd <project-folder>
+
+# 2. .env dosyasını kontrol edin (şifreler vs.)
+# .env dosyasında gerekli değişkenlerin ayarlandığından emin olun
+
+# 3. Docker network oluşturun (ilk seferde)
+docker network create app-network
+
+🎯 Ortamlar
+📘 Development Ortamı
+Development ortamı lokal geliştirme için kullanılır.
+Özellikler:
+
+Hot reload desteği
+Debug portları açık
+Geliştirme için optimize edilmiş
+Cloudflare Tunnel KAPALI
+
+Servisler:
+
+app-api-dev → Port 5000, 5001
+app-ui-dev → Port 5002, 5003
+sql-server, redis, rabbitmq, seq (paylaşımlı)
+
+🔴 Production Ortamı
+Production ortamı canlı/test dağıtımları için kullanılır.
+Özellikler:
+
+Optimize edilmiş build
+Cloudflare Tunnel ile dış dünyaya açık
+Auto-restart aktif
+Production configuration
+
+Servisler:
+
+app-api → Port 5190, 7190
+app-ui → Port 5191, 7191
+cloudflared → Tunnel aktif
+sql-server, redis, rabbitmq, seq (paylaşımlı)
+
+Cloudflare Tunnel Adresleri:
+
+UI: https://testadmin.haliloztekin.com
+Seq: https://seq.haliloztekin.com
+Redis: https://redis.haliloztekin.com
+
+
+💻 Visual Studio ile Çalışma
+Development Ortamı (F5 Debug)
+
+Visual Studio'yu açın
+Üst menüden "Development" seçin
+F5 tuşuna basın veya ▶ Start butonuna tıklayın
+Browser otomatik açılır: http://localhost:5002
+
+Debug yapabileceğiniz servisler:
+
+app-api-dev (Port 5000)
+app-ui-dev (Port 5002)
+
+Production Ortamı (F5 Debug)
+
+Visual Studio'yu açın
+Üst menüden "Production" seçin
+F5 tuşuna basın
+Browser otomatik açılır: http://localhost:5191
+
+Debug yapabileceğiniz servisler:
+
+app-api (Port 5190)
+app-ui (Port 5191)
+
+⚠️ Önemli Not
+Visual Studio'dan F5 ile başlatıldığında sadece seçili ortamın API ve UI servisleri debug modunda çalışır. Altyapı servisleri (DB, Redis vb.) arka planda çalışır.
+
+⌨️ Komut Satırı ile Çalışma
+🔵 Development Ortamını Başlatma
+# Tüm development servisleri
+docker-compose up -d app-api-dev app-ui-dev sql-server app-redis redis-insight seq rabbitmq
+
+# Sadece altyapı servisleri (Visual Studio ile kullanmak için)
+docker-compose up -d sql-server app-redis redis-insight seq rabbitmq
+
+# Logları izle
+docker-compose logs -f app-api-dev app-ui-dev
+Erişim:
+
+API: http://localhost:5000/scalar/v1
+UI: http://localhost:5002
+
+🔴 Production Ortamını Başlatma
+# Tüm production servisleri + Cloudflare Tunnel
+docker-compose up -d app-api app-ui sql-server app-redis redis-insight seq rabbitmq cloudflared
+
+# Logları izle
+docker-compose logs -f app-api app-ui cloudflared
+Erişim:
+
+API (local): http://localhost:5190/scalar/v1
+UI (local): http://localhost:5191
+UI (internet): https://testadmin.haliloztekin.com
+
+🛑 Servisleri Durdurma
+bash# Development servislerini durdur
+docker-compose stop app-api-dev app-ui-dev
+
+# Production servislerini durdur
+docker-compose stop app-api app-ui cloudflared
+
+# TÜM servisleri durdur
+docker-compose down
+
+# TÜM servisleri durdur + Volume'ları sil (DİKKAT!)
+docker-compose down -v
+🔄 Servisleri Yeniden Başlatma
+bash# Development yeniden başlat
+docker-compose restart app-api-dev app-ui-dev
+
+# Production yeniden başlat
+docker-compose restart app-api app-ui
+
+# Yeniden build et ve başlat (kod değişikliklerinden sonra)
+docker-compose up -d --build app-api app-ui
+🧹 Temizlik Komutları
+bash# Çalışmayan container'ları temizle
+docker container prune
+
+# Kullanılmayan image'leri temizle
+docker image prune -a
+
+# Kullanılmayan volume'ları temizle (DİKKAT: Veri kaybı!)
+docker volume prune
+
+# Her şeyi temizle (DİKKAT!)
+docker system prune -a --volumes
+
+🔌 Servis Portları
+Development Portları
+ServisPortURLAPI (Dev)5000, 5001http://localhost:5000/scalar/v1UI (Dev)5002, 5003http://localhost:5002SQL Server1433localhost:1433Redis6379localhost:6379RabbitMQ5672, 15672http://localhost:15672Redis Insight5540http://localhost:5540Seq5341http://localhost:5341
+Production Portları
+ServisPortURLAPI (Prod)5190, 7190http://localhost:5190/scalar/v1UI (Prod)5191, 7191http://localhost:5191Cloudflare Tunnel-https://testadmin.haliloztekin.com(Diğer servisler Development ile aynı)
+
+🐛 Sorun Giderme
+Port Çakışması
+bash# Hangi process portu kullanıyor?
+netstat -ano | findstr :5190
+
+# Tüm container'ları durdur
+docker-compose down
+
+# Yeniden başlat
+docker-compose up -d app-api app-ui
+Container Başlamıyor
+bash# Container loglarını kontrol et
+docker-compose logs app-api
+
+# Container'ın durumunu kontrol et
+docker-compose ps
+
+# Container'a bağlan (debug için)
+docker exec -it app-api /bin/bash
+Database Connection Hatası
+bash# SQL Server'ın hazır olup olmadığını kontrol et
+docker exec -it app-db /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'StrongPassword123!' -Q "SELECT 1"
+
+# SQL Server'ı yeniden başlat
+docker-compose restart sql-server
+"Cannot connect to Docker daemon" Hatası
+
+Docker Desktop'ın çalıştığından emin olun
+Docker Desktop'ı yeniden başlatın
+Windows'ta WSL 2 backend'in aktif olduğunu kontrol edin
+
+Visual Studio'dan F5 Çalışmıyor
+
+Visual Studio'yu yönetici olarak çalıştırın
+Docker Desktop'ın çalıştığından emin olun
+docker-compose.dcproj dosyasının solution'da olduğunu kontrol edin
+Visual Studio'yu kapatıp yeniden açın
+
+"Site güvenli bağlantı sağlayamıyor" Hatası
+HTTP kullanın, HTTPS değil:
+
+❌ https://localhost:5190
+✅ http://localhost:5190
+
+
+📝 Ortam Değişkenleri (.env)
+Önemli environment variable'lar .env dosyasında saklanır:
+
+🎓 Best Practices
+Development Workflow
+
+Visual Studio'dan Development ortamında F5 ile başlat
+Kod değişikliği yap
+Hot reload otomatik çalışır (container restart gerekmez)
+Test et: http://localhost:5002
+
+Production Deployment
+
+Kodu test et (development ortamında)
+Commit ve push yap
+Production ortamını başlat:
+
+bash   docker-compose up -d --build app-api app-ui cloudflared
+
+Test et: https://testadmin.haliloztekin.com
+
+Database Migration
+bash# Development'ta migration çalıştır
+docker-compose exec app-api-dev dotnet ef database update
+
+# Production'da migration çalıştır
+docker-compose exec app-api dotnet ef database update
+
+
+
+
+
+
+app-redis
+Tam ayarlar:
+Alan                Değer
+Database Alias      ProjectApp Redis
+Host                app-redis
+Port                6379
+Username            default
+Password            ProjectPassword
+

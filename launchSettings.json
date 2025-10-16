@@ -1,11 +1,28 @@
-{
+﻿{
   "profiles": {
-    "Docker Compose": {
+    "Development": {
       "commandName": "DockerCompose",
       "commandVersion": "1.0",
       "serviceActions": {
-        "app.api": "StartDebugging",
-        "app.ui": "StartDebugging"
+        "app-api-dev": "StartDebugging",
+        "app-ui-dev": "StartDebugging",
+        "sql-server": "StartWithoutDebugging",
+        "app-redis": "StartWithoutDebugging",
+        "seq": "StartWithoutDebugging",
+        "rabbitmq": "StartWithoutDebugging"
+      }
+    },
+    "Production": {
+      "commandName": "DockerCompose",
+      "commandVersion": "1.0",
+      "serviceActions": {
+        "app-api": "StartDebugging",
+        "app-ui": "StartDebugging",
+        "sql-server": "StartWithoutDebugging",
+        "app-redis": "StartWithoutDebugging",
+        "seq": "StartWithoutDebugging",
+        "rabbitmq": "StartWithoutDebugging",
+        "cloudflared": "StartWithoutDebugging"
       }
     }
   }

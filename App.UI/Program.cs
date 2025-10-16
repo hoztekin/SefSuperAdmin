@@ -48,6 +48,22 @@ namespace App.UI
                 options.Cookie.IsEssential = true;
             });
 
+            builder.Services.AddHttpClient("default", client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(100);
+            }).ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+            {
+                PooledConnectionLifetime = TimeSpan.FromMinutes(15),
+                PooledConnectionIdleTimeout = TimeSpan.FromMinutes(5),
+                MaxConnectionsPerServer = 20
+            });
+
+            builder.WebHost.ConfigureKestrel(options =>
+            {
+                options.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(2);
+                options.Limits.RequestHeadersTimeout = TimeSpan.FromMinutes(1);
+            });
+
             // Configure Logging
             ConfigureLogging(builder);
 

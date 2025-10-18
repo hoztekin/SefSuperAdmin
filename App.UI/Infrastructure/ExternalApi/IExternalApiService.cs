@@ -259,7 +259,7 @@ namespace App.UI.Infrastructure.ExternalApi
             catch (Exception ex)
             {
                 _logger.LogError(ex, "External API POST hatası: {ApiAddress}/{Endpoint}", apiAddress, endpoint);
-                return default;
+                throw new HttpRequestException($"External API POST hatası: {apiAddress}/{endpoint}", ex);
             }
         }
 
@@ -291,7 +291,7 @@ namespace App.UI.Infrastructure.ExternalApi
             catch (Exception ex)
             {
                 _logger.LogError(ex, "External API PUT hatası: {ApiAddress}/{Endpoint}", apiAddress, endpoint);
-                return default;
+                throw new HttpRequestException($"External API PUT hatası: {apiAddress}/{endpoint}", ex);
             }
         }
 
@@ -330,7 +330,7 @@ namespace App.UI.Infrastructure.ExternalApi
             catch (Exception ex)
             {
                 _logger.LogError(ex, "External API DELETE hatası: {ApiAddress}/{Endpoint}", apiAddress, endpoint);
-                throw; // Exception'ı yukarı fırlat
+                throw new HttpRequestException($"External API DELETE hatası: {apiAddress}/{endpoint}", ex);
             }
         }
 

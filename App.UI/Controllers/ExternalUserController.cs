@@ -22,6 +22,7 @@ namespace App.UI.Controllers
             ILogger<ExternalUserController> logger)
         {
             _externalUserService = externalUserService;
+            _externalApiService = externalApiService;
             _sessionService = sessionService;
             _logger = logger;
         }

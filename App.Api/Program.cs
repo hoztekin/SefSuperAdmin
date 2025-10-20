@@ -21,6 +21,17 @@ namespace App.Api
             builder.WebHost.ConfigureKestrel(serverOptions =>
             {
                 serverOptions.ListenAnyIP(8080); // Sadece HTTP
+
+                // Timeout ayarları (502 hatalarını önlemek için)
+                serverOptions.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(2);
+                serverOptions.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(30);
+                serverOptions.Limits.MaxConcurrentConnections = 1000;
+                serverOptions.Limits.MaxConcurrentUpgradedConnections = 1000;
+                serverOptions.Limits.MaxRequestBodySize = 100 * 1024 * 1024; // 100MB
+                serverOptions.Limits.MinRequestBodyDataRate = new Microsoft.AspNetCore.Server.Kestrel.Core.MinDataRate(
+                    bytesPerSecond: 100,
+                    gracePeriod: TimeSpan.FromSeconds(10)
+                );
             });
 
 
@@ -28,6 +39,16 @@ namespace App.Api
 
             // Redis Connection String
             var cacheSettingsSection = builder.Configuration.GetSection("CacheSettings");
+
+            // Request Timeout (502 hatalarını önlemek için)
+            builder.Services.AddRequestTimeouts(options =>
+            {
+                options.DefaultPolicy = new Microsoft.AspNetCore.Http.Timeouts.RequestTimeoutPolicy
+                {
+                    Timeout = TimeSpan.FromSeconds(90),
+                    WriteTimeout = TimeSpan.FromSeconds(90)
+                };
+            });
 
             // Redis Cache'i ekle
             builder.Services.AddRedisCache(cacheSettingsSection["ConnectionString"]!).AddElastic(builder.Configuration);
@@ -47,9 +68,27 @@ namespace App.Api
 
             var app = builder.Build();
 
-            await RepositoryExtensions.ApplyMigrationsAsync(app.Services);
+            // Migration'ı opsiyonel yap (startup süresini azaltmak için)
+            var skipMigration = builder.Configuration.GetValue<bool>("SKIP_MIGRATION", false);
+            if (!skipMigration)
+            {
+                try
+                {
+                    await RepositoryExtensions.ApplyMigrationsAsync(app.Services);
+                    Log.Information("Database migration tamamlandı");
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Database migration hatası - uygulama yine de başlatılıyor");
+                }
+            }
+            else
+            {
+                Log.Information("Migration atlandı (SKIP_MIGRATION=true)");
+            }
 
             app.UseExceptionHandler(x => { });
+            app.UseRequestTimeouts(); // Request timeout middleware
             app.UseCors(x => x.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader().SetPreflightMaxAge(TimeSpan.FromMinutes(10)));
             if (app.Environment.IsDevelopment())
             {
@@ -73,19 +112,22 @@ namespace App.Api
             });
 
 
-            using (var scope = app.Services.CreateScope())
+            // Database seeding (opsiyonel)
+            if (!skipMigration)
             {
-                var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
+                using (var scope = app.Services.CreateScope())
+                {
+                    var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
 
-                try
-                {
-                    await seeder.SeedAsync();
-                    Log.Information("Database seed tamamlandı");
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex, "Database migration/seed hatası");
-                    throw;
+                    try
+                    {
+                        await seeder.SeedAsync();
+                        Log.Information("Database seed tamamlandı");
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(ex, "Database seed hatası - uygulama yine de başlatılıyor");
+                    }
                 }
             }
 

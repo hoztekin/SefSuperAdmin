@@ -8,8 +8,29 @@
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_HTTPS_PORTS=8081
       - ConnectionStrings__SqlServer=Server=sql-server;Database=${SQL_SERVER_DB};User Id=${SQL_SERVER_USER};Password=${SQL_SERVER_PASSWORD};TrustServerCertificate=True;
+      - SKIP_MIGRATION=false
     ports: ["5190:8080","7190:8081"]
     networks: [app-network]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    depends_on:
+      sql-server:
+        condition: service_started
+      app-redis:
+        condition: service_started
 
   app-ui:
     container_name: sefimplus-app-ui
@@ -23,8 +44,25 @@
       - API_BASE_URL=http://app-api:8080/
       - CacheSettings__ConnectionString=app-redis:6379,password=${REDIS_PASSWORD}
     ports: ["5191:8080","7191:8081"]
-    healthcheck: { test: ["CMD", "curl", "-f", "http://localhost:8080"], interval: 10s, timeout: 5s, retries: 3, start_period: 30s }
     networks: [app-network]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1.5G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    depends_on:
+      app-api:
+        condition: service_healthy
 
   cloudflared:
     container_name: sefimplus-cloudflared
@@ -33,3 +71,7 @@
     environment: [ "TUNNEL_TOKEN=${CLOUD_TUNNEL_TOKEN}" ]
     volumes: [ ./.cloudflared/config.yaml:/etc/cloudflared/config.yaml:ro ]
     networks: [app-network]
+    restart: unless-stopped
+    depends_on:
+      app-ui:
+        condition: service_healthy

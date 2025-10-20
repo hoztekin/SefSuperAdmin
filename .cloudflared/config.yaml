@@ -16,33 +16,36 @@
 
 
 ingress:
-  - hostname: testadmin.haliloztekin.com    
+  - hostname: testadmin.haliloztekin.com
     service: http://app-ui:8080
     originRequest:
-      connectTimeout: 30s
+      connectTimeout: 60s
       tcpKeepAlive: 30s
-      keepAliveTimeout: 90s
+      keepAliveTimeout: 120s
       keepAliveConnections: 100
       noHappyEyeballs: false
       noTLSVerify: true
       disableChunkedEncoding: false
       http2Origin: false
       httpHostHeader: testadmin.haliloztekin.com
+      noTLSTimeout: 60s
   
   - hostname: seq.haliloztekin.com
     service: http://app-seq:80
     originRequest:
-      connectTimeout: 30s
+      connectTimeout: 60s
       tcpKeepAlive: 30s
-      keepAliveTimeout: 90s
+      keepAliveTimeout: 120s
       noTLSVerify: true
-  
+      noTLSTimeout: 60s
+
   - hostname: redis.haliloztekin.com
     service: http://app-redis-insight:5540
     originRequest:
-      connectTimeout: 30s
+      connectTimeout: 60s
       tcpKeepAlive: 30s
-      keepAliveTimeout: 90s
+      keepAliveTimeout: 120s
       noTLSVerify: true
+      noTLSTimeout: 60s
   
   - service: http_status:404

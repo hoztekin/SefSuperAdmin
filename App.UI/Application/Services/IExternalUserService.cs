@@ -70,14 +70,13 @@ namespace App.UI.Application.Services
                     if (apiResponse?.IsSuccess == true && apiResponse.Data?.List != null)
                     {
                         // DTO mapping
-                        var userList = apiResponse.Data.List.Select(u => new ExternalUserListDto
+                        var userList = apiResponse.Data.List.Where(x => x.IsActive).Select(u => new ExternalUserListDto
                         {
                             Id = u.Id,
                             UserName = u.Username,
                             Email = u.EMail,
                             FirstName = u.FirstName,
                             LastName = u.LastName,
-                            IsActive = u.IsActive,
                             CompanyName = u.CompanyName,
                             BranchName = u.BranchName
                         }).ToList();
@@ -161,7 +160,6 @@ namespace App.UI.Application.Services
                             Code = GetStringProperty(userElement, "code"),
                             BranchName = GetStringProperty(userElement, "branchName"),
                             CompanyName = GetStringProperty(userElement, "companyName"),
-                            IsActive = GetBoolProperty(userElement, "isActive"),
                             EmailConfirmed = GetBoolProperty(userElement, "emailConfirmed")
                         };
 
@@ -276,8 +274,7 @@ namespace App.UI.Application.Services
                     FirstName = createDto.FirstName,
                     LastName = createDto.LastName,
                     PhoneNumber = createDto.PhoneNumber,
-                    UserLoginType = createDto.LoginType, 
-                    IsActive = createDto.IsActive
+                    UserLoginType = createDto.LoginType
                 };
 
                 var response = await _externalApiService.PostWithTokenAsync(
@@ -395,7 +392,6 @@ namespace App.UI.Application.Services
                     lastName = updateDto.LastName,
                     code = updateDto.Code,
                     roles = updateDto.Roles ?? new List<string>(),
-                    isActive = updateDto.IsActive,
                     userLoginType = updateDto.UserLoginType.ToString(),
                     password = string.IsNullOrEmpty(updateDto.Password) ? null : updateDto.Password
                 };
@@ -412,7 +408,6 @@ namespace App.UI.Application.Services
                         lastName = updateDto.LastName,
                         code = updateDto.Code,
                         roles = updateDto.Roles ?? new List<string>(),
-                        isActive = updateDto.IsActive,
                         userLoginType = updateDto.UserLoginType.ToString(),
                         password = string.IsNullOrEmpty(updateDto.Password) ? null : updateDto.Password
                     };

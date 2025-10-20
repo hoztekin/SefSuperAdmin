@@ -63,7 +63,6 @@
                                         <th><i class="fas fa-envelope"></i> Email</th>
                                         <th><i class="fas fa-user-tag"></i> Ad Soyad</th>
                                         <th><i class="fas fa-building"></i> Şube Adı</th>
-                                        <th><i class="fas fa-check-circle"></i> Durum</th>
                                         <th><i class="fas fa-cog"></i> İşlemler</th>
                                     </tr>
                                 </thead>
@@ -78,16 +77,6 @@
                                             <td class="align-middle">@user.Email</td>
                                             <td class="align-middle">@user.FullName</td>
                                             <td class="align-middle">@user.BranchName</td>
-                                            <td class="align-middle">
-                                                @if (user.IsActive)
-                                                {
-                                                    <span class="badge bg-success">Aktif</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="badge bg-danger">Pasif</span>
-                                                }
-                                            </td>
                                             <td class="align-middle">
                                                 <button class="btn btn-sm btn-primary" onclick="editUser('@user.Id')">
                                                     <i class="fas fa-edit"></i> Düzenle
@@ -230,7 +219,7 @@
                                 </label>
                                 <div class="input-group">
                                     <input type="password" class="form-control" id="external-admin-password" name="password" required autocomplete="new-password">
-                                    <button class="btn btn-outline-secondary" type="button" onclick="toggleExternalPassword('external-admin-password', this)">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('external-admin-password', this)">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                 </div>
@@ -245,7 +234,7 @@
                                 </label>
                                 <div class="input-group">
                                     <input type="password" class="form-control" id="external-admin-confirmPassword" name="confirmPassword" required autocomplete="new-password">
-                                    <button class="btn btn-outline-secondary" type="button" onclick="toggleExternalPassword('external-admin-confirmPassword', this)">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('external-admin-confirmPassword', this)">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                 </div>
@@ -367,7 +356,7 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-12">
                             <div class="mb-3">
                                 <label for="external-edit-userLoginType" class="form-label">
                                     <i class="fas fa-user-cog"></i> Kullanıcı Tipi *
@@ -376,18 +365,6 @@
                                     <option value="1">Personal</option>
                                     <option value="2">Shared</option>
                                     <option value="3">Service</option>
-                                </select>
-                                <div class="invalid-feedback"></div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="external-edit-isActive" class="form-label">
-                                    <i class="fas fa-toggle-on"></i> Durum *
-                                </label>
-                                <select class="form-control" id="external-edit-isActive" name="isActive" required>
-                                    <option value="true">Aktif</option>
-                                    <option value="false">Pasif</option>
                                 </select>
                                 <div class="invalid-feedback"></div>
                             </div>
@@ -402,7 +379,7 @@
                                 </label>
                                 <div class="input-group">
                                     <input type="password" class="form-control" id="external-edit-password" name="password" autocomplete="new-password">
-                                    <button class="btn btn-outline-secondary" type="button" onclick="toggleExternalPassword('external-edit-password', this)">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('external-edit-password', this)">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                 </div>
@@ -417,7 +394,7 @@
                                 </label>
                                 <div class="input-group">
                                     <input type="password" class="form-control" id="external-edit-confirmPassword" name="confirmPassword" autocomplete="new-password">
-                                    <button class="btn btn-outline-secondary" type="button" onclick="toggleExternalPassword('external-edit-confirmPassword', this)">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('external-edit-confirmPassword', this)">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                 </div>
@@ -443,506 +420,385 @@
 
 @section Scripts {
     <script>
-        // Global değişkenler
-        let selectedMachineApiAddress = null;
+        // ======================== GLOBAL STATE ========================
+        const AppState = {
+            selectedMachineApiAddress: null,
+            addModalInstance: null,
+            editModalInstance: null,
+            dataTableInstance: null
+        };
 
+        // ======================== DOM READY ========================
         $(document).ready(function() {
-            // Seçili makine bilgisini yükle
-            loadSelectedMachineInfo();
-
-            // DataTable'ı başlat
-            if ($('#externalUsersTable').length > 0) {
-                initDataTable();
-            }
-
-            // Modal event handlers
-            $('#addExternalUserModal').on('shown.bs.modal', function () {
-                $('#external-admin-userName').focus();
-                setupPasswordMatching('external-admin-password', 'external-admin-confirmPassword');
-                $('#addExternalUserForm')[0].reset();
-                $('#addExternalUserForm .is-invalid, #addExternalUserForm .is-valid').removeClass('is-invalid is-valid');
-                hideModalError();
-            });
-
-            $('#editExternalUserModal').on('shown.bs.modal', function () {
-                $('#external-edit-email').focus();
-                setupPasswordMatching('external-edit-password', 'external-edit-confirmPassword');
-                $('#editExternalUserForm .is-invalid, #editExternalUserForm .is-valid').removeClass('is-invalid is-valid');
-                hideEditModalError();
-            });
-
-            // Form submit handlers
-            setupFormSubmitHandlers();
+            initializeApp();
         });
 
-        // Mevcut HTML'de çağrılan fonksiyonlar
+        function initializeApp() {
+            loadSelectedMachineInfo();
+            initializeModals();
+            initializeDataTable();
+            setupEventHandlers();
+        }
+
+        // ======================== MODAL INITIALIZATION ========================
+        function initializeModals() {
+            const addModal = document.getElementById('addExternalUserModal');
+            const editModal = document.getElementById('editExternalUserModal');
+
+            if (addModal) {
+                AppState.addModalInstance = new bootstrap.Modal(addModal);
+                addModal.addEventListener('shown.bs.modal', onAddModalShown);
+            }
+
+            if (editModal) {
+                AppState.editModalInstance = new bootstrap.Modal(editModal);
+                editModal.addEventListener('shown.bs.modal', onEditModalShown);
+            }
+        }
+
+        function onAddModalShown() {
+            document.getElementById('external-admin-userName').focus();
+            setupPasswordMatching('external-admin-password', 'external-admin-confirmPassword');
+            document.getElementById('addExternalUserForm').reset();
+            clearFormValidation('addExternalUserForm');
+            hideModalError('add');
+        }
+
+        function onEditModalShown() {
+            document.getElementById('external-edit-email').focus();
+            setupPasswordMatching('external-edit-password', 'external-edit-confirmPassword');
+            clearFormValidation('editExternalUserForm');
+            hideModalError('edit');
+        }
+
+        // ======================== DATA TABLE INITIALIZATION ========================
+        function initializeDataTable() {
+            const table = document.getElementById('externalUsersTable');
+            if (!table) return;
+
+            try {
+                AppState.dataTableInstance = $(table).DataTable({
+                    language: { url: '//cdn.datatables.net/plug-ins/1.10.24/i18n/Turkish.json' },
+                    pageLength: 25,
+                    order: [[2, 'asc']],
+                    columnDefs: [{ orderable: false, targets: -1 }],
+                    responsive: true,
+                    autoWidth: false
+                });
+            } catch (error) {
+                console.warn('DataTable initialization failed:', error);
+            }
+        }
+
+        // ======================== EVENT HANDLERS ========================
+        function setupEventHandlers() {
+            const addForm = document.getElementById('addExternalUserForm');
+            const editForm = document.getElementById('editExternalUserForm');
+
+            if (addForm) {
+                addForm.addEventListener('submit', handleAddUserSubmit);
+            }
+
+            if (editForm) {
+                editForm.addEventListener('submit', handleEditUserSubmit);
+            }
+        }
+
+        // ======================== WINDOW METHODS (For HTML onclick) ========================
         window.editUser = async function(userId) {
             if (!await checkSelectedMachine()) {
-                showError('Önce bir makine seçiniz!');
+                showAlert('error', 'Önce bir makine seçiniz!');
                 return;
             }
 
             try {
-                const response = await fetch(`/ExternalUser/GetUserById?userId=${userId}`, {
+                const response = await fetchWithTimeout(`/ExternalUser/GetUserById?userId=${userId}`, {
                     method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
+                    headers: { 'Content-Type': 'application/json' }
                 });
 
                 if (!response.ok) {
-                    showError('Kullanıcı bilgileri alınırken hata oluştu! HTTP ' + response.status);
+                    showAlert('error', `Kullanıcı bilgileri alınamadı! (HTTP ${response.status})`);
                     return;
                 }
 
                 const data = await response.json();
 
                 if (!data.success) {
-                    showError(data.message || 'Kullanıcı bilgileri alınamadı!');
+                    showAlert('error', data.message || 'Kullanıcı bilgileri alınamadı!');
                     return;
                 }
 
-                let user = null;
-
-                if (data.data && data.data.item) {
-   
-                    user = data.data.item;
- 
-                } else if (data.data) {
-
-                    user = data.data;
-
-                }
+                const user = data.data?.item || data.data;
 
                 if (!user) {
-                    showError('Kullanıcı verisi bulunamadı!');
+                    showAlert('error', 'Kullanıcı verisi bulunamadı!');
                     return;
                 }
 
-                $('#external-edit-userId').val(user.id || '');
-                $('#external-edit-userName').val(user.username || '');
-                $('#external-edit-email').val(user.eMail || '');
-                $('#external-edit-firstName').val(user.firstName || '');
-                $('#external-edit-lastName').val(user.lastName || '');
-                $('#external-edit-phoneNumber').val(user.phoneNumber || '');
-                $('#external-edit-code').val(user.code || '');
-   
-                if (user.userLoginType !== undefined && user.userLoginType !== null) {
-                    if (typeof user.userLoginType === 'string') {
-                        const typeStr = user.userLoginType.toLowerCase();
-                        if (typeStr === 'personal') typeValue = '1';
-                        else if (typeStr === 'service') typeValue = '3';
-                        else typeValue = '2'; // Shared
-                    } else if (typeof user.userLoginType === 'number') {
-                        if (user.userLoginType === 1 || user.userLoginType === 2 || user.userLoginType === 3) {
-                            typeValue = user.userLoginType.toString();
-                        } else {
-                            typeValue = '2';
-                        }
-                    }
-                }
-
-                $('#external-edit-userLoginType').val(typeValue);
-                const isActive = user.isActive !== undefined ? user.isActive : true;
-                $('#external-edit-isActive').val(isActive ? 'true' : 'false');
-                $('#editExternalUserForm .is-invalid, #editExternalUserForm .is-valid').removeClass('is-invalid is-valid');
-                hideEditModalError();
-
-                $('#external-edit-password').val('');
-                $('#external-edit-confirmPassword').val('');
-                $('#editExternalUserModal').modal('show');
+                populateEditForm(user);
+                AppState.editModalInstance.show();
 
             } catch (error) {
-                showError('Kullanıcı bilgileri alınırken bir hata oluştu: ' + error.message);
+                showAlert('error', `Hata: ${error.message}`);
             }
         };
 
         window.deleteUser = async function(userId, userName) {
             if (!await checkSelectedMachine()) {
-                showError('Önce bir makine seçiniz!');
+                showAlert('error', 'Önce bir makine seçiniz!');
                 return;
             }
 
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    title: 'Emin misiniz?',
-                    text: `"${userName}" adlı external kullanıcısını silmek istediğinizden emin misiniz?`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#dc3545',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Evet, Sil!',
-                    cancelButtonText: 'İptal'
-                }).then(async (result) => {
-                    if (result.isConfirmed) {
-                        await performDeleteUser(userId, userName);
-                    }
-                });
-            } else {
-                if (confirm(`"${userName}" adlı external kullanıcısını silmek istediğinizden emin misiniz?`)) {
-                    await performDeleteUser(userId, userName);
-                }
+            const confirmed = await confirmAction(
+                'Emin misiniz?',
+                `"${userName}" adlı external kullanıcısını silmek istediğinizden emin misiniz?`,
+                'warning'
+            );
+
+            if (confirmed) {
+                await performDeleteUser(userId);
             }
         };
 
-        // Mevcut HTML'de çağrılan diğer fonksiyonlar
         window.showAddExternalUserModal = function() {
-            if (!selectedMachineApiAddress) {
-                showError('Önce bir makine seçiniz!');
+            if (!AppState.selectedMachineApiAddress) {
+                showAlert('error', 'Önce bir makine seçiniz!');
                 return;
             }
-            $('#addExternalUserModal').modal('show');
+            AppState.addModalInstance.show();
         };
 
         window.refreshExternalUserList = function() {
             location.reload();
         };
 
-        // Password toggle fonksiyonu
-        window.toggleExternalPassword = function(fieldId, button) {
+        window.togglePassword = function(fieldId, button) {
             const field = document.getElementById(fieldId);
             const icon = button.querySelector('i');
 
             if (field.type === 'password') {
                 field.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
             } else {
                 field.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
             }
         };
 
-        // Form submit handlers
-        function setupFormSubmitHandlers() {
-            // Add User Form
-            $('#addExternalUserForm').on('submit', async function(e) {
-                e.preventDefault();
+        // ======================== FORM HANDLERS ========================
+        async function handleAddUserSubmit(e) {
+            e.preventDefault();
+            hideModalError('add');
 
-                hideModalError();
+            if (!await checkSelectedMachine()) {
+                showModalError('Önce bir makine seçiniz!', 'add');
+                return;
+            }
 
-                if (!await checkSelectedMachine()) {
-                    showModalError('Önce bir makine seçiniz!');
-                    return;
-                }
+            const formData = {
+                UserName: getInputValue('external-admin-userName'),
+                Email: getInputValue('external-admin-email'),
+                FirstName: getInputValue('external-admin-firstName'),
+                LastName: getInputValue('external-admin-lastName'),
+                PhoneNumber: getInputValue('external-admin-phoneNumber'),
+                Code: getInputValue('external-admin-code').toUpperCase(),
+                UserLoginType: parseInt(getInputValue('external-admin-userLoginType')),
+                Password: getInputValue('external-admin-password'),
+                ConfirmPassword: getInputValue('external-admin-confirmPassword'),
+                IsActive: true
+            };
 
-                // Form verilerini al - API'nin tam gereksinimlerine göre
-                const formData = {
-                    UserName: $('#external-admin-userName').val().trim(),
-                    Email: $('#external-admin-email').val().trim(),
-                    FirstName: $('#external-admin-firstName').val().trim(),
-                    LastName: $('#external-admin-lastName').val().trim(),
-                    PhoneNumber: $('#external-admin-phoneNumber').val().trim(),
-                    Code: $('#external-admin-code').val().trim().toUpperCase(),
-                    UserLoginType: parseInt($('#external-admin-userLoginType').val()),
-                    Password: $('#external-admin-password').val(),
-                    ConfirmPassword: $('#external-admin-confirmPassword').val(),
-                    IsActive: true
-                };
+            const validationError = validateAddUserForm(formData);
+            if (validationError) {
+                showModalError(validationError, 'add');
+                return;
+            }
 
-                // Form validation
-                if (!formData.UserName) {
-                    showModalError('Kullanıcı adı zorunludur!');
-                    return;
-                }
-
-                if (!formData.Email) {
-                    showModalError('Email adresi zorunludur!');
-                    return;
-                }
-
-                if (!formData.FirstName || formData.FirstName.length < 2) {
-                    showModalError('Ad en az 2 karakter olmalıdır!');
-                    return;
-                }
-
-                if (!formData.LastName || formData.LastName.length < 2) {
-                    showModalError('Soyad en az 2 karakter olmalıdır!');
-                    return;
-                }
-
-                if (!formData.PhoneNumber) {
-                    showModalError("Telefon numarası zorunludur!");
-                    return;
-                }
-
-                if (!/^0\d{10}$/.test(formData.PhoneNumber)) {
-                    showModalError("Telefon numarası 0 ile başlamalı ve 11 haneli olmalıdır!");
-                    $('#external-admin-phoneNumber').addClass('is-invalid');
-                    return;
-                }
-
-                if (!formData.Code || formData.Code.length < 2 || formData.Code.length > 20) {
-                    showModalError('Kod 2-20 karakter arasında olmalıdır!');
-                    return;
-                }
-
-                if (formData.Code && !/^[A-Z0-9]+$/.test(formData.Code)) {
-                    showModalError('Kod sadece büyük harf ve rakam içermelidir!');
-                    return;
-                }
-
-                if (!formData.UserLoginType || isNaN(formData.UserLoginType)) {
-                    showModalError('Kullanıcı tipi seçimi zorunludur!');
-                    return;
-                }
-
-                if (!formData.Password || formData.Password.length < 6) {
-                    showModalError('Şifre en az 6 karakter olmalıdır!');
-                    return;
-                }
-
-                if (!formData.ConfirmPassword) {
-                    showModalError('Şifre tekrarı zorunludur!');
-                    return;
-                }
-
-                if (formData.Password !== formData.ConfirmPassword) {
-                    showModalError('Şifreler eşleşmiyor!');
-                    return;
-                }
-
-                try {
-                    const submitBtn = $(this).find('button[type="submit"]');
-                    const originalText = submitBtn.html();
-                    submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Kaydediliyor...').prop('disabled', true);
-
-                    const response = await fetch('/ExternalUser/CreateUser', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(formData)
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.success) {
-                            $('#addExternalUserModal').modal('hide');
-                            showSuccess('External kullanıcı başarıyla eklendi!', () => {
-                                location.reload();
-                            });
-                        } else {
-                            showModalError(data.message || 'Kullanıcı eklenirken hata oluştu!');
-                        }
-                    } else {
-                        const errorText = await response.text();
-                        showModalError('Sunucu hatası: ' + response.status);
-                    }
-
-                    submitBtn.html(originalText).prop('disabled', false);
-                } catch (error) {
-                    showModalError('Kullanıcı oluşturulurken hata oluştu!');
-                    $(this).find('button[type="submit"]').html('<i class="fas fa-save"></i> External Kullanıcı Ekle').prop('disabled', false);
-                }
-            });
-
-            // Edit User Form - TÜM ALANLAR DAHIL
-            $('#editExternalUserForm').on('submit', async function(e) {
-                e.preventDefault();
-
-                hideEditModalError();
-
-                if (!await checkSelectedMachine()) {
-                    showEditModalError('Önce bir makine seçiniz!');
-                    return;
-                }
-
-                const userId = $('#external-edit-userId').val();
-
-                // API'nin beklediği tam format
-                const formData = {
-                    id: userId,
-                    email: $('#external-edit-email').val().trim(),
-                    phoneNumber: $('#external-edit-phoneNumber').val().trim(),
-                    firstName: $('#external-edit-firstName').val().trim(),
-                    lastName: $('#external-edit-lastName').val().trim(),
-                    code: $('#external-edit-code').val().trim().toUpperCase(),
-                    roles: [], 
-                    isActive: $('#external-edit-isActive').val() === 'true',
-                    userLoginType: parseInt($('#external-edit-userLoginType').val())
-                };
-
-                // Validation
-                if (!formData.email) {
-                    showEditModalError('Email adresi zorunludur!');
-                    return;
-                }
-
-                if (!formData.firstName || formData.firstName.length < 2) {
-                    showEditModalError('Ad en az 2 karakter olmalıdır!');
-                    return;
-                }
-
-                if (!formData.lastName || formData.lastName.length < 2) {
-                    showEditModalError('Soyad en az 2 karakter olmalıdır!');
-                    return;
-                }
-
-                if (!formData.phoneNumber) {
-                    showEditModalError("Telefon numarası zorunludur!");
-                    return;
-                }
-
-                if (!/^0\d{10}$/.test(formData.phoneNumber)) {
-                    showEditModalError("Telefon numarası 0 ile başlamalı ve 11 haneli olmalıdır!");
-                    $('#external-edit-phoneNumber').addClass('is-invalid');
-                    return;
-                }
-
-                if (!formData.code || formData.code.length < 2 || formData.code.length > 20) {
-                    showEditModalError('Kod 2-20 karakter arasında olmalıdır!');
-                    return;
-                }
-
-                if (formData.code && !/^[A-Z0-9]+$/.test(formData.code)) {
-                    showEditModalError('Kod sadece büyük harf ve rakam içermelidir!');
-                    return;
-                }
-
-                // Şifre değiştiriliyorsa ekle (opsiyonel)
-                const password = $('#external-edit-password').val();
-                if (password && password.length > 0) {
-                    const confirmPassword = $('#external-edit-confirmPassword').val();
-                    if (password !== confirmPassword) {
-                        showEditModalError('Şifreler eşleşmiyor!');
-                        return;
-                    }
-                    if (password.length < 6) {
-                        showEditModalError('Şifre en az 6 karakter olmalıdır!');
-                        return;
-                    }
-                    formData.password = password;
-                }
-
-                try {
-                    const submitBtn = $(this).find('button[type="submit"]');
-                    const originalText = submitBtn.html();
-                    submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Güncelleniyor...').prop('disabled', true);
-
-                    const response = await fetch('/ExternalUser/UpdateUser', {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(formData)
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.success) {
-                            $('#editExternalUserModal').modal('hide');
-                            showSuccess('External kullanıcı başarıyla güncellendi!', () => {
-                                location.reload();
-                            });
-                        } else {
-                            showEditModalError(data.message || 'Kullanıcı güncellenirken hata oluştu!');
-                        }
-                    } else {
-                        const errorText = await response.text();
-                        showEditModalError('Sunucu hatası: ' + response.status);
-                    }
-
-                    submitBtn.html(originalText).prop('disabled', false);
-                } catch (error) {
-                    showEditModalError('Kullanıcı güncellenirken hata oluştu!');
-                    $(this).find('button[type="submit"]').html('<i class="fas fa-save"></i> Güncelle').prop('disabled', false);
-                }
-            });
+            await submitForm('/ExternalUser/CreateUser', formData, 'POST', 'add');
         }
 
-        // Modal hata fonksiyonları - Add Modal
-        function showModalError(message) {
-            const errorAlert = $('#modalValidationError');
-            const errorMessage = $('#modalErrorMessage');
+        async function handleEditUserSubmit(e) {
+            e.preventDefault();
+            hideModalError('edit');
 
-            errorMessage.text(message);
-            errorAlert.removeClass('d-none');
-            errorAlert[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            if (!await checkSelectedMachine()) {
+                showModalError('Önce bir makine seçiniz!', 'edit');
+                return;
+            }
+
+            const formData = {
+                id: getInputValue('external-edit-userId'),
+                email: getInputValue('external-edit-email'),
+                phoneNumber: getInputValue('external-edit-phoneNumber'),
+                firstName: getInputValue('external-edit-firstName'),
+                lastName: getInputValue('external-edit-lastName'),
+                code: getInputValue('external-edit-code').toUpperCase(),
+                roles: [],
+                userLoginType: parseInt(getInputValue('external-edit-userLoginType'))
+            };
+
+            const validationError = validateEditUserForm(formData);
+            if (validationError) {
+                showModalError(validationError, 'edit');
+                return;
+            }
+
+            const password = getInputValue('external-edit-password');
+            if (password) {
+                const confirmPassword = getInputValue('external-edit-confirmPassword');
+                if (password !== confirmPassword) {
+                    showModalError('Şifreler eşleşmiyor!', 'edit');
+                    return;
+                }
+                if (password.length < 6) {
+                    showModalError('Şifre en az 6 karakter olmalıdır!', 'edit');
+                    return;
+                }
+                formData.password = password;
+            }
+
+            await submitForm('/ExternalUser/UpdateUser', formData, 'PUT', 'edit');
         }
 
-        function hideModalError() {
-            $('#modalValidationError').addClass('d-none');
-            $('#addExternalUserForm .is-invalid').removeClass('is-invalid');
+        // ======================== FORM POPULATION ========================
+        function populateEditForm(user) {
+            setInputValue('external-edit-userId', user.id || '');
+            setInputValue('external-edit-userName', user.username || '');
+            setInputValue('external-edit-email', user.eMail || '');
+            setInputValue('external-edit-firstName', user.firstName || '');
+            setInputValue('external-edit-lastName', user.lastName || '');
+            setInputValue('external-edit-phoneNumber', user.phoneNumber || '');
+            setInputValue('external-edit-code', user.code || '');
+
+            const typeValue = parseUserLoginType(user.userLoginType);
+            setInputValue('external-edit-userLoginType', typeValue);
+
+            setInputValue('external-edit-password', '');
+            setInputValue('external-edit-confirmPassword', '');
         }
 
-        // Modal hata fonksiyonları - Edit Modal
-        function showEditModalError(message) {
-            const errorAlert = $('#editModalValidationError');
-            const errorMessage = $('#editModalErrorMessage');
-
-            errorMessage.text(message);
-            errorAlert.removeClass('d-none');
-            errorAlert[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        function parseUserLoginType(type) {
+            if (typeof type === 'string') {
+                const typeMap = { 'personal': '1', 'service': '3' };
+                return typeMap[type.toLowerCase()] || '2';
+            }
+            if (typeof type === 'number' && [1, 2, 3].includes(type)) {
+                return type.toString();
+            }
+            return '2'; // Default: Shared
         }
 
-        function hideEditModalError() {
-            $('#editModalValidationError').addClass('d-none');
-            $('#editExternalUserForm .is-invalid').removeClass('is-invalid');
+        // ======================== VALIDATION ========================
+        function validateAddUserForm(data) {
+            if (!data.UserName?.trim()) return 'Kullanıcı adı zorunludur!';
+            if (!data.Email?.trim()) return 'Email adresi zorunludur!';
+            if (!data.FirstName || data.FirstName.length < 2) return 'Ad en az 2 karakter olmalıdır!';
+            if (!data.LastName || data.LastName.length < 2) return 'Soyad en az 2 karakter olmalıdır!';
+            if (!data.PhoneNumber) return 'Telefon numarası zorunludur!';
+            if (!/^0\d{10}$/.test(data.PhoneNumber)) return 'Telefon numarası 0 ile başlamalı ve 11 haneli olmalıdır!';
+            if (!data.Code || data.Code.length < 2 || data.Code.length > 20) return 'Kod 2-20 karakter arasında olmalıdır!';
+            if (!/^[A-Z0-9]+$/.test(data.Code)) return 'Kod sadece büyük harf ve rakam içermelidir!';
+            if (!data.UserLoginType || isNaN(data.UserLoginType)) return 'Kullanıcı tipi seçimi zorunludur!';
+            if (!data.Password || data.Password.length < 6) return 'Şifre en az 6 karakter olmalıdır!';
+            if (!data.ConfirmPassword) return 'Şifre tekrarı zorunludur!';
+            if (data.Password !== data.ConfirmPassword) return 'Şifreler eşleşmiyor!';
+            return null;
         }
 
-        // Silme işlemini gerçekleştir
-        async function performDeleteUser(userId, userName) {
+        function validateEditUserForm(data) {
+            if (!data.email?.trim()) return 'Email adresi zorunludur!';
+            if (!data.firstName || data.firstName.length < 2) return 'Ad en az 2 karakter olmalıdır!';
+            if (!data.lastName || data.lastName.length < 2) return 'Soyad en az 2 karakter olmalıdır!';
+            if (!data.phoneNumber) return 'Telefon numarası zorunludur!';
+            if (!/^0\d{10}$/.test(data.phoneNumber)) return 'Telefon numarası 0 ile başlamalı ve 11 haneli olmalıdır!';
+            if (!data.code || data.code.length < 2 || data.code.length > 20) return 'Kod 2-20 karakter arasında olmalıdır!';
+            if (!/^[A-Z0-9]+$/.test(data.code)) return 'Kod sadece büyük harf ve rakam içermelidir!';
+            return null;
+        }
+
+        // ======================== API CALLS ========================
+        async function submitForm(endpoint, data, method, modalType) {
+            const submitBtn = document.querySelector(`#${modalType === 'add' ? 'addExternalUserForm' : 'editExternalUserForm'} button[type="submit"]`);
+            const originalText = submitBtn.innerHTML;
+
+            const loadingText = `<i class="fas fa-spinner fa-spin"></i> ${method === 'POST' ? 'Kaydediliyor' : 'Güncelleniyor'}...`;
+            submitBtn.innerHTML = loadingText;
+            submitBtn.disabled = true;
+
             try {
-                // DELETE request - body ile ID gönder
-                const response = await fetch('/ExternalUser/DeleteUser', {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        id: userId
-                    })
+                const response = await fetchWithTimeout(endpoint, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
                 });
 
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.success) {
-                        if (typeof Swal !== 'undefined') {
-                            Swal.fire('Başarılı!', 'External kullanıcı başarıyla silindi.', 'success').then(() => {
-                                location.reload();
-                            });
-                        } else {
-                            showSuccess('External kullanıcı başarıyla silindi!', () => {
-                                location.reload();
-                            });
-                        }
-                    } else {
-                        showError(data.message || 'External kullanıcı silinirken bir hata oluştu!');
-                    }
+                const responseData = await response.json();
+
+                if (response.ok && responseData.success) {
+                    const message = method === 'POST'
+                        ? 'External kullanıcı başarıyla eklendi!'
+                        : 'External kullanıcı başarıyla güncellendi!';
+
+                    await showAlert('success', message);
+                    location.reload();
                 } else {
-                    showError('Sunucu hatası oluştu!');
+                    showModalError(
+                        responseData.message || `${method === 'POST' ? 'Ekleme' : 'Güncelleme'} başarısız!`,
+                        modalType
+                    );
                 }
             } catch (error) {
-                showError('External kullanıcı silinirken bir hata oluştu!');
+                showModalError(`Hata: ${error.message}`, modalType);
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
             }
         }
 
-        // DataTable başlatma
-        function initDataTable() {
+        async function performDeleteUser(userId) {
             try {
-                $('#externalUsersTable').DataTable({
-                    "language": { "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Turkish.json" },
-                    "pageLength": 25,
-                    "order": [[ 3, "desc" ]],
-                    "columnDefs": [{ "orderable": false, "targets": -1 }],
-                    "responsive": true,
-                    "autoWidth": false
+                const response = await fetchWithTimeout('/ExternalUser/DeleteUser', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: userId })
                 });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    await showAlert('success', 'External kullanıcı başarıyla silindi.');
+                    location.reload();
+                } else {
+                    showAlert('error', data.message || 'Silme işlemi başarısız!');
+                }
             } catch (error) {
-                console.warn('DataTable yüklenemedi:', error);
+                showAlert('error', `Silme hatası: ${error.message}`);
             }
         }
 
-        // Seçili makine bilgilerini yükle
+        // ======================== UTILITY FUNCTIONS ========================
+        async function fetchWithTimeout(url, options = {}, timeout = 30000) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+            try {
+                return await fetch(url, {
+                    ...options,
+                    signal: controller.signal
+                });
+            } finally {
+                clearTimeout(timeoutId);
+            }
+        }
+
         async function loadSelectedMachineInfo() {
             try {
-                const response = await fetch('/Home/GetSelectedMachine');
+                const response = await fetchWithTimeout('/Home/GetSelectedMachine');
                 if (response.ok) {
                     const data = await response.json();
                     if (data.success && data.data) {
-                        selectedMachineApiAddress = data.data.apiAddress;
+                        AppState.selectedMachineApiAddress = data.data.apiAddress;
                     }
                 }
             } catch (error) {
@@ -950,60 +806,99 @@
             }
         }
 
-        // Seçili makine kontrolü
         async function checkSelectedMachine() {
-            if (!selectedMachineApiAddress) {
+            if (!AppState.selectedMachineApiAddress) {
                 await loadSelectedMachineInfo();
             }
-            return selectedMachineApiAddress != null;
+            return AppState.selectedMachineApiAddress != null;
         }
 
-        // Password matching setup
+        function getInputValue(id) {
+            return (document.getElementById(id)?.value || '').trim();
+        }
+
+        function setInputValue(id, value) {
+            const element = document.getElementById(id);
+            if (element) element.value = value;
+        }
+
+        function clearFormValidation(formId) {
+            const form = document.getElementById(formId);
+            if (form) {
+                form.querySelectorAll('.is-invalid, .is-valid').forEach(el => {
+                    el.classList.remove('is-invalid', 'is-valid');
+                });
+            }
+        }
+
         function setupPasswordMatching(passwordId, confirmPasswordId) {
             const passwordField = document.getElementById(passwordId);
             const confirmField = document.getElementById(confirmPasswordId);
 
             if (!passwordField || !confirmField) return;
 
-            function checkMatch() {
+            const checkMatch = () => {
                 const password = passwordField.value;
                 const confirm = confirmField.value;
 
-                if (confirm === '') {
-                    confirmField.classList.remove('is-valid', 'is-invalid');
-                    return;
-                }
+                confirmField.classList.remove('is-valid', 'is-invalid');
+
+                if (confirm === '') return;
 
                 if (password === confirm && password !== '') {
-                    confirmField.classList.remove('is-invalid');
                     confirmField.classList.add('is-valid');
                 } else {
-                    confirmField.classList.remove('is-valid');
                     confirmField.classList.add('is-invalid');
                 }
-            }
+            };
 
             passwordField.addEventListener('input', checkMatch);
             confirmField.addEventListener('input', checkMatch);
         }
 
-        // Error ve Success mesajları - SweetAlert için
-        function showError(message) {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire('Hata!', message, 'error');
-            } else {
-                alert('Hata: ' + message);
+        function showModalError(message, type) {
+            const errorAlert = document.getElementById(`${type === 'add' ? 'modalValidationError' : 'editModalValidationError'}`);
+            const errorMessage = document.getElementById(`${type === 'add' ? 'modalErrorMessage' : 'editModalErrorMessage'}`);
+
+            if (errorMessage) errorMessage.textContent = message;
+            if (errorAlert) {
+                errorAlert.classList.remove('d-none');
+                errorAlert.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
         }
 
-        function showSuccess(message, callback = null) {
+        function hideModalError(type) {
+            const errorAlert = document.getElementById(`${type === 'add' ? 'modalValidationError' : 'editModalValidationError'}`);
+            if (errorAlert) errorAlert.classList.add('d-none');
+        }
+
+        async function confirmAction(title, text, icon) {
             if (typeof Swal !== 'undefined') {
-                Swal.fire('Başarılı!', message, 'success').then(() => {
-                    if (callback) callback();
+                const result = await Swal.fire({
+                    title: title,
+                    text: text,
+                    icon: icon,
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Evet',
+                    cancelButtonText: 'İptal'
                 });
+                return result.isConfirmed;
+            } else {
+                return confirm(text);
+            }
+        }
+
+        async function showAlert(type, message) {
+            if (typeof Swal !== 'undefined') {
+                await Swal.fire(
+                    type === 'success' ? 'Başarılı!' : 'Hata!',
+                    message,
+                    type
+                );
             } else {
                 alert(message);
-                if (callback) callback();
             }
         }
     </script>

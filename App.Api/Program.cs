@@ -47,7 +47,7 @@ namespace App.Api
 
             var app = builder.Build();
 
-            RepositoryExtensions.ApplyMigrationsAsync(app.Services);
+            await RepositoryExtensions.ApplyMigrationsAsync(app.Services);
 
             app.UseExceptionHandler(x => { });
             app.UseCors(x => x.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader().SetPreflightMaxAge(TimeSpan.FromMinutes(10)));

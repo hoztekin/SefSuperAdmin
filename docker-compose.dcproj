@@ -1,26 +1,23 @@
-<Project Sdk="Microsoft.Docker.Sdk">
+﻿<Project Sdk="Microsoft.Docker.Sdk">
   <PropertyGroup Label="Globals">
     <ProjectVersion>2.1</ProjectVersion>
     <DockerTargetOS>Linux</DockerTargetOS>
     <DockerPublishLocally>False</DockerPublishLocally>
-    <!-- VS'nin "base" compose dosyası -->
-    <DockerComposeBaseFilePath>docker-compose.base</DockerComposeBaseFilePath>
   </PropertyGroup>
-  <!-- DEBUG = Development (base + dev) -->
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
-    <DockerComposeFilePaths>docker-compose.dev.yml</DockerComposeFilePaths>
+    <DockerComposeFilePaths>docker-compose.base.yml;docker-compose.dev.yml</DockerComposeFilePaths>
+    <DockerComposeProjectPath>..\docker-compose.dcproj</DockerComposeProjectPath>
+    <DockerComposeEnvFile>.env</DockerComposeEnvFile>
   </PropertyGroup>
-  <!-- RELEASE = Production (base + prod) -->
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
-    <DockerComposeFilePaths>docker-compose.prod.yml</DockerComposeFilePaths>
+    <DockerComposeFilePaths>docker-compose.base.yml;docker-compose.prod.yml</DockerComposeFilePaths>
   </PropertyGroup>
-  <!-- Dosyaları Solution Explorer’da göstermek için, sadece None Include yeterli -->
   <ItemGroup>
     <None Include=".env" />
-    <None Include=".dockerignore" />
+    <None Include="docker-compose.yml" />
     <None Include="docker-compose.base.yml" />
     <None Include="docker-compose.dev.yml" />
     <None Include="docker-compose.prod.yml" />
-    <!-- **ÖNEMLİ**: BURAYA docker-compose.yml EKLEME -->
+    <None Include="readme" />
   </ItemGroup>
 </Project>

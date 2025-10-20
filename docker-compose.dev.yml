@@ -1,5 +1,6 @@
 ﻿services:
   app-api-dev:
+    container_name: sefimplus-app-api-dev
     build: { context: ., dockerfile: App.Api/Dockerfile }
     image: local/appapi:dev
     environment:
@@ -8,20 +9,10 @@
       - ASPNETCORE_HTTPS_PORTS=8081
       - ConnectionStrings__SqlServer=Server=sql-server;Database=${SQL_SERVER_DB_DEV};User Id=${SQL_SERVER_USER};Password=${SQL_SERVER_PASSWORD};TrustServerCertificate=True;
     ports: ["5000:8080","5001:8081"]
-    depends_on:
-      sql-server: { condition: service_healthy }
-      app-redis:   { condition: service_healthy }
-      rabbitmq:    { condition: service_started }
-      seq:         { condition: service_started }
-    healthcheck:
-      test: ["CMD-SHELL","bash -lc '</dev/tcp/localhost/8080'"]
-      interval: 10s
-      timeout: 3s
-      retries: 10
-      start_period: 20s
     networks: [app-network]
 
   app-ui-dev:
+    container_name: sefimplus-app-ui-dev
     build: { context: ., dockerfile: App.UI/Dockerfile }
     image: local/appui:dev
     environment:
@@ -32,12 +23,4 @@
       - API_BASE_URL=http://app-api-dev:8080/
       - CacheSettings__ConnectionString=app-redis:6379,password=${REDIS_PASSWORD}
     ports: ["5002:8080","5003:8081"]
-    depends_on:
-      app-api-dev: { condition: service_healthy }
-    healthcheck:
-      test: ["CMD-SHELL","bash -lc '</dev/tcp/localhost/8080'"]
-      interval: 10s
-      timeout: 3s
-      retries: 10
-      start_period: 20s
     networks: [app-network]

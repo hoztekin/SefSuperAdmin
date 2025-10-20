@@ -16,7 +16,7 @@
 
 
 ingress:
-  - hostname: testadmin.haliloztekin.com
+  - hostname: testadmin.haliloztekin.com    
     service: http://app-ui:8080
     originRequest:
       connectTimeout: 30s

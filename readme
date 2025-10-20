@@ -236,8 +236,8 @@ docker-compose exec app-api-dev dotnet ef database update
 docker-compose exec app-api dotnet ef database update
 
 
-
-
+# Production ortamını başlat (ilk seferde)
+docker-compose -f docker-compose.base.yml -f docker-compose.prod.yml up -d
 
 
 app-redis

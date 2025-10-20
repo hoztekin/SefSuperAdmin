@@ -23,6 +23,7 @@ namespace App.UI.Controllers
         {
             _externalUserService = externalUserService;
             _sessionService = sessionService;
+            _externalApiService = externalApiService;
             _logger = logger;
         }
 

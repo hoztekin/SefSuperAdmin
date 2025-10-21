@@ -40,16 +40,6 @@ namespace App.Api
             // Redis Connection String
             var cacheSettingsSection = builder.Configuration.GetSection("CacheSettings");
 
-            // Request Timeout (502 hatalarını önlemek için)
-            builder.Services.AddRequestTimeouts(options =>
-            {
-                options.DefaultPolicy = new Microsoft.AspNetCore.Http.Timeouts.RequestTimeoutPolicy
-                {
-                    Timeout = TimeSpan.FromSeconds(90),
-                    WriteTimeout = TimeSpan.FromSeconds(90)
-                };
-            });
-
             // Redis Cache'i ekle
             builder.Services.AddRedisCache(cacheSettingsSection["ConnectionString"]!).AddElastic(builder.Configuration);
             builder.Services.AddScoped<DatabaseSeeder>();
@@ -88,7 +78,6 @@ namespace App.Api
             }
 
             app.UseExceptionHandler(x => { });
-            app.UseRequestTimeouts(); // Request timeout middleware
             app.UseCors(x => x.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader().SetPreflightMaxAge(TimeSpan.FromMinutes(10)));
             if (app.Environment.IsDevelopment())
             {

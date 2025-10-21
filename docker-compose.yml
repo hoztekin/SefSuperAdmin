@@ -3,4 +3,3 @@
 include:
   - path: docker-compose.base.yml
   - path: docker-compose.dev.yml
-  - path: docker-compose.prod.yml

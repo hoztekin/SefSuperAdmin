@@ -28,9 +28,9 @@
           memory: 512M
     depends_on:
       sql-server:
-        condition: service_started
+        condition: service_healthy
       app-redis:
-        condition: service_started
+        condition: service_healthy
 
   app-ui:
     container_name: sefimplus-app-ui

@@ -25,10 +25,13 @@ ingress:
       keepAliveConnections: 100
       noHappyEyeballs: false
       noTLSVerify: true
-      disableChunkedEncoding: false
-      http2Origin: false
+      disableChunkedEncoding: true
+      http2Origin: true
       httpHostHeader: testadmin.haliloztekin.com
       noTLSTimeout: 60s
+      # İdari bağlantıların düşmesini önle
+      originServerName: app-ui
+      caPool: ""
   
   - hostname: seq.haliloztekin.com
     service: http://app-seq:80
@@ -38,6 +41,8 @@ ingress:
       keepAliveTimeout: 120s
       noTLSVerify: true
       noTLSTimeout: 60s
+      disableChunkedEncoding: true
+      http2Origin: true
 
   - hostname: redis.haliloztekin.com
     service: http://app-redis-insight:5540
@@ -47,5 +52,7 @@ ingress:
       keepAliveTimeout: 120s
       noTLSVerify: true
       noTLSTimeout: 60s
+      disableChunkedEncoding: true
+      http2Origin: true
   
   - service: http_status:404

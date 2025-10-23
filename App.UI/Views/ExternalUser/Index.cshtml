@@ -27,7 +27,7 @@
                 </div>
                 <div>
                     <a href="/Home/Index" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left"></i> Makine Seçimine Dön
+                        <i class="fas fa-arrow-left"></i> Ana Sayfaya Dön
                     </a>
                 </div>
             </div>
@@ -62,6 +62,7 @@
                                         <th><i class="fas fa-user"></i> Kullanıcı Adı</th>
                                         <th><i class="fas fa-envelope"></i> Email</th>
                                         <th><i class="fas fa-user-tag"></i> Ad Soyad</th>
+                                        <th><i class="fas fa-user-code"></i> Kod</th>
                                         <th><i class="fas fa-building"></i> Şube Adı</th>
                                         <th><i class="fas fa-cog"></i> İşlemler</th>
                                     </tr>
@@ -76,14 +77,20 @@
                                             </td>
                                             <td class="align-middle">@user.Email</td>
                                             <td class="align-middle">@user.FullName</td>
+                                            <td class="align-middle">@user.Code</td>
                                             <td class="align-middle">@user.BranchName</td>
                                             <td class="align-middle">
-                                                <button class="btn btn-sm btn-primary" onclick="editUser('@user.Id')">
-                                                    <i class="fas fa-edit"></i> Düzenle
-                                                </button>
-                                                <button class="btn btn-sm btn-danger" onclick="deleteUser('@user.Id', '@user.UserName')">
-                                                    <i class="fas fa-trash"></i> Sil
-                                                </button>
+                                                <div class="btn-group" role="group" style="gap: 8px;">
+                                                    <button class="btn btn-sm btn-primary" onclick="editUser('@user.Id')" title="Düzenle">
+                                                        <i class="fas fa-edit"></i> Düzenle
+                                                    </button>
+                                                    <button class="btn btn-sm btn-warning" onclick="showChangePasswordModal('@user.Id', '@user.UserName')" title="Parola Değiştir">
+                                                        <i class="fas fa-key"></i> Parola Değiştir
+                                                    </button>
+                                                    <button class="btn btn-sm btn-danger" onclick="deleteUser('@user.Id', '@user.UserName')" title="Sil">
+                                                        <i class="fas fa-trash"></i> Sil
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     }
@@ -126,7 +133,7 @@
 
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle"></i>
-                        External makineye kullanıcı eklenecektir. Zorunlu alanları doldurun.
+                        External makineye yeni kullanıcı eklenecektir. Zorunlu alanları doldurun.
                     </div>
 
                     <div class="row">
@@ -135,7 +142,8 @@
                                 <label for="external-admin-userName" class="form-label">
                                     <i class="fas fa-user"></i> Kullanıcı Adı *
                                 </label>
-                                <input type="text" class="form-control" id="external-admin-userName" name="userName" required autocomplete="off">
+                                <input type="text" class="form-control" id="external-admin-userName"
+                                       name="userName" required autocomplete="off">
                                 <div class="invalid-feedback"></div>
                             </div>
                         </div>
@@ -144,7 +152,8 @@
                                 <label for="external-admin-email" class="form-label">
                                     <i class="fas fa-envelope"></i> Email *
                                 </label>
-                                <input type="email" class="form-control" id="external-admin-email" name="email" required autocomplete="off">
+                                <input type="email" class="form-control" id="external-admin-email"
+                                       name="email" required autocomplete="off">
                                 <div class="invalid-feedback"></div>
                             </div>
                         </div>
@@ -156,7 +165,8 @@
                                 <label for="external-admin-firstName" class="form-label">
                                     <i class="fas fa-user-tag"></i> Ad *
                                 </label>
-                                <input type="text" class="form-control" id="external-admin-firstName" name="firstName" required>
+                                <input type="text" class="form-control" id="external-admin-firstName"
+                                       name="firstName" required>
                                 <div class="invalid-feedback"></div>
                                 <div class="form-text">En az 2 karakter olmalıdır.</div>
                             </div>
@@ -166,7 +176,8 @@
                                 <label for="external-admin-lastName" class="form-label">
                                     <i class="fas fa-user-tag"></i> Soyad *
                                 </label>
-                                <input type="text" class="form-control" id="external-admin-lastName" name="lastName" required>
+                                <input type="text" class="form-control" id="external-admin-lastName"
+                                       name="lastName" required>
                                 <div class="invalid-feedback"></div>
                                 <div class="form-text">En az 2 karakter olmalıdır.</div>
                             </div>
@@ -179,7 +190,8 @@
                                 <label for="external-admin-phoneNumber" class="form-label">
                                     <i class="fas fa-phone"></i> Telefon Numarası *
                                 </label>
-                                <input type="tel" class="form-control" id="external-admin-phoneNumber" name="phoneNumber" required placeholder="0532XXXXXXX">
+                                <input type="tel" class="form-control" id="external-admin-phoneNumber"
+                                       name="phoneNumber" required placeholder="0532XXXXXXX">
                                 <div class="invalid-feedback"></div>
                                 <div class="form-text">Örnek: 0532XXXXXXX</div>
                             </div>
@@ -189,9 +201,10 @@
                                 <label for="external-admin-code" class="form-label">
                                     <i class="fas fa-code"></i> Kod *
                                 </label>
-                                <input type="text" class="form-control" id="external-admin-code" name="code" required placeholder="ABC123" maxlength="20">
+                                <input type="text" class="form-control" id="external-admin-code"
+                                       name="code" required placeholder="ABC123" maxlength="20">
                                 <div class="invalid-feedback"></div>
-                                <div class="form-text">2-20 karakter, büyük harf ve rakam</div>
+                                <div class="form-text">2-20 karakter, BÜYÜK HARF ve rakam</div>
                             </div>
                         </div>
                         <div class="col-md-4">
@@ -199,7 +212,8 @@
                                 <label for="external-admin-userLoginType" class="form-label">
                                     <i class="fas fa-user-cog"></i> Kullanıcı Tipi *
                                 </label>
-                                <select class="form-control" id="external-admin-userLoginType" name="userLoginType" required>
+                                <select class="form-control" id="external-admin-userLoginType"
+                                        name="userLoginType" required>
                                     <option value="">Seçiniz...</option>
                                     <option value="1">Personal</option>
                                     <option value="2" selected>Shared</option>
@@ -215,31 +229,35 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="external-admin-password" class="form-label">
-                                    <i class="fas fa-lock"></i> Şifre *
+                                    <i class="fas fa-lock"></i> Parola *
                                 </label>
                                 <div class="input-group">
-                                    <input type="password" class="form-control" id="external-admin-password" name="password" required autocomplete="new-password">
-                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('external-admin-password', this)">
+                                    <input type="password" class="form-control" id="external-admin-password"
+                                           name="password" required autocomplete="new-password">
+                                    <button class="btn btn-outline-secondary" type="button"
+                                            onclick="togglePassword('external-admin-password', this)">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                 </div>
                                 <div class="invalid-feedback"></div>
-                                <div class="form-text"><strong>En az 6 karakter olmalıdır.</strong></div>
+                                <div class="form-text">En az 6 karakter olmalıdır.</div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="external-admin-confirmPassword" class="form-label">
-                                    <i class="fas fa-lock"></i> Şifre Tekrar *
+                                    <i class="fas fa-lock"></i> Parola Tekrar *
                                 </label>
                                 <div class="input-group">
-                                    <input type="password" class="form-control" id="external-admin-confirmPassword" name="confirmPassword" required autocomplete="new-password">
-                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('external-admin-confirmPassword', this)">
+                                    <input type="password" class="form-control" id="external-admin-confirmPassword"
+                                           name="confirmPassword" required autocomplete="new-password">
+                                    <button class="btn btn-outline-secondary" type="button"
+                                            onclick="togglePassword('external-admin-confirmPassword', this)">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                 </div>
                                 <div class="invalid-feedback"></div>
-                                <div class="valid-feedback">Şifreler eşleşiyor!</div>
+                                <div class="valid-feedback">Parolalar eşleşiyor!</div>
                             </div>
                         </div>
                     </div>
@@ -250,7 +268,7 @@
                         <i class="fas fa-times"></i> İptal
                     </button>
                     <button type="submit" class="btn btn-success">
-                        <i class="fas fa-save"></i> External Kullanıcı Ekle
+                        <i class="fas fa-save"></i> Kullanıcı Ekle
                     </button>
                 </div>
             </form>
@@ -370,39 +388,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="external-edit-password" class="form-label">
-                                    <i class="fas fa-lock"></i> Yeni Şifre (Opsiyonel)
-                                </label>
-                                <div class="input-group">
-                                    <input type="password" class="form-control" id="external-edit-password" name="password" autocomplete="new-password">
-                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('external-edit-password', this)">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                </div>
-                                <div class="invalid-feedback"></div>
-                                <div class="form-text">En az 6 karakter olmalıdır.</div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="external-edit-confirmPassword" class="form-label">
-                                    <i class="fas fa-lock"></i> Yeni Şifre Tekrar
-                                </label>
-                                <div class="input-group">
-                                    <input type="password" class="form-control" id="external-edit-confirmPassword" name="confirmPassword" autocomplete="new-password">
-                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('external-edit-confirmPassword', this)">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                </div>
-                                <div class="invalid-feedback"></div>
-                                <div class="valid-feedback">Şifreler eşleşiyor!</div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <div class="modal-footer">
@@ -418,6 +403,87 @@
     </div>
 </div>
 
+
+<!-- Parola Değiştir Modal -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-key"></i> Parola Değiştir
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="changePasswordForm">
+                <div class="modal-body">
+                    <!-- Hata Mesajı -->
+                    <div class="alert alert-danger alert-dismissible fade show d-none" id="changePasswordError" role="alert">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        <span id="changePasswordErrorMessage"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong id="changePasswordUserName"></strong> adlı kullanıcının parolasını değiştirmek üzeresiniz.
+                    </div>
+
+                    <input type="hidden" id="change-password-userId">
+
+                    <div class="mb-3">
+                        <label for="change-password-new" class="form-label">
+                            <i class="fas fa-lock"></i> Yeni Parola *
+                        </label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="change-password-new"
+                                   placeholder="Yeni parolayı girin" required>
+                            <button class="btn btn-outline-secondary" type="button"
+                                    onclick="togglePassword('change-password-new', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="invalid-feedback"></div>
+                        <div class="form-text">En az 6 karakter olmalıdır.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="change-password-confirm" class="form-label">
+                            <i class="fas fa-lock"></i> Parola Tekrar *
+                        </label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="change-password-confirm"
+                                   placeholder="Parolayı tekrar girin" required>
+                            <button class="btn btn-outline-secondary" type="button"
+                                    onclick="togglePassword('change-password-confirm', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="invalid-feedback"></div>
+                        <div class="valid-feedback">Parolalar eşleşiyor!</div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> İptal
+                    </button>
+                    <button type="submit" class="btn btn-info">
+                        <i class="fas fa-save"></i> Parolayı Değiştir
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+
+
+
 @section Scripts {
     <script>
         // ======================== GLOBAL STATE ========================
@@ -425,6 +491,7 @@
             selectedMachineApiAddress: null,
             addModalInstance: null,
             editModalInstance: null,
+            changePasswordModalInstance: null,
             dataTableInstance: null
         };
 
@@ -442,23 +509,30 @@
 
         // ======================== MODAL INITIALIZATION ========================
         function initializeModals() {
+            // Add Modal
             const addModal = document.getElementById('addExternalUserModal');
-            const editModal = document.getElementById('editExternalUserModal');
-
             if (addModal) {
                 AppState.addModalInstance = new bootstrap.Modal(addModal);
                 addModal.addEventListener('shown.bs.modal', onAddModalShown);
             }
 
+            // Edit Modal
+            const editModal = document.getElementById('editExternalUserModal');
             if (editModal) {
                 AppState.editModalInstance = new bootstrap.Modal(editModal);
                 editModal.addEventListener('shown.bs.modal', onEditModalShown);
+            }
+
+            // Change Password Modal
+            const changePasswordModal = document.getElementById('changePasswordModal');
+            if (changePasswordModal) {
+                AppState.changePasswordModalInstance = new bootstrap.Modal(changePasswordModal);
+                changePasswordModal.addEventListener('shown.bs.modal', onChangePasswordModalShown);
             }
         }
 
         function onAddModalShown() {
             document.getElementById('external-admin-userName').focus();
-            setupPasswordMatching('external-admin-password', 'external-admin-confirmPassword');
             document.getElementById('addExternalUserForm').reset();
             clearFormValidation('addExternalUserForm');
             hideModalError('add');
@@ -466,9 +540,54 @@
 
         function onEditModalShown() {
             document.getElementById('external-edit-email').focus();
-            setupPasswordMatching('external-edit-password', 'external-edit-confirmPassword');
             clearFormValidation('editExternalUserForm');
             hideModalError('edit');
+        }
+
+        function onChangePasswordModalShown() {
+            document.getElementById('change-password-new').focus();
+            clearFormValidation('changePasswordForm');
+            $('#changePasswordError').addClass('d-none');
+            setupPasswordMatchListener();
+        }
+
+        // Parola eşleşme validasyonu - Real-time feedback
+        function setupPasswordMatchListener() {
+            const newPasswordInput = document.getElementById('change-password-new');
+            const confirmPasswordInput = document.getElementById('change-password-confirm');
+
+            if (!newPasswordInput || !confirmPasswordInput) return;
+
+            // İkisine de listener ekle
+            [newPasswordInput, confirmPasswordInput].forEach(input => {
+                input.addEventListener('input', validatePasswordMatch);
+                input.addEventListener('change', validatePasswordMatch);
+            });
+        }
+
+        // Parola eşleşmesini kontrol et ve görsel feedback göster
+        function validatePasswordMatch() {
+            const newPasswordInput = document.getElementById('change-password-new');
+            const confirmPasswordInput = document.getElementById('change-password-confirm');
+
+            const newPassword = newPasswordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+
+            // Eğer her iki alan da dolu ise kontrol et
+            if (newPassword && confirmPassword) {
+                if (newPassword === confirmPassword) {
+                    // ✅ Parolalar eşleşti
+                    confirmPasswordInput.classList.remove('is-invalid');
+                    confirmPasswordInput.classList.add('is-valid');
+                } else {
+                    // ❌ Parolalar eşleşmedi
+                    confirmPasswordInput.classList.remove('is-valid');
+                    confirmPasswordInput.classList.add('is-invalid');
+                }
+            } else {
+                // Henüz dolu değil, sınıfları temizle
+                confirmPasswordInput.classList.remove('is-valid', 'is-invalid');
+            }
         }
 
         // ======================== DATA TABLE INITIALIZATION ========================
@@ -480,7 +599,7 @@
                 AppState.dataTableInstance = $(table).DataTable({
                     language: { url: '//cdn.datatables.net/plug-ins/1.10.24/i18n/Turkish.json' },
                     pageLength: 25,
-                    order: [[2, 'asc']],
+                    order: [[0, 'asc']],
                     columnDefs: [{ orderable: false, targets: -1 }],
                     responsive: true,
                     autoWidth: false
@@ -494,6 +613,7 @@
         function setupEventHandlers() {
             const addForm = document.getElementById('addExternalUserForm');
             const editForm = document.getElementById('editExternalUserForm');
+            const changePasswordForm = document.getElementById('changePasswordForm');
 
             if (addForm) {
                 addForm.addEventListener('submit', handleAddUserSubmit);
@@ -502,9 +622,259 @@
             if (editForm) {
                 editForm.addEventListener('submit', handleEditUserSubmit);
             }
+
+            if (changePasswordForm) {
+                changePasswordForm.addEventListener('submit', handleChangePasswordSubmit);
+            }
         }
 
-        // ======================== WINDOW METHODS (For HTML onclick) ========================
+        // ======================== SELECTED MACHINE ========================
+        async function loadSelectedMachineInfo() {
+            try {
+                const response = await fetchWithTimeout('/Home/GetSelectedMachine');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.data) {
+                        AppState.selectedMachineApiAddress = data.data.apiAddress;
+                        console.log('Selected Machine API:', AppState.selectedMachineApiAddress);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading selected machine:', error);
+            }
+        }
+
+        async function checkSelectedMachine() {
+            if (!AppState.selectedMachineApiAddress) {
+                showAlert('error', 'Lütfen bir makine seçiniz!');
+                return false;
+            }
+            return true;
+        }
+
+        // ======================== FORM SUBMISSION - ADD USER ========================
+        async function handleAddUserSubmit(e) {
+            e.preventDefault();
+            hideModalError('add');
+
+            if (!await checkSelectedMachine()) {
+                showModalError('Önce bir makine seçiniz!', 'add');
+                return;
+            }
+
+            const formData = {
+                UserName: getInputValue('external-admin-userName'),
+                Email: getInputValue('external-admin-email'),
+                FirstName: getInputValue('external-admin-firstName'),
+                LastName: getInputValue('external-admin-lastName'),
+                PhoneNumber: getInputValue('external-admin-phoneNumber'),
+                Code: getInputValue('external-admin-code').toUpperCase(),
+                UserLoginType: parseInt(getInputValue('external-admin-userLoginType')),
+                Password: getInputValue('external-admin-password'),                   
+                ConfirmPassword: getInputValue('external-admin-confirmPassword'),
+                IsActive: true
+            };
+
+            const validationError = validateAddUserForm(formData);
+            if (validationError) {
+                showModalError(validationError, 'add');
+                return;
+            }
+
+            await submitForm('/ExternalUser/CreateUser', formData, 'POST', 'add');
+        }
+
+        // ======================== FORM SUBMISSION - EDIT USER ========================
+        async function handleEditUserSubmit(e) {
+            e.preventDefault();
+            hideModalError('edit');
+
+            if (!await checkSelectedMachine()) {
+                showModalError('Önce bir makine seçiniz!', 'edit');
+                return;
+            }
+
+            const formData = {
+                id: getInputValue('external-edit-userId'),
+                email: getInputValue('external-edit-email'),
+                phoneNumber: getInputValue('external-edit-phoneNumber'),
+                firstName: getInputValue('external-edit-firstName'),
+                lastName: getInputValue('external-edit-lastName'),
+                code: getInputValue('external-edit-code').toUpperCase(),
+                roles: [],
+                userLoginType: parseInt(getInputValue('external-edit-userLoginType')),
+                isActive: true
+            };
+
+            const validationError = validateEditUserForm(formData);
+            if (validationError) {
+                showModalError(validationError, 'edit');
+                return;
+            }
+
+            await submitForm('/ExternalUser/UpdateUser', formData, 'PUT', 'edit');
+        }
+
+        // ======================== FORM SUBMISSION - CHANGE PASSWORD ========================
+        async function handleChangePasswordSubmit(e) {
+            e.preventDefault();
+
+            const newPassword = getInputValue('change-password-new');
+            const confirmPassword = getInputValue('change-password-confirm');
+            const userId = getInputValue('change-password-userId');
+
+            // Validasyon
+            if (!newPassword || newPassword.length < 6) {
+                showChangePasswordError('Parola en az 6 karakter olmalıdır!');
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                showChangePasswordError('Parolalar eşleşmiyor!');
+                document.getElementById('change-password-confirm').classList.add('is-invalid');
+                return;
+            }
+
+            // API çağrısı
+            const submitBtn = $(this).find('button[type="submit"]');
+            const originalText = submitBtn.html();
+            submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Değiştiriliyor...').prop('disabled', true);
+
+            try {
+                const response = await fetchWithTimeout('/ExternalUser/ChangePassword', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: userId,
+                        newPassword: newPassword,
+                        confirmNewPassword: confirmPassword
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    AppState.changePasswordModalInstance.hide();
+
+                    setTimeout(async () => {
+                        await showAlert('success', 'Parola başarıyla değiştirildi!');
+                        location.reload();
+                    }, 300);
+                } else {
+                    showChangePasswordError(data.message || 'Parola değiştirilirken bir hata oluştu!');
+                }
+            } catch (error) {
+                showChangePasswordError(`Hata: ${error.message}`);
+            } finally {
+                submitBtn.html(originalText).prop('disabled', false);
+            }
+        }
+
+        // ======================== FORM SUBMISSION - GENERIC ========================
+        async function submitForm(endpoint, data, method, modalType) {
+            const formElement = modalType === 'add'
+                ? document.getElementById('addExternalUserForm')
+                : document.getElementById('editExternalUserForm');
+
+            const submitBtn = formElement.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+
+            const loadingText = `<i class="fas fa-spinner fa-spin"></i> ${method === 'POST' ? 'Kaydediliyor' : 'Güncelleniyor'}...`;
+            submitBtn.innerHTML = loadingText;
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetchWithTimeout(endpoint, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const responseData = await response.json();
+
+                if (response.ok && responseData.success) {
+                    const message = method === 'POST'
+                        ? 'External kullanıcı başarıyla eklendi!'
+                        : 'External kullanıcı başarıyla güncellendi!';
+
+                    const modalInstance = modalType === 'add'
+                        ? AppState.addModalInstance
+                        : AppState.editModalInstance;
+
+                    modalInstance.hide();
+
+                    setTimeout(async () => {
+                        await showAlert('success', message);
+                        location.reload();
+                    }, 300);
+                } else {
+                    showModalError(
+                        responseData.message || `${method === 'POST' ? 'Ekleme' : 'Güncelleme'} başarısız!`,
+                        modalType
+                    );
+                }
+            } catch (error) {
+                showModalError(`Hata: ${error.message}`, modalType);
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        }
+
+        // ======================== VALIDATION ========================
+        function validateAddUserForm(data) {
+            if (!data.UserName?.trim()) return 'Kullanıcı adı zorunludur!';
+            if (!data.Email?.trim()) return 'Email adresi zorunludur!';
+            if (!data.FirstName || data.FirstName.length < 2) return 'Ad en az 2 karakter olmalıdır!';
+            if (!data.LastName || data.LastName.length < 2) return 'Soyad en az 2 karakter olmalıdır!';
+            if (!data.PhoneNumber) return 'Telefon numarası zorunludur!';
+            if (!/^0\d{10}$/.test(data.PhoneNumber)) return 'Telefon numarası 0 ile başlamalı ve 11 haneli olmalıdır!';
+            if (!data.Code || data.Code.length < 2 || data.Code.length > 20) return 'Kod 2-20 karakter arasında olmalıdır!';
+            if (!/^[A-Z0-9]+$/.test(data.Code)) return 'Kod sadece büyük harf ve rakam içermelidir!';
+            if (!data.UserLoginType || isNaN(data.UserLoginType)) return 'Kullanıcı tipi seçimi zorunludur!';
+            if (!data.Password || data.Password.length < 6) return 'Şifre en az 6 karakter olmalıdır!';
+            if (!data.ConfirmPassword) return 'Şifre tekrarı zorunludur!';
+            if (data.Password !== data.ConfirmPassword) return 'Şifreler eşleşmiyor!';
+            return null;
+        }
+
+        function validateEditUserForm(data) {
+            if (!data.email?.trim()) return 'Email adresi zorunludur!';
+            if (!data.firstName || data.firstName.length < 2) return 'Ad en az 2 karakter olmalıdır!';
+            if (!data.lastName || data.lastName.length < 2) return 'Soyad en az 2 karakter olmalıdır!';
+            if (!data.phoneNumber) return 'Telefon numarası zorunludur!';
+            if (!/^0\d{10}$/.test(data.phoneNumber)) return 'Telefon numarası 0 ile başlamalı ve 11 haneli olmalıdır!';
+            if (!data.code || data.code.length < 2 || data.code.length > 20) return 'Kod 2-20 karakter arasında olmalıdır!';
+            if (!/^[A-Z0-9]+$/.test(data.code)) return 'Kod sadece büyük harf ve rakam içermelidir!';
+            return null;
+        }
+
+        // ======================== FORM POPULATION ========================
+        function populateEditForm(user) {
+            setInputValue('external-edit-userId', user.id || '');
+            setInputValue('external-edit-userName', user.username || '');
+            setInputValue('external-edit-email', user.eMail || '');
+            setInputValue('external-edit-firstName', user.firstName || '');
+            setInputValue('external-edit-lastName', user.lastName || '');
+            setInputValue('external-edit-phoneNumber', user.phoneNumber || '');
+            setInputValue('external-edit-code', user.code || '');
+
+            const typeValue = parseUserLoginType(user.userLoginType);
+            setInputValue('external-edit-userLoginType', typeValue);
+        }
+
+        function parseUserLoginType(type) {
+            if (typeof type === 'string') {
+                const typeMap = { 'personal': '1', 'service': '3' };
+                return typeMap[type.toLowerCase()] || '2';
+            }
+            if (typeof type === 'number' && [1, 2, 3].includes(type)) {
+                return type.toString();
+            }
+            return '2';
+        }
+
+        // ======================== WINDOW FUNCTIONS (For onclick) ========================
         window.editUser = async function(userId) {
             if (!await checkSelectedMachine()) {
                 showAlert('error', 'Önce bir makine seçiniz!');
@@ -561,6 +931,19 @@
             }
         };
 
+        window.showChangePasswordModal = function(userId, userName) {
+            // Formu temizle
+            document.getElementById('changePasswordForm').reset();
+            $('#changePasswordError').addClass('d-none');
+
+            // Değerleri doldur
+            $('#change-password-userId').val(userId);
+            $('#changePasswordUserName').text(userName);
+
+            // Modal'ı aç
+            AppState.changePasswordModalInstance.show();
+        };
+
         window.showAddExternalUserModal = function() {
             if (!AppState.selectedMachineApiAddress) {
                 showAlert('error', 'Önce bir makine seçiniz!');
@@ -586,197 +969,6 @@
             }
         };
 
-        // ======================== FORM HANDLERS ========================
-        async function handleAddUserSubmit(e) {
-            e.preventDefault();
-            hideModalError('add');
-
-            if (!await checkSelectedMachine()) {
-                showModalError('Önce bir makine seçiniz!', 'add');
-                return;
-            }
-
-            const formData = {
-                UserName: getInputValue('external-admin-userName'),
-                Email: getInputValue('external-admin-email'),
-                FirstName: getInputValue('external-admin-firstName'),
-                LastName: getInputValue('external-admin-lastName'),
-                PhoneNumber: getInputValue('external-admin-phoneNumber'),
-                Code: getInputValue('external-admin-code').toUpperCase(),
-                UserLoginType: parseInt(getInputValue('external-admin-userLoginType')),
-                Password: getInputValue('external-admin-password'),
-                ConfirmPassword: getInputValue('external-admin-confirmPassword'),
-                IsActive: true
-            };
-
-            const validationError = validateAddUserForm(formData);
-            if (validationError) {
-                showModalError(validationError, 'add');
-                return;
-            }
-
-            await submitForm('/ExternalUser/CreateUser', formData, 'POST', 'add');
-        }
-
-        async function handleEditUserSubmit(e) {
-            e.preventDefault();
-            hideModalError('edit');
-
-            if (!await checkSelectedMachine()) {
-                showModalError('Önce bir makine seçiniz!', 'edit');
-                return;
-            }
-
-            const formData = {
-                id: getInputValue('external-edit-userId'),
-                email: getInputValue('external-edit-email'),
-                phoneNumber: getInputValue('external-edit-phoneNumber'),
-                firstName: getInputValue('external-edit-firstName'),
-                lastName: getInputValue('external-edit-lastName'),
-                code: getInputValue('external-edit-code').toUpperCase(),
-                roles: [],
-                userLoginType: parseInt(getInputValue('external-edit-userLoginType'))
-            };
-
-            const validationError = validateEditUserForm(formData);
-            if (validationError) {
-                showModalError(validationError, 'edit');
-                return;
-            }
-
-            const password = getInputValue('external-edit-password');
-            if (password) {
-                const confirmPassword = getInputValue('external-edit-confirmPassword');
-                if (password !== confirmPassword) {
-                    showModalError('Şifreler eşleşmiyor!', 'edit');
-                    return;
-                }
-                if (password.length < 6) {
-                    showModalError('Şifre en az 6 karakter olmalıdır!', 'edit');
-                    return;
-                }
-                formData.password = password;
-            }
-
-            await submitForm('/ExternalUser/UpdateUser', formData, 'PUT', 'edit');
-        }
-
-        // ======================== FORM POPULATION ========================
-        function populateEditForm(user) {
-            setInputValue('external-edit-userId', user.id || '');
-            setInputValue('external-edit-userName', user.username || '');
-            setInputValue('external-edit-email', user.eMail || '');
-            setInputValue('external-edit-firstName', user.firstName || '');
-            setInputValue('external-edit-lastName', user.lastName || '');
-            setInputValue('external-edit-phoneNumber', user.phoneNumber || '');
-            setInputValue('external-edit-code', user.code || '');
-
-            const typeValue = parseUserLoginType(user.userLoginType);
-            setInputValue('external-edit-userLoginType', typeValue);
-
-            setInputValue('external-edit-password', '');
-            setInputValue('external-edit-confirmPassword', '');
-        }
-
-        function parseUserLoginType(type) {
-            if (typeof type === 'string') {
-                const typeMap = { 'personal': '1', 'service': '3' };
-                return typeMap[type.toLowerCase()] || '2';
-            }
-            if (typeof type === 'number' && [1, 2, 3].includes(type)) {
-                return type.toString();
-            }
-            return '2'; // Default: Shared
-        }
-
-        // ======================== VALIDATION ========================
-        function validateAddUserForm(data) {
-            if (!data.UserName?.trim()) return 'Kullanıcı adı zorunludur!';
-            if (!data.Email?.trim()) return 'Email adresi zorunludur!';
-            if (!data.FirstName || data.FirstName.length < 2) return 'Ad en az 2 karakter olmalıdır!';
-            if (!data.LastName || data.LastName.length < 2) return 'Soyad en az 2 karakter olmalıdır!';
-            if (!data.PhoneNumber) return 'Telefon numarası zorunludur!';
-            if (!/^0\d{10}$/.test(data.PhoneNumber)) return 'Telefon numarası 0 ile başlamalı ve 11 haneli olmalıdır!';
-            if (!data.Code || data.Code.length < 2 || data.Code.length > 20) return 'Kod 2-20 karakter arasında olmalıdır!';
-            if (!/^[A-Z0-9]+$/.test(data.Code)) return 'Kod sadece büyük harf ve rakam içermelidir!';
-            if (!data.UserLoginType || isNaN(data.UserLoginType)) return 'Kullanıcı tipi seçimi zorunludur!';
-            if (!data.Password || data.Password.length < 6) return 'Şifre en az 6 karakter olmalıdır!';
-            if (!data.ConfirmPassword) return 'Şifre tekrarı zorunludur!';
-            if (data.Password !== data.ConfirmPassword) return 'Şifreler eşleşmiyor!';
-            return null;
-        }
-
-        function validateEditUserForm(data) {
-            if (!data.email?.trim()) return 'Email adresi zorunludur!';
-            if (!data.firstName || data.firstName.length < 2) return 'Ad en az 2 karakter olmalıdır!';
-            if (!data.lastName || data.lastName.length < 2) return 'Soyad en az 2 karakter olmalıdır!';
-            if (!data.phoneNumber) return 'Telefon numarası zorunludur!';
-            if (!/^0\d{10}$/.test(data.phoneNumber)) return 'Telefon numarası 0 ile başlamalı ve 11 haneli olmalıdır!';
-            if (!data.code || data.code.length < 2 || data.code.length > 20) return 'Kod 2-20 karakter arasında olmalıdır!';
-            if (!/^[A-Z0-9]+$/.test(data.code)) return 'Kod sadece büyük harf ve rakam içermelidir!';
-            return null;
-        }
-
-        // ======================== API CALLS ========================
-        async function submitForm(endpoint, data, method, modalType) {
-            const submitBtn = document.querySelector(`#${modalType === 'add' ? 'addExternalUserForm' : 'editExternalUserForm'} button[type="submit"]`);
-            const originalText = submitBtn.innerHTML;
-
-            const loadingText = `<i class="fas fa-spinner fa-spin"></i> ${method === 'POST' ? 'Kaydediliyor' : 'Güncelleniyor'}...`;
-            submitBtn.innerHTML = loadingText;
-            submitBtn.disabled = true;
-
-            try {
-                const response = await fetchWithTimeout(endpoint, {
-                    method: method,
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-
-                const responseData = await response.json();
-
-                if (response.ok && responseData.success) {
-                    const message = method === 'POST'
-                        ? 'External kullanıcı başarıyla eklendi!'
-                        : 'External kullanıcı başarıyla güncellendi!';
-
-                    await showAlert('success', message);
-                    location.reload();
-                } else {
-                    showModalError(
-                        responseData.message || `${method === 'POST' ? 'Ekleme' : 'Güncelleme'} başarısız!`,
-                        modalType
-                    );
-                }
-            } catch (error) {
-                showModalError(`Hata: ${error.message}`, modalType);
-            } finally {
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
-            }
-        }
-
-        async function performDeleteUser(userId) {
-            try {
-                const response = await fetchWithTimeout('/ExternalUser/DeleteUser', {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: userId })
-                });
-
-                const data = await response.json();
-
-                if (response.ok && data.success) {
-                    await showAlert('success', 'External kullanıcı başarıyla silindi.');
-                    location.reload();
-                } else {
-                    showAlert('error', data.message || 'Silme işlemi başarısız!');
-                }
-            } catch (error) {
-                showAlert('error', `Silme hatası: ${error.message}`);
-            }
-        }
-
         // ======================== UTILITY FUNCTIONS ========================
         async function fetchWithTimeout(url, options = {}, timeout = 30000) {
             const controller = new AbortController();
@@ -792,114 +984,105 @@
             }
         }
 
-        async function loadSelectedMachineInfo() {
-            try {
-                const response = await fetchWithTimeout('/Home/GetSelectedMachine');
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.success && data.data) {
-                        AppState.selectedMachineApiAddress = data.data.apiAddress;
-                    }
-                }
-            } catch (error) {
-                console.error('Selected machine info yüklenirken hata:', error);
+        function getInputValue(elementId) {
+            return document.getElementById(elementId)?.value || '';
+        }
+
+        function setInputValue(elementId, value) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.value = value;
             }
-        }
-
-        async function checkSelectedMachine() {
-            if (!AppState.selectedMachineApiAddress) {
-                await loadSelectedMachineInfo();
-            }
-            return AppState.selectedMachineApiAddress != null;
-        }
-
-        function getInputValue(id) {
-            return (document.getElementById(id)?.value || '').trim();
-        }
-
-        function setInputValue(id, value) {
-            const element = document.getElementById(id);
-            if (element) element.value = value;
         }
 
         function clearFormValidation(formId) {
             const form = document.getElementById(formId);
             if (form) {
+                form.classList.remove('was-validated');
                 form.querySelectorAll('.is-invalid, .is-valid').forEach(el => {
                     el.classList.remove('is-invalid', 'is-valid');
                 });
             }
         }
 
-        function setupPasswordMatching(passwordId, confirmPasswordId) {
-            const passwordField = document.getElementById(passwordId);
-            const confirmField = document.getElementById(confirmPasswordId);
+        function showModalError(message, modalType) {
+            const errorId = modalType === 'add'
+                ? 'modalValidationError'
+                : modalType === 'edit'
+                ? 'editModalValidationError'
+                : 'changePasswordError';
 
-            if (!passwordField || !confirmField) return;
+            const messageId = modalType === 'add'
+                ? 'modalErrorMessage'
+                : modalType === 'edit'
+                ? 'editModalErrorMessage'
+                : 'changePasswordErrorMessage';
 
-            const checkMatch = () => {
-                const password = passwordField.value;
-                const confirm = confirmField.value;
-
-                confirmField.classList.remove('is-valid', 'is-invalid');
-
-                if (confirm === '') return;
-
-                if (password === confirm && password !== '') {
-                    confirmField.classList.add('is-valid');
-                } else {
-                    confirmField.classList.add('is-invalid');
-                }
-            };
-
-            passwordField.addEventListener('input', checkMatch);
-            confirmField.addEventListener('input', checkMatch);
+            document.getElementById(messageId).textContent = message;
+            document.getElementById(errorId).classList.remove('d-none');
         }
 
-        function showModalError(message, type) {
-            const errorAlert = document.getElementById(`${type === 'add' ? 'modalValidationError' : 'editModalValidationError'}`);
-            const errorMessage = document.getElementById(`${type === 'add' ? 'modalErrorMessage' : 'editModalErrorMessage'}`);
+        function hideModalError(modalType) {
+            const errorId = modalType === 'add'
+                ? 'modalValidationError'
+                : 'editModalValidationError';
 
-            if (errorMessage) errorMessage.textContent = message;
-            if (errorAlert) {
-                errorAlert.classList.remove('d-none');
-                errorAlert.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            const element = document.getElementById(errorId);
+            if (element) {
+                element.classList.add('d-none');
             }
         }
 
-        function hideModalError(type) {
-            const errorAlert = document.getElementById(`${type === 'add' ? 'modalValidationError' : 'editModalValidationError'}`);
-            if (errorAlert) errorAlert.classList.add('d-none');
+        function showChangePasswordError(message) {
+            document.getElementById('changePasswordErrorMessage').textContent = message;
+            document.getElementById('changePasswordError').classList.remove('d-none');
         }
 
-        async function confirmAction(title, text, icon) {
-            if (typeof Swal !== 'undefined') {
-                const result = await Swal.fire({
-                    title: title,
-                    text: text,
-                    icon: icon,
-                    showCancelButton: true,
-                    confirmButtonColor: '#dc3545',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Evet',
-                    cancelButtonText: 'İptal'
+        async function performDeleteUser(userId) {
+            try {
+                const response = await fetchWithTimeout('/ExternalUser/DeleteUser', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: userId })
                 });
-                return result.isConfirmed;
-            } else {
-                return confirm(text);
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    await showAlert('success', 'External kullanıcı başarıyla silindi!');
+                    location.reload();
+                } else {
+                    showAlert('error', data.message || 'Silme işlemi başarısız!');
+                }
+            } catch (error) {
+                showAlert('error', `Silme hatası: ${error.message}`);
             }
         }
 
+        // ======================== ALERT FUNCTIONS (SweetAlert2) ========================
         async function showAlert(type, message) {
-            if (typeof Swal !== 'undefined') {
-                await Swal.fire(
-                    type === 'success' ? 'Başarılı!' : 'Hata!',
-                    message,
-                    type
-                );
-            } else {
-                alert(message);
-            }
+            return Swal.fire({
+                title: type === 'success' ? 'Başarılı!' : 'Hata!',
+                text: message,
+                icon: type,
+                confirmButtonColor: type === 'success' ? '#28a745' : '#dc3545',
+                confirmButtonText: 'Tamam'
+            });
+        }
+
+        async function confirmAction(title, message, type = 'warning') {
+            const result = await Swal.fire({
+                title: title,
+                html: message,
+                icon: type,
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fas fa-check"></i> Evet',
+                cancelButtonText: '<i class="fas fa-times"></i> Hayır'
+            });
+
+            return result.isConfirmed;
         }
     </script>
 }

@@ -8,12 +8,13 @@ namespace App.UI.Application.Services
 {
     public interface IExternalUserService
     {
-        Task<ServiceResult<List<ExternalUserListDto>>> GetUsersAsync();
+        Task<ServiceResult<List<ExternalUserListDto>>>  GetUsersAsync();
         Task<ServiceResult<ExternalUserDto>> GetUserByIdAsync(string id);
         Task<ServiceResult<ExternalUserDto>> CreateUserAsync(CreateExternalUserDto createDto);
         Task<ServiceResult<ExternalUserDto>> UpdateUserAsync(UpdateExternalUserDto updateDto);
         Task<ServiceResult> DeleteUserAsync(string id);
         Task<ServiceResult> ChangeUserStatusAsync(string id, bool isActive);
+        Task<ServiceResult> ChangePasswordAsync(ChangePasswordDto changePasswordDto); 
     }
 
     public class ExternalUserService : IExternalUserService
@@ -75,6 +76,7 @@ namespace App.UI.Application.Services
                             Id = u.Id,
                             UserName = u.Username,
                             Email = u.EMail,
+                            Code = u.Code,
                             FirstName = u.FirstName,
                             LastName = u.LastName,
                             CompanyName = u.CompanyName,
@@ -243,34 +245,104 @@ namespace App.UI.Application.Services
             }
             return false;
         }
+        // ✅ Helper: Token al veya login yap
+        private async Task<ServiceResult<string>> GetTokenAsync()
+        {
+            var selectedMachine = _sessionService.GetSelectedMachine();
+            if (selectedMachine == null)
+            {
+                return ServiceResult<string>.Fail("Makine seçilmedi");
+            }
+
+            var token = _sessionService.GetMachineApiToken();
+            if (!string.IsNullOrEmpty(token))
+            {
+                return ServiceResult<string>.Success(token);
+            }
+
+            var loginResponse = await _externalApiService.LoginAsync(selectedMachine.ApiAddress);
+            if (!loginResponse.Success)
+            {
+                return ServiceResult<string>.Fail("Token alınamadı");
+            }
+
+            return ServiceResult<string>.Success(loginResponse.AccessToken);
+        }
+
+        // ✅ Helper: Selected Machine al
+        private SelectedMachineInfo? GetSelectedMachine()
+        {
+            var machine = _sessionService.GetSelectedMachine();
+            if (machine == null)
+            {
+                _logger.LogWarning("Makine seçilmedi");
+            }
+            return machine;
+        }
+
+        // ✅ Helper: JSON parse et ve hata mesajı al
+        private (bool isSuccess, string message, ExternalUserDto? user) ParseCreateUpdateResponse(
+            string jsonString, HttpResponseMessage response)
+        {
+            try
+            {
+                using (JsonDocument doc = JsonDocument.Parse(jsonString))
+                {
+                    var root = doc.RootElement;
+
+                    bool isSuccess = false;
+                    string message = "Bilinmeyen hata oluştu";
+
+                    if (root.TryGetProperty("isSuccess", out var isSuccessElement))
+                    {
+                        isSuccess = isSuccessElement.GetBoolean();
+                    }
+
+                    if (root.TryGetProperty("message", out var messageElement))
+                    {
+                        message = messageElement.GetString() ?? message;
+                    }
+
+                    // Hata varsa, sadece mesajı dön
+                    if (!isSuccess || !response.IsSuccessStatusCode)
+                    {
+                        return (false, message, null);
+                    }
+
+                    // Başarısı durumda user'ı deserialize et
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    var user = JsonSerializer.Deserialize<ExternalUserDto>(jsonString, options);
+
+                    return (isSuccess && response.IsSuccessStatusCode, message, user);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "JSON parse hatası");
+                return (false, $"Hata: {ex.Message}", null);
+            }
+        }
+
+        // ✅ CREATE - Tüm business logic Service'de
         public async Task<ServiceResult<ExternalUserDto>> CreateUserAsync(CreateExternalUserDto createDto)
         {
             try
             {
-                var selectedMachine = _sessionService.GetSelectedMachine();
-                if (selectedMachine == null)
-                {
+                var machine = GetSelectedMachine();
+                if (machine == null)
                     return ServiceResult<ExternalUserDto>.Fail("Makine seçilmedi");
-                }
 
-                var token = _sessionService.GetMachineApiToken();
-                if (string.IsNullOrEmpty(token))
-                {
-                    var loginResponse = await _externalApiService.LoginAsync(selectedMachine.ApiAddress);
-                    if (!loginResponse.Success)
-                    {
-                        return ServiceResult<ExternalUserDto>.Fail("Token alınamadı");
-                    }
-                    token = loginResponse.AccessToken;
-                }
+                var tokenResult = await GetTokenAsync();
+                if (!tokenResult.IsSuccess)
+                    return ServiceResult<ExternalUserDto>.Fail(tokenResult.Message);
 
                 var externalApiData = new
                 {
                     UserName = createDto.UserName,
                     Email = createDto.Email,
-                    Code = createDto.Code, 
+                    Code = createDto.Code,
                     Password = createDto.Password,
-                    ConfirmPassword = createDto.Password, 
+                    ConfirmPassword = createDto.Password,
                     FirstName = createDto.FirstName,
                     LastName = createDto.LastName,
                     PhoneNumber = createDto.PhoneNumber,
@@ -278,115 +350,59 @@ namespace App.UI.Application.Services
                 };
 
                 var response = await _externalApiService.PostWithTokenAsync(
-                    selectedMachine.ApiAddress,
+                    machine.ApiAddress,
                     "identity/account",
                     externalApiData,
-                    token
+                    tokenResult.Data
                 );
 
-                if (response.IsSuccessStatusCode)
-                {
-                    var jsonString = await response.Content.ReadAsStringAsync();
-                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                    var createdUser = JsonSerializer.Deserialize<ExternalUserDto>(jsonString, options);
+                var jsonString = await response.Content.ReadAsStringAsync();
+                var (isSuccess, message, user) = ParseCreateUpdateResponse(jsonString, response);
 
-                    if (createdUser != null)
-                    {
-                        _logger.LogInformation("External kullanıcı başarıyla oluşturuldu: {UserId} - {UserName}",
-                            createdUser.Id, createDto.UserName);
-                        return ServiceResult<ExternalUserDto>.Success(createdUser);
-                    }
+                if (!isSuccess)
+                {
+                    _logger.LogWarning("Kullanıcı oluşturulamadı: {Message}", message);
+                    return ServiceResult<ExternalUserDto>.Fail(message);
                 }
 
-                var errorContent = await response.Content.ReadAsStringAsync();
-                _logger.LogError("External API Error: {StatusCode} - {Content}", response.StatusCode, errorContent);
-                return ServiceResult<ExternalUserDto>.Fail("Kullanıcı oluşturulamadı - API hatası");
+                if (user != null)
+                {
+                    _logger.LogInformation("Kullanıcı oluşturuldu: {UserId} - {UserName}", user.Id, createDto.UserName);
+                    return ServiceResult<ExternalUserDto>.Success(user);
+                }
+
+                return ServiceResult<ExternalUserDto>.Fail("Kullanıcı verisi alınamadı");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "External kullanıcı oluşturulurken hata oluştu: {UserName}", createDto.UserName);
-                return ServiceResult<ExternalUserDto>.Fail("External kullanıcı oluşturulurken hata oluştu");
+                _logger.LogError(ex, "Kullanıcı oluşturulurken hata: {UserName}", createDto.UserName);
+                return ServiceResult<ExternalUserDto>.Fail($"Hata: {ex.Message}");
             }
         }
 
+        // ✅ UPDATE - Tüm business logic Service'de
         public async Task<ServiceResult<ExternalUserDto>> UpdateUserAsync(UpdateExternalUserDto updateDto)
         {
             try
             {
-                var selectedMachine = _sessionService.GetSelectedMachine();
-                if (selectedMachine == null)
-                {
+                // ✅ Validation Service'de
+                var validationError = ValidateUpdateUser(updateDto);
+                if (!validationError.IsSuccess)
+                    return validationError;
+
+                var machine = GetSelectedMachine();
+                if (machine == null)
                     return ServiceResult<ExternalUserDto>.Fail("Makine seçilmedi");
-                }
 
-                // Validation
-                if (string.IsNullOrWhiteSpace(updateDto.Id))
-                {
-                    return ServiceResult<ExternalUserDto>.Fail("Kullanıcı ID'si geçersiz");
-                }
+                var tokenResult = await GetTokenAsync();
+                if (!tokenResult.IsSuccess)
+                    return ServiceResult<ExternalUserDto>.Fail(tokenResult.Message);
 
-                if (string.IsNullOrWhiteSpace(updateDto.Email))
-                {
-                    return ServiceResult<ExternalUserDto>.Fail("Email adresi zorunludur");
-                }
-
-                if (string.IsNullOrWhiteSpace(updateDto.FirstName) || updateDto.FirstName.Length < 2)
-                {
-                    return ServiceResult<ExternalUserDto>.Fail("Ad en az 2 karakter olmalıdır");
-                }
-
-                if (string.IsNullOrWhiteSpace(updateDto.LastName) || updateDto.LastName.Length < 2)
-                {
-                    return ServiceResult<ExternalUserDto>.Fail("Soyad en az 2 karakter olmalıdır");
-                }
-
-                if (string.IsNullOrWhiteSpace(updateDto.PhoneNumber))
-                {
-                    return ServiceResult<ExternalUserDto>.Fail("Telefon numarası zorunludur");
-                }
-
-                // Telefon numarası format kontrolü
-                if (!System.Text.RegularExpressions.Regex.IsMatch(updateDto.PhoneNumber, @"^0\d{10}$"))
-                {
-                    return ServiceResult<ExternalUserDto>.Fail("Telefon numarası 0 ile başlamalı ve 11 haneli olmalıdır");
-                }
-
-                if (string.IsNullOrWhiteSpace(updateDto.Code) || updateDto.Code.Length < 2 || updateDto.Code.Length > 20)
-                {
-                    return ServiceResult<ExternalUserDto>.Fail("Kod 2-20 karakter arasında olmalıdır");
-                }
-
-                // Kod format kontrolü - sadece büyük harf ve rakam
-                if (!System.Text.RegularExpressions.Regex.IsMatch(updateDto.Code, @"^[A-Z0-9]+$"))
-                {
-                    return ServiceResult<ExternalUserDto>.Fail("Kod sadece büyük harf ve rakam içermelidir");
-                }
-
-                // Şifre varsa validation yap
-                if (!string.IsNullOrEmpty(updateDto.Password) && updateDto.Password.Length < 6)
-                {
-                    return ServiceResult<ExternalUserDto>.Fail("Şifre en az 6 karakter olmalıdır");
-                }
-
-                var token = _sessionService.GetMachineApiToken();
-                if (string.IsNullOrEmpty(token))
-                {
-                    var loginResponse = await _externalApiService.LoginAsync(selectedMachine.ApiAddress);
-                    if (!loginResponse.Success)
-                    {
-                        return ServiceResult<ExternalUserDto>.Fail("Token alınamadı");
-                    }
-                    token = loginResponse.AccessToken;
-                }
-
-                _logger.LogInformation("Kullanıcı güncelleniyor: {UserId}, Email: {Email}, Phone: {Phone}, Code: {Code}",
-                    updateDto.Id, updateDto.Email, updateDto.PhoneNumber, updateDto.Code);
-
-                // API'ye gönderilecek veriyi hazırla
-                var requestData = new
+                var requestObject = new
                 {
                     id = updateDto.Id,
                     email = updateDto.Email,
+                    isActive = true,
                     phoneNumber = updateDto.PhoneNumber,
                     firstName = updateDto.FirstName,
                     lastName = updateDto.LastName,
@@ -396,78 +412,123 @@ namespace App.UI.Application.Services
                     password = string.IsNullOrEmpty(updateDto.Password) ? null : updateDto.Password
                 };
 
-                // Eğer şifre varsa ekle
-                var requestObject = string.IsNullOrEmpty(updateDto.Password)
-                    ? requestData
-                    : new
-                    {
-                        id = updateDto.Id,
-                        email = updateDto.Email,
-                        phoneNumber = updateDto.PhoneNumber,
-                        firstName = updateDto.FirstName,
-                        lastName = updateDto.LastName,
-                        code = updateDto.Code,
-                        roles = updateDto.Roles ?? new List<string>(),
-                        userLoginType = updateDto.UserLoginType.ToString(),
-                        password = string.IsNullOrEmpty(updateDto.Password) ? null : updateDto.Password
-                    };
-
                 var response = await _externalApiService.PutWithTokenAsync(
-                    selectedMachine.ApiAddress,
+                    machine.ApiAddress,
                     "identity/account",
                     requestObject,
-                    token
+                    tokenResult.Data
                 );
 
-                if (response.IsSuccessStatusCode)
+                var jsonString = await response.Content.ReadAsStringAsync();
+                var (isSuccess, message, user) = ParseCreateUpdateResponse(jsonString, response);
+
+                if (!isSuccess)
                 {
-                    var jsonString = await response.Content.ReadAsStringAsync();
-                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                    var updatedUser = JsonSerializer.Deserialize<ExternalUserDto>(jsonString, options);
-
-                    if (updatedUser != null)
-                    {
-                        _logger.LogInformation("Kullanıcı başarıyla güncellendi: {UserId} - Email: {Email}",
-                            updateDto.Id, updateDto.Email);
-                        return ServiceResult<ExternalUserDto>.Success(updatedUser);
-                    }
-                }
-                else
-                {
-                    // API'den dönen hata mesajını oku
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    _logger.LogWarning("Kullanıcı güncellenemedi: {UserId}, StatusCode: {StatusCode}, Error: {Error}",
-                        updateDto.Id, response.StatusCode, errorContent);
-
-                    // Hata mesajını parse etmeye çalış
-                    try
-                    {
-                        var errorResponse = JsonSerializer.Deserialize<JsonElement>(errorContent);
-                        if (errorResponse.TryGetProperty("message", out var message))
-                        {
-                            return ServiceResult<ExternalUserDto>.Fail($"Kullanıcı güncellenemedi: {message.GetString()}");
-                        }
-                        if (errorResponse.TryGetProperty("title", out var title))
-                        {
-                            return ServiceResult<ExternalUserDto>.Fail($"Kullanıcı güncellenemedi: {title.GetString()}");
-                        }
-                    }
-                    catch
-                    {
-                       
-                    }
-
-                    return ServiceResult<ExternalUserDto>.Fail($"Kullanıcı güncellenemedi. HTTP {response.StatusCode}");
+                    _logger.LogWarning("Kullanıcı güncellenemedi: {Id} - {Message}", updateDto.Id, message);
+                    return ServiceResult<ExternalUserDto>.Fail(message);
                 }
 
-                _logger.LogWarning("Kullanıcı güncellenemedi: {UserId} - Beklenmeyen durum", updateDto.Id);
-                return ServiceResult<ExternalUserDto>.Fail("Kullanıcı güncellenemedi");
+                if (user != null)
+                {
+                    _logger.LogInformation("Kullanıcı güncellendi: {UserId}", updateDto.Id);
+                    return ServiceResult<ExternalUserDto>.Success(user);
+                }
+
+                return ServiceResult<ExternalUserDto>.Fail("Kullanıcı verisi alınamadı");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Kullanıcı güncellenirken hata oluştu: {UserId}", updateDto.Id);
-                return ServiceResult<ExternalUserDto>.Fail($"Kullanıcı güncellenirken hata oluştu: {ex.Message}");
+                _logger.LogError(ex, "Kullanıcı güncellenirken hata: {UserId}", updateDto.Id);
+                return ServiceResult<ExternalUserDto>.Fail($"Hata: {ex.Message}");
             }
+        }
+
+        // ✅ CHANGE PASSWORD - Tüm business logic Service'de
+        public async Task<ServiceResult> ChangePasswordAsync(ChangePasswordDto changePasswordDto)
+        {
+            try
+            {
+                // Validation Service'de
+                if (string.IsNullOrEmpty(changePasswordDto.Id))
+                    return ServiceResult.Fail("Geçersiz kullanıcı ID'si");
+
+                if (string.IsNullOrEmpty(changePasswordDto.NewPassword) || changePasswordDto.NewPassword.Length < 6)
+                    return ServiceResult.Fail("Parola en az 6 karakter olmalıdır");
+
+                if (changePasswordDto.NewPassword != changePasswordDto.ConfirmNewPassword)
+                    return ServiceResult.Fail("Parolalar eşleşmiyor");
+
+                var machine = GetSelectedMachine();
+                if (machine == null)
+                    return ServiceResult.Fail("Makine seçilmedi");
+
+                var tokenResult = await GetTokenAsync();
+                if (!tokenResult.IsSuccess)
+                    return ServiceResult.Fail(tokenResult.Message);
+
+                var updateData = new
+                {
+                    Id = changePasswordDto.Id,
+                    NewPassword = changePasswordDto.NewPassword,
+                    ConfirmNewPassword = changePasswordDto.ConfirmNewPassword
+                };
+
+                var response = await _externalApiService.PutWithTokenAsync(
+                    machine.ApiAddress,
+                    "identity/account/update-password",
+                    updateData,
+                    tokenResult.Data
+                );
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("Parola değiştirilirken hata: {StatusCode} - {Error}",
+                        response.StatusCode, errorContent);
+                    return ServiceResult.Fail("Parola değiştirilirken hata oluştu");
+                }
+
+                _logger.LogInformation("Parola değiştirildi: {UserId}", changePasswordDto.Id);
+                return ServiceResult.Success();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Parola değiştirilirken hata: {UserId}", changePasswordDto.Id);
+                return ServiceResult.Fail($"Hata: {ex.Message}");
+            }
+        }
+
+        // ✅ Validation Helper
+        private ServiceResult<ExternalUserDto> ValidateUpdateUser(UpdateExternalUserDto updateDto)
+        {
+            if (string.IsNullOrWhiteSpace(updateDto.Id))
+                return ServiceResult<ExternalUserDto>.Fail("Kullanıcı ID'si geçersiz");
+
+            if (string.IsNullOrWhiteSpace(updateDto.Email))
+                return ServiceResult<ExternalUserDto>.Fail("Email adresi zorunludur");
+
+            if (string.IsNullOrWhiteSpace(updateDto.FirstName) || updateDto.FirstName.Length < 2)
+                return ServiceResult<ExternalUserDto>.Fail("Ad en az 2 karakter olmalıdır");
+
+            if (string.IsNullOrWhiteSpace(updateDto.LastName) || updateDto.LastName.Length < 2)
+                return ServiceResult<ExternalUserDto>.Fail("Soyad en az 2 karakter olmalıdır");
+
+            if (string.IsNullOrWhiteSpace(updateDto.PhoneNumber))
+                return ServiceResult<ExternalUserDto>.Fail("Telefon numarası zorunludur");
+
+            if (!System.Text.RegularExpressions.Regex.IsMatch(updateDto.PhoneNumber, @"^0\d{10}$"))
+                return ServiceResult<ExternalUserDto>.Fail("Telefon numarası 0 ile başlamalı ve 11 haneli olmalıdır");
+
+            if (string.IsNullOrWhiteSpace(updateDto.Code) || updateDto.Code.Length < 2 || updateDto.Code.Length > 20)
+                return ServiceResult<ExternalUserDto>.Fail("Kod 2-20 karakter arasında olmalıdır");
+
+            if (!System.Text.RegularExpressions.Regex.IsMatch(updateDto.Code, @"^[A-Z0-9]+$"))
+                return ServiceResult<ExternalUserDto>.Fail("Kod sadece büyük harf ve rakam içermelidir");
+
+            if (!string.IsNullOrEmpty(updateDto.Password) && updateDto.Password.Length < 6)
+                return ServiceResult<ExternalUserDto>.Fail("Şifre en az 6 karakter olmalıdır");
+
+            return ServiceResult<ExternalUserDto>.Success(null);
         }
 
         public async Task<ServiceResult> DeleteUserAsync(string id)

@@ -47,6 +47,7 @@ namespace App.UI.Extensions
             services.AddScoped<ISessionService, SessionService>();
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IExternalApiService, ExternalApiService>();
+            services.AddScoped<ICompanyService, CompanyService>();
 
             return services;
         }
@@ -152,6 +153,7 @@ namespace App.UI.Extensions
 
             services.AddScoped<IMachineAppService, MachineAppService>();
             services.AddScoped<IExternalUserService, ExternalUserService>();
+            services.AddScoped<ICompanyService, CompanyService>();
             services.AddLegacyServices();
 
             return services;

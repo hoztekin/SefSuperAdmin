@@ -7,74 +7,89 @@ namespace App.UI.MiddleWare
 {
     public class TokenRefreshMiddleware(RequestDelegate next)
     {
-
-
         public async Task InvokeAsync(HttpContext context, IAuthService authService, ISessionService sessionService, ILogger<TokenRefreshMiddleware> logger)
         {
-            // Sadece authenticated kullanıcılar için kontrol yap
-            if (context.User.Identity?.IsAuthenticated == true)
+            try
             {
-                var userSession = sessionService.GetUserSession();
-
-                // Session varsa ve AccessToken süresi kontrol et
-                if (userSession != null && !string.IsNullOrEmpty(userSession.AccessToken))
+                // Sadece authenticated kullanıcılar için kontrol et
+                if (context.User.Identity?.IsAuthenticated == true)
                 {
-                    // Token'ın süresi kontrol et
-                    double remainingMinutes = (userSession.ExpiresAt - DateTime.UtcNow).TotalMinutes;
+                    var userSession = sessionService.GetUserSession();
 
-                    if (remainingMinutes <= 0)
+                    // Session var mı kontrol et
+                    if (userSession != null && !string.IsNullOrEmpty(userSession.AccessToken))
                     {
-                        // Token süresi dolmuş, refresh token ile yenilemeyi dene
-                        logger.LogInformation("Token süresi dolmuş, yenileme deneniyor...");
+                        // Token'ın kalan süresini hesapla
+                        double remainingMinutes = (userSession.ExpiresAt - DateTime.UtcNow).TotalMinutes;
 
+                        // Token süresi dolmuşsa yenile
+                        if (remainingMinutes <= 0)
+                        {
+                            logger.LogInformation("Token süresi dolmuş, RefreshToken ile yenileniyor...");
+                            bool refreshed = await authService.RefreshTokenAsync();
+
+                            if (!refreshed)
+                            {
+                                logger.LogWarning("RefreshToken başarısız, logout yapılıyor");
+                                await LogoutUserAsync(context);
+                                return;
+                            }
+                        }
+                        // Token'ın süresi 5 dakikadan az kaldıysa yenile
+                        else if (remainingMinutes > 0 && remainingMinutes < 5)
+                        {
+                            logger.LogInformation("Token süresi az kaldı ({Minutes} dakika), yenileniyor", remainingMinutes);
+                            await authService.RefreshTokenAsync();
+                        }
+                    }
+                    else
+                    {
+                        // Session yoksa RefreshToken ile yeni token al
+                        logger.LogInformation("Session bulunamadı, RefreshToken ile yenileniyor");
                         bool refreshed = await authService.RefreshTokenAsync();
+
                         if (!refreshed)
                         {
-                            // Refresh token da geçersiz, oturumu sonlandır
-                            logger.LogWarning("Token yenilenemedi, oturum sonlandırılıyor...");
-                            await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-                            context.Response.Redirect("/Authentication/Login");
+                            logger.LogWarning("RefreshToken başarısız, logout yapılıyor");
+                            await LogoutUserAsync(context);
                             return;
                         }
                     }
-                    else if (remainingMinutes > 0 && remainingMinutes < 5)
-                    {
-                        // Token'ın süresi 5 dakikadan az kaldıysa yenile
-                        logger.LogInformation("Token süresi az kaldı ({minutes} dakika), yenileme deneniyor...", remainingMinutes);
+                }
 
-                        await authService.RefreshTokenAsync();
+                // Sonraki middleware'e geç
+                await next(context);
+
+                // Response 401 ise token yenilemeyi dene
+                if (context.Response.StatusCode == 401 && context.User.Identity?.IsAuthenticated == true)
+                {
+                    logger.LogInformation("401 hatası alındı, RefreshToken ile yenileniyor");
+                    bool refreshed = await authService.RefreshTokenAsync();
+
+                    if (refreshed)
+                    {
+                        // Token yenilendi
+                        logger.LogInformation("Token başarıyla yenilendi");
+                    }
+                    else
+                    {
+                        // Token yenilenemedi
+                        logger.LogWarning("RefreshToken başarısız, logout yapılıyor");
+                        await LogoutUserAsync(context);
                     }
                 }
-                else
-                {
-                    // Session yoksa veya token yoksa logout yap
-                    logger.LogWarning("User session bulunamadı, oturum sonlandırılıyor...");
-                    await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-                    context.Response.Redirect("/Authentication/Login");
-                    return;
-                }
             }
-
-            await next(context);
-
-            // Response 401 ise token yenilemeyi dene
-            if (context.Response.StatusCode == 401 && context.User.Identity?.IsAuthenticated == true)
+            catch (Exception ex)
             {
-                logger.LogInformation("401 alındı, token yenileme deneniyor...");
-
-                bool refreshed = await authService.RefreshTokenAsync();
-                if (refreshed)
-                {
-                    // Token yenilendi, orijinal request'i tekrar dene
-                    context.Response.Redirect(context.Request.Path);
-                }
-                else
-                {
-                    // Token yenilenemedi, login sayfasına yönlendir
-                    await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-                    context.Response.Redirect("/Authentication/Login");
-                }
+                logger.LogError(ex, "TokenRefreshMiddleware'de hata oluştu");
+                await next(context);
             }
+        }
+
+        private async Task LogoutUserAsync(HttpContext context)
+        {
+            await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            context.Response.Redirect("/Authentication/Login");
         }
     }
 }

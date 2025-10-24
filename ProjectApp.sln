@@ -22,11 +22,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".cloudflared", ".cloudflare
 		.cloudflared\config.yaml = .cloudflared\config.yaml
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{56118F63-BC0F-42EB-A65D-69851A2ACD45}"
-	ProjectSection(SolutionItems) = preProject
-		workflows\deploy.yml = workflows\deploy.yml
-	EndProjectSection
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

@@ -1,0 +1,594 @@
+﻿@{
+    ViewData["Title"] = "Şube Yönetimi";
+    var selectedMachine = ViewData["SelectedMachine"] as SelectedMachineInfo;
+}
+
+<!-- ViewComponent Navigation -->
+@await Component.InvokeAsync("RoleBasedNavigation", new { showLogo = true })
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2><i class="fas fa-sitemap text-primary"></i> Şube Yönetimi</h2>
+                    <p class="text-muted">
+                        @if (selectedMachine != null)
+                        {
+                            <text>@selectedMachine.BranchName makinesindeki şubeleri yönetin</text>
+                        }
+                        else
+                        {
+                            <text>Şube bilgilerini yönetin</text>
+                        }
+                    </p>
+                </div>
+                <div>
+                    <a href="/Home/Index" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Ana Sayfaya Dön
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold">
+                            <i class="fas fa-list"></i> Şube Listesi (<span id="branchCount">0</span> şube)
+                        </h6>
+                        <div>
+                            <button onclick="showAddBranchModal()" class="btn btn-sm btn-light me-2">
+                                <i class="fas fa-plus"></i> Ekle
+                            </button>
+                            <button onclick="refreshBranchList()" class="btn btn-sm btn-outline-light">
+                                <i class="fas fa-sync-alt"></i> Yenile
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="loadingSpinner" class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Yükleniyor...</span>
+                        </div>
+                        <p class="mt-3 text-muted">Şubeler yükleniyor...</p>
+                    </div>
+
+                    <div id="branchesTable" style="display: none;">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead class="thead-dark">
+                                    <tr>
+                                        <th><i class="fas fa-code"></i> Kod</th>
+                                        <th><i class="fas fa-sitemap"></i> Şube Adı</th>
+                                        <th><i class="fas fa-building"></i> Şirket</th>
+                                        <th><i class="fas fa-phone"></i> Telefon</th>
+                                        <th><i class="fas fa-map-marker-alt"></i> Adres</th>
+                                        <th><i class="fas fa-users"></i> Çalışan</th>
+                                        <th><i class="fas fa-cog"></i> İşlemler</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="branchTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="emptyMessage" style="display: none; text-align: center; padding: 60px;">
+                        <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                        <h4 class="text-muted">Şube Bulunmuyor</h4>
+                        <p class="text-muted">Henüz hiç şube kaydı yapılmamış.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Şube Ekleme Modal -->
+<div class="modal fade" id="addBranchModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus-circle"></i> Yeni Şube Ekle
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addBranchForm" onsubmit="submitBranchForm(event, 'add')">
+                <div class="modal-body">
+                    <div id="addFormError" class="alert alert-danger" style="display: none;"></div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="addCode" class="form-label">Şube Kodu <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="addCode" name="code" placeholder="Örn: ST01" required />
+                            <small class="text-danger" id="addCodeError"></small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="addName" class="form-label">Şube Adı <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="addName" name="name" placeholder="Şube adını girin" required />
+                            <small class="text-danger" id="addNameError"></small>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="addCompanyId" class="form-label">Şirket <span class="text-danger">*</span></label>
+                            <select class="form-select" id="addCompanyId" name="companyId" required>
+                                <option value="">Şirket seçin</option>
+                            </select>
+                            <small class="text-danger" id="addCompanyError"></small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="addDistrictId" class="form-label">İlçe <span class="text-danger">*</span></label>
+                            <select class="form-select" id="addDistrictId" name="districtId" required>
+                                <option value="">İlçe seçin</option>
+                            </select>
+                            <small class="text-danger" id="addDistrictError"></small>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="addPhone" class="form-label">Telefon (11 Haneli) <span class="text-danger">*</span></label>
+                            <input type="tel" class="form-control" id="addPhone" name="phone" placeholder="05xxxxxxxxx" pattern="05[0-9]{9}" required />
+                            <small class="text-danger" id="addPhoneError"></small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="addNumberOfEmployees" class="form-label">Çalışan Sayısı</label>
+                            <input type="number" class="form-control" id="addNumberOfEmployees" name="numberOfEmployees" min="0" value="0" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="addAddress" class="form-label">Adres <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="addAddress" name="address" placeholder="Şube adresi girin" required />
+                        <small class="text-danger" id="addAddressError"></small>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="addContactDetails" class="form-label">İletişim Detayları</label>
+                            <input type="text" class="form-control" id="addContactDetails" name="contactDetails" placeholder="Muhasebe, İK vb." />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="addOperatingHours" class="form-label">Çalışma Saatleri</label>
+                            <input type="text" class="form-control" id="addOperatingHours" name="operatingHours" placeholder="09:00 - 18:00" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-info">
+                        <i class="fas fa-save"></i> Kaydet
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Şube Düzenleme Modal -->
+<div class="modal fade" id="editBranchModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit"></i> Şube Düzenle
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editBranchForm" onsubmit="submitBranchForm(event, 'edit')">
+                <div class="modal-body">
+                    <div id="editFormError" class="alert alert-danger" style="display: none;"></div>
+
+                    <input type="hidden" id="editBranchId" name="id" />
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="editCode" class="form-label">Şube Kodu <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editCode" name="code" placeholder="Örn: ST01" required />
+                            <small class="text-danger" id="editCodeError"></small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editName" class="form-label">Şube Adı <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editName" name="name" placeholder="Şube adını girin" required />
+                            <small class="text-danger" id="editNameError"></small>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="editCompanyId" class="form-label">Şirket <span class="text-danger">*</span></label>
+                            <select class="form-select" id="editCompanyId" name="companyId" required>
+                                <option value="">Şirket seçin</option>
+                            </select>
+                            <small class="text-danger" id="editCompanyError"></small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editDistrictId" class="form-label">İlçe <span class="text-danger">*</span></label>
+                            <select class="form-select" id="editDistrictId" name="districtId" required>
+                                <option value="">İlçe seçin</option>
+                            </select>
+                            <small class="text-danger" id="editDistrictError"></small>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="editPhone" class="form-label">Telefon (11 Haneli) <span class="text-danger">*</span></label>
+                            <input type="tel" class="form-control" id="editPhone" name="phone" placeholder="05xxxxxxxxx" pattern="05[0-9]{9}" required />
+                            <small class="text-danger" id="editPhoneError"></small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editNumberOfEmployees" class="form-label">Çalışan Sayısı</label>
+                            <input type="number" class="form-control" id="editNumberOfEmployees" name="numberOfEmployees" min="0" value="0" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="editAddress" class="form-label">Adres <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editAddress" name="address" placeholder="Şube adresi girin" required />
+                        <small class="text-danger" id="editAddressError"></small>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="editContactDetails" class="form-label">İletişim Detayları</label>
+                            <input type="text" class="form-control" id="editContactDetails" name="contactDetails" placeholder="Muhasebe, İK vb." />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editOperatingHours" class="form-label">Çalışma Saatleri</label>
+                            <input type="text" class="form-control" id="editOperatingHours" name="operatingHours" placeholder="09:00 - 18:00" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="editIsActive" name="isActive" checked />
+                            <label class="form-check-label" for="editIsActive">Aktif</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-info">
+                        <i class="fas fa-save"></i> Güncelle
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Silme Onayı Modal -->
+<div class="modal fade" id="deleteBranchModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle"></i> Silme Onayı
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>
+                    <strong id="deleteBranchName"></strong> adlı şubeyi silmek istediğinizden emin misiniz?
+                </p>
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-exclamation-circle"></i>
+                    Bu işlem geri alınamaz!
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDeleteBranch()">
+                    <i class="fas fa-trash"></i> Sil
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // ===== Global Variables =====
+        let AppState = {
+            addModalInstance: null,
+            editModalInstance: null,
+            deleteModalInstance: null,
+            deleteId: null,
+            deleteName: null,
+            allCompanies: [],
+            allDistricts: []
+        };
+
+        // ===== Initialization =====
+        document.addEventListener('DOMContentLoaded', function () {
+            AppState.addModalInstance = new bootstrap.Modal(document.getElementById('addBranchModal'));
+            AppState.editModalInstance = new bootstrap.Modal(document.getElementById('editBranchModal'));
+            AppState.deleteModalInstance = new bootstrap.Modal(document.getElementById('deleteBranchModal'));
+
+            loadBranches();
+            loadCompanies();
+            loadDistricts();
+        });
+
+        // ===== Load Functions =====
+        async function loadBranches() {
+            try {
+                document.getElementById('loadingSpinner').style.display = 'block';
+                document.getElementById('branchesTable').style.display = 'none';
+                document.getElementById('emptyMessage').style.display = 'none';
+
+                const response = await fetch('/Branch/GetList');
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+
+                document.getElementById('loadingSpinner').style.display = 'none';
+
+                if (data.data && data.data.length > 0) {
+                    renderBranchesTable(data.data);
+                    document.getElementById('branchesTable').style.display = 'block';
+                } else {
+                    document.getElementById('emptyMessage').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Branches fetch error:', error);
+                document.getElementById('loadingSpinner').style.display = 'none';
+                showAlert('error', `Şubeler yüklenemedi: ${error.message}`);
+            }
+        }
+
+        async function loadCompanies() {
+            try {
+                const response = await fetch('/Company/GetList');
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+
+                if (data.data && data.data.length > 0) {
+                    AppState.allCompanies = data.data;
+                    populateCompanySelects();
+                }
+            } catch (error) {
+                console.error('Companies fetch error:', error);
+            }
+        }
+
+        async function loadDistricts() {
+            try {
+                const response = await fetch('/Branch/GetDistricts');
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+
+                // statusCode kontrol et (isSuccess değil!)
+                if (data.statusCode === 200 && data.data) {
+                    AppState.allDistricts = data.data;
+                    populateDistrictSelects();
+                }
+            } catch (error) {
+                console.error('Districts fetch error:', error);
+            }
+        }
+
+        // ===== Render Functions =====
+        function renderBranchesTable(branches) {
+            const tbody = document.getElementById('branchTableBody');
+            tbody.innerHTML = '';
+            document.getElementById('branchCount').textContent = branches.length;
+
+            branches.forEach(branch => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${escapeHtml(branch.code)}</strong></td>
+                    <td>${escapeHtml(branch.name)}</td>
+                    <td>${escapeHtml(branch.companyName)}</td>
+                    <td>${escapeHtml(branch.phone || '-')}</td>
+                    <td><small>${escapeHtml(branch.address.substring(0, 40) || '-')}...</small></td>
+                    <td><span class="badge bg-primary">${branch.numberOfEmployees || 0}</span></td>
+                    <td>
+                        <div style="gap: 5px; display: flex;">
+                            <button class="btn btn-sm btn-primary" onclick="editBranch('${branch.id}')">
+                                <i class="fas fa-edit"></i> Düzenle
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteBranch('${branch.id}', '${escapeHtml(branch.name)}')">
+                                <i class="fas fa-trash"></i> Sil
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function populateCompanySelects() {
+            [document.getElementById('addCompanyId'), document.getElementById('editCompanyId')].forEach(select => {
+                const currentValue = select.value;
+                select.innerHTML = '<option value="">Şirket seçin</option>';
+                AppState.allCompanies.forEach(company => {
+                    const option = document.createElement('option');
+                    option.value = company.id;
+                    option.textContent = company.name;
+                    select.appendChild(option);
+                });
+                if (currentValue) select.value = currentValue;
+            });
+        }
+
+        function populateDistrictSelects() {
+            [document.getElementById('addDistrictId'), document.getElementById('editDistrictId')].forEach(select => {
+                const currentValue = select.value;
+                select.innerHTML = '<option value="">İlçe seçin</option>';
+                AppState.allDistricts.forEach(district => {
+                    const option = document.createElement('option');
+                    option.value = district.id;
+                    option.textContent = district.name;
+                    select.appendChild(option);
+                });
+                if (currentValue) select.value = currentValue;
+            });
+        }
+
+        // ===== Modal Functions =====
+        function showAddBranchModal() {
+            document.getElementById('addBranchForm').reset();
+            document.getElementById('addFormError').style.display = 'none';
+            AppState.addModalInstance.show();
+        }
+
+        async function editBranch(branchId) {
+            try {
+                const response = await fetch(`/Branch/Get?id=${branchId}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+
+                if (data.isSuccess && data.data) {
+                    const branch = data.data;
+
+                    document.getElementById('editBranchId').value = branch.id;
+                    document.getElementById('editCode').value = branch.code;
+                    document.getElementById('editName').value = branch.name;
+                    document.getElementById('editPhone').value = branch.phone;
+                    document.getElementById('editAddress').value = branch.address;
+                    document.getElementById('editContactDetails').value = branch.contactDetails || '';
+                    document.getElementById('editNumberOfEmployees').value = branch.numberOfEmployees || 0;
+                    document.getElementById('editOperatingHours').value = branch.operatingHours || '';
+                    document.getElementById('editIsActive').checked = branch.isActive;
+
+                    document.getElementById('editCompanyId').value = branch.companyId;
+                    document.getElementById('editDistrictId').value = branch.districtId || '';
+
+                    document.getElementById('editFormError').style.display = 'none';
+                    AppState.editModalInstance.show();
+                } else {
+                    showAlert('error', 'Şube bilgisi alınamadı');
+                }
+            } catch (error) {
+                console.error('Edit branch error:', error);
+                showAlert('error', `Hata: ${error.message}`);
+            }
+        }
+
+        function deleteBranch(branchId, branchName) {
+            AppState.deleteId = branchId;
+            AppState.deleteName = branchName;
+            document.getElementById('deleteBranchName').textContent = branchName;
+            AppState.deleteModalInstance.show();
+        }
+
+        async function confirmDeleteBranch() {
+            try {
+                const response = await fetch('/Branch/Delete', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: AppState.deleteId })
+                });
+
+                const data = await response.json();
+
+                if (data.isSuccess) {
+                    showAlert('success', `${AppState.deleteName} şubesi silindi!`);
+                    AppState.deleteModalInstance.hide();
+                    loadBranches();
+                } else {
+                    showAlert('error', data.message || 'Silme işlemi başarısız oldu');
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                showAlert('error', `Hata: ${error.message}`);
+            }
+        }
+
+        // ===== Form Submit =====
+        async function submitBranchForm(event, modalType) {
+            event.preventDefault();
+
+            const formId = modalType === 'add' ? 'addBranchForm' : 'editBranchForm';
+            const form = document.getElementById(formId);
+            const errorDiv = document.getElementById(`${modalType}FormError`);
+
+            const branchData = {
+                code: document.getElementById(`${modalType}Code`).value.trim(),
+                name: document.getElementById(`${modalType}Name`).value.trim(),
+                phone: document.getElementById(`${modalType}Phone`).value.trim(),
+                address: document.getElementById(`${modalType}Address`).value.trim(),
+                contactDetails: document.getElementById(`${modalType}ContactDetails`).value.trim() || null,
+                numberOfEmployees: parseInt(document.getElementById(`${modalType}NumberOfEmployees`).value) || 0,
+                operatingHours: document.getElementById(`${modalType}OperatingHours`).value.trim() || null,
+                companyId: document.getElementById(`${modalType}CompanyId`).value,
+                districtId: document.getElementById(`${modalType}DistrictId`).value
+            };
+
+            if (modalType === 'edit') {
+                branchData.id = document.getElementById('editBranchId').value;
+                branchData.isActive = document.getElementById('editIsActive').checked;
+            }
+
+            const url = modalType === 'add' ? '/Branch/Create' : '/Branch/Update';
+            const method = modalType === 'add' ? 'POST' : 'PUT';
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(branchData)
+                });
+
+                const result = await response.json();
+
+                if (result.isSuccess) {
+                    const modalInstance = modalType === 'add' ? AppState.addModalInstance : AppState.editModalInstance;
+                    modalInstance.hide();
+
+                    setTimeout(() => {
+                        showAlert('success', modalType === 'add' ? 'Şube eklendi!' : 'Şube güncellendi!');
+                        loadBranches();
+                    }, 300);
+                } else {
+                    errorDiv.textContent = result.message || 'İşlem başarısız!';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Form submit error:', error);
+                errorDiv.textContent = `Hata: ${error.message}`;
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        // ===== Utility Functions =====
+        function refreshBranchList() {
+            document.getElementById('loadingSpinner').style.display = 'block';
+            loadBranches();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showAlert(type, message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type === 'error' ? 'danger' : 'success'} position-fixed`;
+            alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            alertDiv.innerHTML = `
+                <i class="fas fa-${type === 'error' ? 'exclamation-circle' : 'check-circle'}"></i>
+                ${message}
+            `;
+            document.body.appendChild(alertDiv);
+
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 4000);
+        }
+
+        async function confirmAction(message) {
+            return confirm(message);
+        }
+    </script>
+}

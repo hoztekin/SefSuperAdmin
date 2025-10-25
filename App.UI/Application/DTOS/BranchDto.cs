@@ -11,6 +11,7 @@
         public string Phone { get; set; } = string.Empty;
         public string? ContactDetails { get; set; }
         public int NumberOfEmployees { get; set; }
+        public Guid DistrictId { get; set; }
         public string? OperatingHours { get; set; }
         public bool IsActive { get; set; }
     }

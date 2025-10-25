@@ -349,7 +349,7 @@ namespace App.UI.Application.Services
 
                 var response = await _externalApiService.PutWithTokenAsync(
                     machineResult.Data.ApiAddress,
-                    $"identity/branch/{updateDto.Id}",
+                    $"identity/branch",
                     updateDto,
                     tokenResult.Data
                 );
@@ -453,6 +453,8 @@ namespace App.UI.Application.Services
                 if (!tokenResult.IsSuccess)
                     return ServiceResult<List<DistrictDto>>.Fail(tokenResult.ErrorMessage);
 
+                _logger.LogInformation("İlçeler listesi alınıyor");
+
                 var response = await _externalApiService.GetWithTokenAsync(
                     machineResult.Data.ApiAddress,
                     "identity/district",
@@ -460,30 +462,37 @@ namespace App.UI.Application.Services
                 );
 
                 var jsonString = await response.Content.ReadAsStringAsync();
-                var apiResponse = JsonSerializer.Deserialize<JsonElement>(jsonString, _jsonOptions);
+                var result = ParseApiResponse(jsonString);
 
-                if (apiResponse.TryGetProperty("data", out JsonElement dataElement))
+                if (response.IsSuccessStatusCode && result.IsSuccess)
                 {
-                    var itemElement = dataElement;
-                    if (dataElement.ValueKind == JsonValueKind.Object)
+                    var apiResponse = JsonSerializer.Deserialize<JsonElement>(jsonString, _jsonOptions);
+
+                    if (apiResponse.TryGetProperty("data", out JsonElement dataElement))
                     {
-                        if (dataElement.TryGetProperty("items", out var itemsElement))
+                        // "list" property'sini arıyoruz (CompanyService ile aynı)
+                        if (dataElement.TryGetProperty("list", out JsonElement listElement))
                         {
-                            itemElement = itemsElement;
+                            var districts = JsonSerializer.Deserialize<List<DistrictDto>>(
+                                listElement.GetRawText(),
+                                _jsonOptions);
+
+                            _logger.LogInformation("İlçe listesi başarıyla alındı: {Count}", districts?.Count ?? 0);
+                            return ServiceResult<List<DistrictDto>>.Success(districts ?? new List<DistrictDto>());
                         }
                     }
-
-                    var districts = JsonSerializer.Deserialize<List<DistrictDto>>(
-                        itemElement.GetRawText(), _jsonOptions);
-
-                    return ServiceResult<List<DistrictDto>>.Success(districts ?? new List<DistrictDto>());
+                }
+                else
+                {
+                    return ServiceResult<List<DistrictDto>>.Fail(result.Message);
                 }
 
-                return ServiceResult<List<DistrictDto>>.Fail("İlçeler yüklenemedi");
+                _logger.LogWarning("İlçe listesi yüklenemedi");
+                return ServiceResult<List<DistrictDto>>.Fail("İlçe listesi yüklenemedi");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "İlçeler yüklenirken hata");
+                _logger.LogError(ex, "İlçe listesi alınırken hata oluştu");
                 return ServiceResult<List<DistrictDto>>.Fail($"Hata: {ex.Message}");
             }
         }

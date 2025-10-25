@@ -366,9 +366,16 @@
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
 
-                // statusCode kontrol et (isSuccess değil!)
-                if (data.statusCode === 200 && data.data) {
-                    AppState.allDistricts = data.data;
+                let districtsList = [];
+
+                if (data.data && data.data.list && Array.isArray(data.data.list)) {
+                    districtsList = data.data.list;
+                } else if (data.data && Array.isArray(data.data)) {
+                    districtsList = data.data;
+                }
+
+                if (districtsList && districtsList.length > 0) {
+                    AppState.allDistricts = districtsList;
                     populateDistrictSelects();
                 }
             } catch (error) {
@@ -390,7 +397,7 @@
                     <td>${escapeHtml(branch.companyName)}</td>
                     <td>${escapeHtml(branch.phone || '-')}</td>
                     <td><small>${escapeHtml(branch.address.substring(0, 40) || '-')}...</small></td>
-                    <td><span class="badge bg-primary">${branch.numberOfEmployees || 0}</span></td>
+                    <td><span class="badge bg-primary">${branch.numberOfEmployees ?? 0}</span></td>
                     <td>
                         <div style="gap: 5px; display: flex;">
                             <button class="btn btn-sm btn-primary" onclick="editBranch('${branch.id}')">
@@ -421,8 +428,13 @@
         }
 
         function populateDistrictSelects() {
-            [document.getElementById('addDistrictId'), document.getElementById('editDistrictId')].forEach(select => {
-                const currentValue = select.value;
+            const editDistrictSelect = document.getElementById('editDistrictId');
+            const addDistrictSelect = document.getElementById('addDistrictId');
+
+            const editCurrentValue = editDistrictSelect.value;
+            const addCurrentValue = addDistrictSelect.value;
+
+            [editDistrictSelect, addDistrictSelect].forEach((select) => {
                 select.innerHTML = '<option value="">İlçe seçin</option>';
                 AppState.allDistricts.forEach(district => {
                     const option = document.createElement('option');
@@ -430,8 +442,10 @@
                     option.textContent = district.name;
                     select.appendChild(option);
                 });
-                if (currentValue) select.value = currentValue;
             });
+
+            editDistrictSelect.value = editCurrentValue;
+            addDistrictSelect.value = addCurrentValue;
         }
 
         // ===== Modal Functions =====
@@ -447,8 +461,10 @@
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
 
-                if (data.isSuccess && data.data) {
+
+                if (data.statusCode === 200 && data.data) {
                     const branch = data.data;
+
 
                     document.getElementById('editBranchId').value = branch.id;
                     document.getElementById('editCode').value = branch.code;
@@ -461,13 +477,35 @@
                     document.getElementById('editIsActive').checked = branch.isActive;
 
                     document.getElementById('editCompanyId').value = branch.companyId;
-                    document.getElementById('editDistrictId').value = branch.districtId || '';
+                    const districtSelect = document.getElementById('editDistrictId');
 
-                    document.getElementById('editFormError').style.display = 'none';
-                    AppState.editModalInstance.show();
-                } else {
-                    showAlert('error', 'Şube bilgisi alınamadı');
+
+            
+                if (AppState.allDistricts.length === 0) {
+                    await loadDistricts();
                 }
+
+                if (districtSelect.options.length <= 1) {
+                    districtSelect.innerHTML = '<option value="">İlçe seçin</option>';
+                    AppState.allDistricts.forEach(district => {
+                        const option = document.createElement('option');
+                        option.value = district.id;
+                        option.textContent = district.name;
+                        districtSelect.appendChild(option);
+                    });
+                }
+
+                setTimeout(() => {
+                    districtSelect.value = branch.districtId || '';
+                    console.log('Set district value to:', branch.districtId);
+                }, 100);
+
+                document.getElementById('editFormError').style.display = 'none';
+                AppState.editModalInstance.show();
+
+                 } else {
+                     showAlert('error', 'Şube bilgisi alınamadı');
+                 }
             } catch (error) {
                 console.error('Edit branch error:', error);
                 showAlert('error', `Hata: ${error.message}`);
@@ -491,12 +529,12 @@
 
                 const data = await response.json();
 
-                if (data.isSuccess) {
+                if (data.statusCode === 200) {  
                     showAlert('success', `${AppState.deleteName} şubesi silindi!`);
                     AppState.deleteModalInstance.hide();
                     loadBranches();
                 } else {
-                    showAlert('error', data.message || 'Silme işlemi başarısız oldu');
+                    showAlert('error', data.errorMessage || 'Silme işlemi başarısız oldu');
                 }
             } catch (error) {
                 console.error('Delete error:', error);
@@ -509,7 +547,6 @@
             event.preventDefault();
 
             const formId = modalType === 'add' ? 'addBranchForm' : 'editBranchForm';
-            const form = document.getElementById(formId);
             const errorDiv = document.getElementById(`${modalType}FormError`);
 
             const branchData = {
@@ -541,7 +578,7 @@
 
                 const result = await response.json();
 
-                if (result.isSuccess) {
+                if (result.statusCode === 200) {  
                     const modalInstance = modalType === 'add' ? AppState.addModalInstance : AppState.editModalInstance;
                     modalInstance.hide();
 
@@ -550,7 +587,7 @@
                         loadBranches();
                     }, 300);
                 } else {
-                    errorDiv.textContent = result.message || 'İşlem başarısız!';
+                    errorDiv.textContent = result.errorMessage || 'İşlem başarısız!';
                     errorDiv.style.display = 'block';
                 }
             } catch (error) {
